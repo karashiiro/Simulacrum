@@ -5,7 +5,7 @@ using Dalamud.Logging;
 
 namespace Simulacrum;
 
-public class Primitive
+public abstract class Primitive
 {
     protected readonly SigScanner Scanner;
 
