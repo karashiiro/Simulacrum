@@ -4,7 +4,7 @@ using Dalamud.Game;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
 
-namespace Simulacrum;
+namespace Simulacrum.Game;
 
 public class PrimitiveDebug : Primitive
 {
@@ -23,6 +23,12 @@ public class PrimitiveDebug : Primitive
         _singletonBuffer = GC.AllocateArray<byte>(200, pinned: true);
     }
 
+    public IPrimitiveContext GetContext()
+    {
+        ArgumentNullException.ThrowIfNull(CallPrimitiveContextDrawCommand);
+        return new UnmanagedPrimitiveContext(PrimitiveContext, CallPrimitiveContextDrawCommand);
+    }
+
     public override unsafe void Initialize()
     {
         base.Initialize();
@@ -39,8 +45,9 @@ public class PrimitiveDebug : Primitive
 
         fixed (byte* vertexDeclarationBuffer = _vertexDeclarationBuffer)
         {
-            var elements = GetVertexDeclarationOptions();
-            elements.WriteArray(vertexDeclarationBuffer);
+            var vertexDeclarationElements =
+                new Span<InputElement>(vertexDeclarationBuffer, VertexDeclarationBufferElements);
+            SetVertexDeclarationOptions(vertexDeclarationElements);
 
             PluginLog.Log("Executing CallKernelDeviceCreateVertexDeclaration");
             var vertexDecl = CallKernelDeviceCreateVertexDeclaration(
@@ -71,39 +78,41 @@ public class PrimitiveDebug : Primitive
         PluginLog.Log("Initialized PrimitiveContext");
     }
 
-    private static InputElement[] GetVertexDeclarationOptions()
+    private static void SetVertexDeclarationOptions(Span<InputElement> elements)
     {
-        // ReSharper disable once RedundantExplicitArraySize
-        return new InputElement[VertexDeclarationBufferElements]
+        if (elements.Length != VertexDeclarationBufferElements)
         {
-            new()
-            {
-                Slot = 0,
-                Offset = 0x00,
-                Format = 0x23,
-                Semantic = 0x00,
-            },
-            new()
-            {
-                Slot = 0,
-                Offset = 0x0C,
-                Format = 0x44,
-                Semantic = 0x03,
-            },
-            new()
-            {
-                Slot = 0,
-                Offset = 0x10,
-                Format = 0x22,
-                Semantic = 0x08,
-            },
+            throw new InvalidOperationException("Buffer size mismatch.");
+        }
+
+        elements[0] = new()
+        {
+            Slot = 0,
+            Offset = 0x00,
+            Format = 0x23,
+            Semantic = 0x00,
+        };
+
+        elements[1] = new()
+        {
+            Slot = 0,
+            Offset = 0x0C,
+            Format = 0x44,
+            Semantic = 0x03,
+        };
+
+        elements[2] = new()
+        {
+            Slot = 0,
+            Offset = 0x10,
+            Format = 0x22,
+            Semantic = 0x08,
         };
     }
 
-    // TODO: Add a compile-time check to ensure this is 12 bytes
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Size = 12)]
     [SuppressMessage("ReSharper", "NotAccessedField.Local")]
-    private unsafe struct InputElement : INativeObject
+    private unsafe struct InputElement
     {
         public byte Slot;
         public byte Offset;

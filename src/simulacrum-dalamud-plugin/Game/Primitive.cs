@@ -2,8 +2,9 @@
 using Dalamud.Game;
 using Dalamud.Hooking;
 using Dalamud.Logging;
+using static Simulacrum.Game.GameFunctions;
 
-namespace Simulacrum;
+namespace Simulacrum.Game;
 
 public abstract class Primitive
 {
@@ -108,32 +109,4 @@ public abstract class Primitive
         PluginLog.Log($"{typeof(T).Name}: ffxiv_dx11.exe+{addr - Scanner.Module.BaseAddress:X}");
         return Marshal.GetDelegateForFunctionPointer<T>(addr);
     }
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate nint PrimitiveServerCtor(nint thisPtr);
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate byte PrimitiveServerInitialize(nint thisPtr, uint unk1, ulong unk2, ulong unk3, uint unk4,
-        uint unk5, ulong unk6, nint unk7, nint unk8);
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate void PrimitiveServerLoadResource(nint thisPtr);
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate void PrimitiveServerBegin(nint thisPtr);
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate void PrimitiveServerSpursSortUnencumbered(nint thisPtr);
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate void PrimitiveServerRender(nint thisPtr);
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate nint PrimitiveContextDrawCommand(nint thisPtr, ulong unk1, uint unk2, uint unk3, nint unk4);
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate nint KernelDeviceCreateVertexDeclaration(nint thisPtr, nint unk1, uint unk2);
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    protected delegate nint KernelEnd(nint thisPtr, nint unk1);
 }
