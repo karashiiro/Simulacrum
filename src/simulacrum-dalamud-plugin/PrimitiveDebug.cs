@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
@@ -15,10 +16,11 @@ public class PrimitiveDebug : Primitive
 
     public PrimitiveDebug(SigScanner sigScanner) : base(sigScanner)
     {
-        // TODO: Use structured types for some of this
-        _vertexDeclarationBuffer = GC.AllocateArray<byte>(12 * VertexDeclarationBufferElements, true);
-        _initializeSettingsBuffer = GC.AllocateArray<byte>(24, true);
-        _singletonBuffer = GC.AllocateArray<byte>(200, true);
+        _vertexDeclarationBuffer = GC.AllocateArray<byte>(
+            VertexDeclarationBufferElements * Marshal.SizeOf<InputElement>(),
+            pinned: true);
+        _initializeSettingsBuffer = GC.AllocateArray<byte>(24, pinned: true);
+        _singletonBuffer = GC.AllocateArray<byte>(200, pinned: true);
     }
 
     public override unsafe void Initialize()
@@ -33,17 +35,17 @@ public class PrimitiveDebug : Primitive
         fixed (byte* singleton = _singletonBuffer)
         {
             PrimitiveServer = (nint)singleton;
-            PrimitiveContext = (nint)singleton;
         }
 
-        fixed (byte* buf = _vertexDeclarationBuffer)
+        fixed (byte* vertexDeclarationBuffer = _vertexDeclarationBuffer)
         {
-            WriteInputElement((nint)buf, 0, 0x00, 0x23, 0x00);
-            WriteInputElement((nint)buf + 12, 0, 0x0C, 0x44, 0x03);
-            WriteInputElement((nint)buf + 24, 0, 0x10, 0x22, 0x08);
+            var elements = GetVertexDeclarationOptions();
+            elements.WriteArray(vertexDeclarationBuffer);
 
             PluginLog.Log("Executing CallKernelDeviceCreateVertexDeclaration");
-            var vertexDecl = CallKernelDeviceCreateVertexDeclaration((nint)Device.Instance(), (nint)buf,
+            var vertexDecl = CallKernelDeviceCreateVertexDeclaration(
+                (nint)Device.Instance(),
+                (nint)vertexDeclarationBuffer,
                 VertexDeclarationBufferElements);
 
             PluginLog.Log("Executing CallPrimitiveServer");
@@ -64,18 +66,49 @@ public class PrimitiveDebug : Primitive
             CallPrimitiveServerLoadResource(PrimitiveServer);
         }
 
-        // TODO: Assign this based on PrimitiveServer instead of PrimitiveContext for clarity
-        PrimitiveContext = Marshal.ReadIntPtr(PrimitiveContext + 0xB8);
+        PrimitiveContext = Marshal.ReadIntPtr(PrimitiveServer + 0xB8);
 
         PluginLog.Log("Initialized PrimitiveContext");
     }
 
-    private static void WriteInputElement(nint pointer, byte slot, byte offset, byte format, byte semantic)
+    private static InputElement[] GetVertexDeclarationOptions()
     {
-        // TODO: Double-check this, pretty sure it's wrong
-        Marshal.WriteInt32(pointer, slot);
-        Marshal.WriteInt32(pointer + 1, offset);
-        Marshal.WriteInt32(pointer + 2, format);
-        Marshal.WriteInt32(pointer + 3, semantic);
+        // ReSharper disable once RedundantExplicitArraySize
+        return new InputElement[VertexDeclarationBufferElements]
+        {
+            new()
+            {
+                Slot = 0,
+                Offset = 0x00,
+                Format = 0x23,
+                Semantic = 0x00,
+            },
+            new()
+            {
+                Slot = 0,
+                Offset = 0x0C,
+                Format = 0x44,
+                Semantic = 0x03,
+            },
+            new()
+            {
+                Slot = 0,
+                Offset = 0x10,
+                Format = 0x22,
+                Semantic = 0x08,
+            },
+        };
+    }
+
+    // TODO: Add a compile-time check to ensure this is 12 bytes
+    [StructLayout(LayoutKind.Sequential)]
+    [SuppressMessage("ReSharper", "NotAccessedField.Local")]
+    private unsafe struct InputElement : INativeObject
+    {
+        public byte Slot;
+        public byte Offset;
+        public byte Format;
+        public byte Semantic;
+        private fixed byte Unknown[8];
     }
 }
