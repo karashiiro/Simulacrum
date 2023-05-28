@@ -15,6 +15,7 @@ public class PrimitiveDebug : Primitive
 
     public PrimitiveDebug(SigScanner sigScanner) : base(sigScanner)
     {
+        // TODO: Use structured types for some of this
         _vertexDeclarationBuffer = GC.AllocateArray<byte>(12 * VertexDeclarationBufferElements, true);
         _initializeSettingsBuffer = GC.AllocateArray<byte>(24, true);
         _singletonBuffer = GC.AllocateArray<byte>(200, true);
@@ -63,6 +64,7 @@ public class PrimitiveDebug : Primitive
             CallPrimitiveServerLoadResource(PrimitiveServer);
         }
 
+        // TODO: Assign this based on PrimitiveServer instead of PrimitiveContext for clarity
         PrimitiveContext = Marshal.ReadIntPtr(PrimitiveContext + 0xB8);
 
         PluginLog.Log("Initialized PrimitiveContext");
@@ -70,6 +72,7 @@ public class PrimitiveDebug : Primitive
 
     private static void WriteInputElement(nint pointer, byte slot, byte offset, byte format, byte semantic)
     {
+        // TODO: Double-check this, pretty sure it's wrong
         Marshal.WriteInt32(pointer, slot);
         Marshal.WriteInt32(pointer + 1, offset);
         Marshal.WriteInt32(pointer + 2, format);

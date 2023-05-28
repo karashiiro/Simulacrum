@@ -33,6 +33,7 @@ public class Simulacrum : IDalamudPlugin
 
     public void OnFrameworkUpdate(Framework f)
     {
+        // TODO: Wrap this up in a primitive management class or something
         if (_initialized) return;
         _initialized = true;
 
