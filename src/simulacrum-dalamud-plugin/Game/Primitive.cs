@@ -41,11 +41,9 @@ public abstract class Primitive
             ScanFunc<PrimitiveServerBegin>("48 89 5c 24 08 57 48 83 ec 20 33 ff 48 8b d9 48 89 b9 90 00 00 00");
         CallPrimitiveServerSpursSortUnencumbered =
             ScanFunc<PrimitiveServerSpursSortUnencumbered>("40 53 48 83 ec 20 48 8b d9 48 8b 49 30 e8 ?? ?? ?? 00");
-
         CallPrimitiveServerRender =
             ScanFunc<PrimitiveServerRender>(
                 "48 89 5c 24 10 48 89 6c 24 18 48 89 74 24 20 57 48 81 ec a0 00 00 00 48 8b 05 ?? ?? ?? ?? 48 33 c4 48 89 84 24 90 00 00 00 65 48 8b 04 25 58 00 00 00");
-
         CallPrimitiveContextDrawCommand =
             ScanFunc<PrimitiveContextDrawCommand>(
                 "48 89 5C 24 10 48 89 6C 24 18 48 89 7C 24 20 41 56 48 83 EC ?? 41 8B E8");
@@ -86,7 +84,7 @@ public abstract class Primitive
 
         hook.Enable();
 
-        return hook;
+        return new HookSubscription<KernelEnd>(hook);
     }
 
     private void Begin()

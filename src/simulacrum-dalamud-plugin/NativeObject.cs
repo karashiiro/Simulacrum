@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Simulacrum;
 
@@ -18,6 +19,8 @@ public static class NativeObjectExtensions
     /// <typeparam name="T">The underlying type of this instance.</typeparam>
     public static void WriteStructure<T>(this T nativeObject, nint destination) where T : INativeObject
     {
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            throw new InvalidOperationException("The provided type is a reference type or contains reference types.");
         Marshal.StructureToPtr(nativeObject, destination, false);
     }
 }
