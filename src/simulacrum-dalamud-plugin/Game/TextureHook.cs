@@ -45,7 +45,7 @@ public class TextureHook : IDisposable
 
         _hook.Enable();
 
-        var mapOverlay = _dataManager.GetFile<TexFile>("ui/uld/NaviMap_hr1.tex") ??
+        var mapOverlay = _dataManager.GetFile<TexFile>("ui/map/region/01/region01_m.tex") ??
                          throw new InvalidOperationException("Could not load texture.");
         var mapOverlayData = mapOverlay.Data;
         _tex = GC.AllocateArray<byte>(mapOverlayData.Length, pinned: true);
@@ -60,13 +60,12 @@ public class TextureHook : IDisposable
             var textureAddr = Marshal.ReadIntPtr(apricotTex + 16);
             Texture = Marshal.PtrToStructure<Texture>(textureAddr);
             TexturePointer = textureAddr;
-            PluginLog.Log(
-                $"  vtbl: {(nint)Texture.vtbl:X}, Width: {Texture.Width}, Height: {Texture.Height}, Width2: {Texture.Width2}, Height2: {Texture.Height2}, Width3: {Texture.Width3}, Height3: {Texture.Height3}, D3D11Texture2D: {(nint)Texture.D3D11Texture2D:X}");
+            TextureUtils.DescribeTexture(Texture);
         }
     }
 
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    private delegate nint CreateApricotTextureFromTex(nint thisPtr, nint unk1, int unk2);
+    private delegate nint CreateApricotTextureFromTex(nint thisPtr, nint unk1, long unk2);
 
     public void Dispose()
     {

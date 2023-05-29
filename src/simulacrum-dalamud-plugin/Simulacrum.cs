@@ -131,25 +131,25 @@ public class Simulacrum : IDalamudPlugin
                     {
                         [0] = new()
                         {
-                            Position = position.WithY(position.Y + 2f),
+                            Position = position.WithY(position.Y + 2),
                             Color = color,
                             UV = UV.FromUV(0, 0),
                         },
                         [1] = new()
                         {
-                            Position = position.WithZ(position.Z + 1).WithY(position.Y + 2f),
+                            Position = position.WithZ(position.Z + 1).WithY(position.Y + 2),
                             Color = color,
                             UV = UV.FromUV(1, 0),
                         },
                         [2] = new()
                         {
-                            Position = position.WithX(position.X + 1).WithY(position.Y + 2f),
+                            Position = position.WithX(position.X + 1).WithY(position.Y + 2),
                             Color = color,
                             UV = UV.FromUV(0, 1),
                         },
                         [3] = new()
                         {
-                            Position = position.WithX(position.X + 1).WithZ(position.Z + 1).WithY(position.Y + 2f),
+                            Position = position.WithX(position.X + 1).WithZ(position.Z + 1).WithY(position.Y + 2),
                             Color = color,
                             UV = UV.FromUV(1, 1),
                         },
