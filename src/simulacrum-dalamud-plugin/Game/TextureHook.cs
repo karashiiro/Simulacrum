@@ -26,6 +26,7 @@ public class TextureHook : IDisposable
 
     public unsafe void Initialize()
     {
+        // TODO: Clean up this signature
         var addr2 = _sigScanner.ScanText(
             "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 40 48 8b f2 41 8b e8 45 33 c0 33 ff 44");
         _hook = Hook<CreateApricotTextureFromTex>.FromAddress(addr2, (thisPtr, unk1, unk2) =>
