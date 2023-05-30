@@ -1,10 +1,9 @@
-﻿using System.Runtime.InteropServices;
-using Dalamud.Data;
+﻿using System.Reflection;
+using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
-using Lumina.Data.Files;
 
 namespace Simulacrum.Game;
 
@@ -12,16 +11,14 @@ public class TextureHook : IDisposable
 {
     private Hook<CreateApricotTextureFromTex>? _hook;
     private readonly SigScanner _sigScanner;
-    private readonly DataManager _dataManager;
     private byte[]? _tex;
 
     public Texture Texture { get; private set; }
     public nint TexturePointer { get; private set; }
 
-    public TextureHook(SigScanner sigScanner, DataManager dataManager)
+    public TextureHook(SigScanner sigScanner)
     {
         _sigScanner = sigScanner;
-        _dataManager = dataManager;
     }
 
     public unsafe void Initialize()
@@ -46,11 +43,14 @@ public class TextureHook : IDisposable
 
         _hook.Enable();
 
-        var mapOverlay = _dataManager.GetFile<TexFile>("ui/map/region/01/region01_m.tex") ??
-                         throw new InvalidOperationException("Could not load texture.");
-        var mapOverlayData = mapOverlay.Data;
-        _tex = GC.AllocateArray<byte>(mapOverlayData.Length, pinned: true);
-        mapOverlayData.CopyTo(_tex.AsSpan());
+        using var texFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.test.tex") ??
+                            throw new InvalidOperationException("Could not find embedded file.");
+        _tex = GC.AllocateArray<byte>(Convert.ToInt32(texFile.Length), pinned: true);
+        var read = texFile.Read(_tex);
+        if (read != texFile.Length)
+        {
+            throw new InvalidOperationException("Failed to read stream data.");
+        }
 
         var easyCreate = Marshal.GetDelegateForFunctionPointer<CreateApricotTextureFromTex>(addr2);
         PluginLog.Log($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr2 - _sigScanner.Module.BaseAddress:X}");

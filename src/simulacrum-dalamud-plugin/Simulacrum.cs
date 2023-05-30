@@ -2,9 +2,11 @@
 using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Simulacrum.Game;
 
 namespace Simulacrum;
@@ -14,9 +16,12 @@ public class Simulacrum : IDalamudPlugin
     public string Name => "Simulacrum";
 
     private readonly ClientState _clientState;
+    private readonly DalamudPluginInterface _pluginInterface;
     private readonly Framework _framework;
+    private readonly CustomizationWindow _customizationWindow;
     private readonly PluginConfiguration _config;
     private readonly PrimitiveDebug _primitive;
+    private readonly WindowSystem _windows;
 
     private readonly TextureHook _textureHook;
 
@@ -28,21 +33,28 @@ public class Simulacrum : IDalamudPlugin
     public Simulacrum(
         [RequiredVersion("1.0")] ClientState clientState,
         [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
-        [RequiredVersion("1.0")] DataManager dataManager,
         [RequiredVersion("1.0")] Framework framework,
         [RequiredVersion("1.0")] SigScanner sigScanner)
     {
         _clientState = clientState;
         _framework = framework;
+        _pluginInterface = pluginInterface;
 
         _config = (PluginConfiguration?)pluginInterface.GetPluginConfig() ?? new PluginConfiguration();
         _config.Initialize(pluginInterface);
 
         _primitive = new PrimitiveDebug(sigScanner);
 
-        _textureHook = new TextureHook(sigScanner, dataManager);
+        _textureHook = new TextureHook(sigScanner);
 
         _material = GC.AllocateArray<byte>(Marshal.SizeOf<PrimitiveMaterial>(), pinned: true);
+
+        _windows = new WindowSystem("Simulacrum");
+        _customizationWindow = new CustomizationWindow();
+        _windows.AddWindow(_customizationWindow);
+        _customizationWindow.IsOpen = true;
+
+        _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
         _framework.Update += OnFrameworkUpdate;
     }
@@ -119,20 +131,22 @@ public class Simulacrum : IDalamudPlugin
                 }
 
                 var position = _clientState.LocalPlayer.Position;
-                var color = Color.FromRGBA(0xFF, 0xFF, 0xFF, 0xFF);
 
                 var context = _primitive.GetContext();
                 var vertexPtr = context.DrawCommand(0x21, 4, 5, materialPtr);
 
-                var translation = new Vector3(2, 8, -40);
-                var dimensions = new Vector3(20, 10, 0);
+                var aspectRatio = GetAspectRatio(_textureHook.Texture);
+                var dimensions = new Vector3(aspectRatio, 1, 0);
+                var translation = _customizationWindow.Translation;
+                var scale = _customizationWindow.Scale;
+                var color = _customizationWindow.Color;
                 unsafe
                 {
                     var vertices = new Span<Vertex>((void*)vertexPtr, 4)
                     {
                         [0] = new()
                         {
-                            Position = position + translation + Vector3.UnitY * dimensions,
+                            Position = position + translation + Vector3.UnitY * dimensions * scale,
                             Color = color,
                             UV = UV.FromUV(0, 0),
                         },
@@ -144,13 +158,13 @@ public class Simulacrum : IDalamudPlugin
                         },
                         [2] = new()
                         {
-                            Position = position + translation + dimensions,
+                            Position = position + translation + dimensions * scale,
                             Color = color,
                             UV = UV.FromUV(1, 0),
                         },
                         [3] = new()
                         {
-                            Position = position + translation + Vector3.UnitX * dimensions,
+                            Position = position + translation + Vector3.UnitX * dimensions * scale,
                             Color = color,
                             UV = UV.FromUV(1, 1),
                         },
@@ -164,10 +178,21 @@ public class Simulacrum : IDalamudPlugin
         }
     }
 
+    private static float GetAspectRatio(Texture texture)
+    {
+        return GetAspectRatio(Convert.ToInt32(texture.Width), Convert.ToInt32(texture.Height));
+    }
+
+    private static float GetAspectRatio(int width, int height)
+    {
+        return (float)height / width;
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (!disposing) return;
 
+        _pluginInterface.UiBuilder.Draw -= _windows.Draw;
         _framework.Update -= OnFrameworkUpdate;
         _textureHook.Dispose();
         _unsubscribe?.Dispose();

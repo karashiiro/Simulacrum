@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Simulacrum.Game;
 
@@ -19,5 +20,14 @@ public struct Color
             B = b,
             A = a,
         };
+    }
+
+    public static implicit operator Color(Vector4 color)
+    {
+        var r = (byte)Math.Floor(color.X * 255);
+        var g = (byte)Math.Floor(color.Y * 255);
+        var b = (byte)Math.Floor(color.Z * 255);
+        var a = (byte)Math.Floor(color.W * 255);
+        return FromRGBA(r, g, b, a);
     }
 }
