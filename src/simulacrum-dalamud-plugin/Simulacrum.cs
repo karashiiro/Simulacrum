@@ -1,11 +1,10 @@
-﻿using System.Runtime.InteropServices;
-using Dalamud.Data;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
-using Dalamud.Utility.Numerics;
 using Simulacrum.Game;
 
 namespace Simulacrum;
@@ -102,7 +101,7 @@ public class Simulacrum : IDalamudPlugin
                 Params = new PrimitiveMaterialParams
                 {
                     FaceCullMode = 0,
-                    FaceCullEnable = true,
+                    FaceCullEnable = false,
                     DepthWriteEnable = true,
                     DepthTestEnable = true,
                     TextureRemapAlpha = 0x2,
@@ -125,31 +124,33 @@ public class Simulacrum : IDalamudPlugin
                 var context = _primitive.GetContext();
                 var vertexPtr = context.DrawCommand(0x21, 4, 5, materialPtr);
 
+                var translation = new Vector3(2, 8, -40);
+                var dimensions = new Vector3(20, 10, 0);
                 unsafe
                 {
                     var vertices = new Span<Vertex>((void*)vertexPtr, 4)
                     {
                         [0] = new()
                         {
-                            Position = position.WithY(position.Y + 2),
+                            Position = position + translation + Vector3.UnitY * dimensions,
                             Color = color,
                             UV = UV.FromUV(0, 0),
                         },
                         [1] = new()
                         {
-                            Position = position.WithZ(position.Z + 1).WithY(position.Y + 2),
-                            Color = color,
-                            UV = UV.FromUV(1, 0),
-                        },
-                        [2] = new()
-                        {
-                            Position = position.WithX(position.X + 1).WithY(position.Y + 2),
+                            Position = position + translation,
                             Color = color,
                             UV = UV.FromUV(0, 1),
                         },
+                        [2] = new()
+                        {
+                            Position = position + translation + dimensions,
+                            Color = color,
+                            UV = UV.FromUV(1, 0),
+                        },
                         [3] = new()
                         {
-                            Position = position.WithX(position.X + 1).WithZ(position.Z + 1).WithY(position.Y + 2),
+                            Position = position + translation + Vector3.UnitX * dimensions,
                             Color = color,
                             UV = UV.FromUV(1, 1),
                         },
