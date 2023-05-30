@@ -8,6 +8,7 @@ using Dalamud.Logging;
 using Dalamud.Plugin;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Simulacrum.Game;
+using Simulacrum.Game.Structures;
 
 namespace Simulacrum;
 

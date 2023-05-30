@@ -4,14 +4,18 @@ using Dalamud.Game;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
+using Simulacrum.Game.Structures;
 
 namespace Simulacrum.Game;
 
-public class TextureHook : IDisposable
+public unsafe class TextureHook : IDisposable
 {
     private Hook<CreateApricotTextureFromTex>? _hook;
     private readonly SigScanner _sigScanner;
     private byte[]? _tex;
+
+    // TODO: Call Release on this
+    private ApricotTexture* _apricotTexture;
 
     public Texture Texture { get; private set; }
     public nint TexturePointer { get; private set; }
@@ -21,7 +25,7 @@ public class TextureHook : IDisposable
         _sigScanner = sigScanner;
     }
 
-    public unsafe void Initialize()
+    public void Initialize()
     {
         // TODO: Clean up this signature
         var addr2 = _sigScanner.ScanText(
@@ -57,10 +61,9 @@ public class TextureHook : IDisposable
 
         fixed (byte* tex = _tex)
         {
-            var apricotTex = easyCreate(nint.Zero, (nint)tex, _tex.Length);
-            var textureAddr = Marshal.ReadIntPtr(apricotTex + 16);
-            Texture = Marshal.PtrToStructure<Texture>(textureAddr);
-            TexturePointer = textureAddr;
+            _apricotTexture = (ApricotTexture*)easyCreate(nint.Zero, (nint)tex, _tex.Length);
+            Texture = Marshal.PtrToStructure<Texture>((nint)_apricotTexture->Texture);
+            TexturePointer = (nint)_apricotTexture->Texture;
             TextureUtils.DescribeTexture(Texture);
         }
     }

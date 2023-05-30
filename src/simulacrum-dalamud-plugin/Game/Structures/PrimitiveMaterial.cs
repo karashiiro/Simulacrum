@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Simulacrum.Game;
+namespace Simulacrum.Game.Structures;
 
 [StructLayout(LayoutKind.Sequential, Size = 24)]
 public struct PrimitiveMaterial : INativeObject
