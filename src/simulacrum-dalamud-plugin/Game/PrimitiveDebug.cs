@@ -110,14 +110,13 @@ public class PrimitiveDebug : Primitive
         };
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 12)]
+    [StructLayout(LayoutKind.Sequential, Size = 4)]
     [SuppressMessage("ReSharper", "NotAccessedField.Local")]
-    private unsafe struct InputElement
+    private struct InputElement
     {
         public byte Slot;
         public byte Offset;
         public byte Format;
         public byte Semantic;
-        private fixed byte Unknown[8];
     }
 }
