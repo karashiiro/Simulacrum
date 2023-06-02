@@ -133,6 +133,7 @@ public class Simulacrum : IDalamudPlugin
 
                 var position = _clientState.LocalPlayer.Position;
 
+                // TODO: There's a 1px texture wraparound on all sides of the primitive, possibly due to UV/command type
                 var context = _primitive.GetContext();
                 var vertexPtr = context.DrawCommand(0x21, 4, 5, materialPtr);
 
