@@ -18,6 +18,7 @@
     <ItemGroup>
         <PackageReference Include="DalamudPackager" Version="2.1.11" />
         <PackageReference Include="Silk.NET.Direct3D11" Version="2.17.1" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -65,12 +66,15 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Drawing\" />
       <Folder Include="images\" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="test.tex" />
       <EmbeddedResource Include="test.tex" />
+      <None Remove="test.png" />
+      <EmbeddedResource Include="test.png" />
     </ItemGroup>
 
 </Project>

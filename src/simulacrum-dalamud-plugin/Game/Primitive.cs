@@ -87,6 +87,12 @@ public abstract class Primitive
         return new HookSubscription<KernelEnd>(hook);
     }
 
+    public IPrimitiveContext GetContext()
+    {
+        ArgumentNullException.ThrowIfNull(CallPrimitiveContextDrawCommand);
+        return new UnmanagedPrimitiveContext(PrimitiveContext, CallPrimitiveContextDrawCommand);
+    }
+
     private void Begin()
     {
         ArgumentNullException.ThrowIfNull(CallPrimitiveServerBegin);

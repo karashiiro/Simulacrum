@@ -8,8 +8,8 @@ namespace Simulacrum.Game.Structures;
 [SuppressMessage("ReSharper", "FieldCanBeMadeReadOnly.Global")]
 public unsafe struct ApricotTexture
 {
-    public void* Vtbl;
-    public void* Vtbl2;
+    public void** Vtbl;
+    public void** Vtbl2;
     public Texture* Texture;
     public uint RefCount;
 }

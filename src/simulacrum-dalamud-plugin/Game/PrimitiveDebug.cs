@@ -23,12 +23,6 @@ public class PrimitiveDebug : Primitive
         _singletonBuffer = GC.AllocateArray<byte>(200, pinned: true);
     }
 
-    public IPrimitiveContext GetContext()
-    {
-        ArgumentNullException.ThrowIfNull(CallPrimitiveContextDrawCommand);
-        return new UnmanagedPrimitiveContext(PrimitiveContext, CallPrimitiveContextDrawCommand);
-    }
-
     public override unsafe void Initialize()
     {
         base.Initialize();
