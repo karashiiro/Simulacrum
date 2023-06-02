@@ -103,6 +103,11 @@ public unsafe class TextureHook : IDisposable
             SilkMarshal.ThrowHResult(dxDevice->CreateTexture2D(dxTextureDesc, null, &dxNewTexture));
 
             var dxResource = (ID3D11Resource*)dxNewTexture;
+
+            // Bind the texture to the pipeline with a new resource view
+            ID3D11ShaderResourceView* dxNewShaderView;
+            SilkMarshal.ThrowHResult(dxDevice->CreateShaderResourceView(dxResource, null, &dxNewShaderView));
+
             var dxMappedSubresource = new MappedSubresource();
             SilkMarshal.ThrowHResult(dxContext->Map(dxResource, 0, Map.WriteDiscard, 0, ref dxMappedSubresource));
 
@@ -118,10 +123,6 @@ public unsafe class TextureHook : IDisposable
             }
 
             dxContext->Unmap(dxResource, 0);
-
-            // Bind the texture to the pipeline with a new resource view
-            ID3D11ShaderResourceView* dxNewShaderView;
-            SilkMarshal.ThrowHResult(dxDevice->CreateShaderResourceView(dxResource, null, &dxNewShaderView));
 
             // Swap out the final data
             _apricotTexture->Texture->MipLevel = 1;
