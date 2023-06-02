@@ -18,7 +18,6 @@ public unsafe class TextureHook : IDisposable
     private readonly SigScanner _sigScanner;
     private byte[]? _tex;
 
-    // TODO: Call Release on this
     private ApricotTexture* _apricotTexture;
 
     public Texture Texture => _apricotTexture != null
@@ -92,6 +91,7 @@ public unsafe class TextureHook : IDisposable
             // Get the replacement image buffer as B8G8R8A8Unorm data
             var config = Configuration.Default.Clone();
             config.PreferContiguousImageBuffers = true;
+
             using var transcodedImage = pngImage.CloneAs<Bgra32>(config);
             if (!transcodedImage.DangerousTryGetSinglePixelMemory(out var transcodedData))
             {
@@ -111,16 +111,11 @@ public unsafe class TextureHook : IDisposable
             var dxMappedSubresource = new MappedSubresource();
             SilkMarshal.ThrowHResult(dxContext->Map(dxResource, 0, Map.WriteDiscard, 0, ref dxMappedSubresource));
 
-            // Perform a row-by-row copy of the replacement image to the new texture
+            // Copy the replacement image to the new texture
             var src = (byte*)Unsafe.AsPointer(ref transcodedData.Span[0]);
             var dst = (byte*)dxMappedSubresource.PData;
-            for (var i = 0; i < dxTextureDesc.Height; i++)
-            {
-                // TODO: This is broken somehow, fix it
-                Buffer.MemoryCopy(src, dst, dxTextureDesc.Width * sizeof(Bgra32), dxTextureDesc.Width * sizeof(Bgra32));
-                dst += dxMappedSubresource.RowPitch / sizeof(Bgra32);
-                src += dxTextureDesc.Width;
-            }
+            var pitch = dxMappedSubresource.RowPitch;
+            TextureUtils.CopyTexture2D(src, dst, dxTextureDesc.Width, dxTextureDesc.Height, sizeof(Bgra32), pitch);
 
             dxContext->Unmap(dxResource, 0);
 
@@ -144,5 +139,11 @@ public unsafe class TextureHook : IDisposable
         GC.SuppressFinalize(this);
         _hook?.Disable();
         _hook?.Dispose();
+
+        if (_apricotTexture != null)
+        {
+            _apricotTexture->Release();
+            _apricotTexture = null;
+        }
     }
 }

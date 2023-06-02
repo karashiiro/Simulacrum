@@ -44,4 +44,32 @@ public static class TextureUtils
                            $"      Format: {dxShader.Format}\n" +
                            $"      ViewDimension: {dxShader.ViewDimension}");
     }
+
+    /// <summary>
+    /// Copies 2D texture data from a source to a destination. The source data is assumed to be
+    /// contiguous and have the same pixel width as the destination.
+    /// </summary>
+    /// <param name="src">The source buffer.</param>
+    /// <param name="dst">The destination buffer.</param>
+    /// <param name="width">The texture width.</param>
+    /// <param name="height">The texture height.</param>
+    /// <param name="pixelWidth">The pixel width of the texture.</param>
+    /// <param name="rowPitch">The row pitch of the destination texture.</param>
+    public static unsafe void CopyTexture2D(
+        byte* src,
+        byte* dst,
+        uint width,
+        uint height,
+        int pixelWidth,
+        uint rowPitch)
+    {
+        // Perform a row-by-row copy of the source image to the destination texture
+        var rowSize = width * pixelWidth;
+        for (var i = 0; i < height; i++)
+        {
+            Buffer.MemoryCopy(src, dst, rowSize, rowSize);
+            dst += rowPitch;
+            src += rowSize;
+        }
+    }
 }
