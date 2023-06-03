@@ -57,4 +57,7 @@ class Build : NukeBuild
                 .SetConfiguration(Configuration)
                 .EnableNodeReuse());
         });
+    
+    // TODO: Vendor Simulacrum.AV
+    // TODO: Add custom compile task for D17
 }
