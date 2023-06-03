@@ -13,6 +13,11 @@
         <AppOutputBase>$(MSBuildProjectDirectory)\</AppOutputBase>
         <PathMap>$(AppOutputBase)=K:\arashiiro\</PathMap>
         <Deterministic>true</Deterministic>
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
 
     <ItemGroup>
@@ -66,15 +71,14 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Drawing\" />
-      <Folder Include="images\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Remove="test.tex" />
       <EmbeddedResource Include="test.tex" />
       <None Remove="test.png" />
       <EmbeddedResource Include="test.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\simulacrum-dalamud-av\Simulacrum.AV.vcxproj" />
     </ItemGroup>
 
 </Project>

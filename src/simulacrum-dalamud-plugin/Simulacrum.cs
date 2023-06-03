@@ -9,6 +9,7 @@ using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
+using Simulacrum.AV;
 using Simulacrum.Game;
 using Simulacrum.Game.Structures;
 
@@ -24,6 +25,7 @@ public class Simulacrum : IDalamudPlugin
     private readonly CustomizationWindow _customizationWindow;
     private readonly PluginConfiguration _config;
     private readonly PrimitiveDebug _primitive;
+    private readonly VideoReader _videoReader;
     private readonly WindowSystem _windows;
 
     private readonly TextureBootstrap _textureBootstrap;
@@ -50,6 +52,8 @@ public class Simulacrum : IDalamudPlugin
 
         _textureBootstrap = new TextureBootstrap(sigScanner);
 
+        _videoReader = new VideoReader();
+
         _material = GC.AllocateArray<byte>(Marshal.SizeOf<PrimitiveMaterial>(), pinned: true);
 
         _windows = new WindowSystem("Simulacrum");
@@ -62,15 +66,23 @@ public class Simulacrum : IDalamudPlugin
         _framework.Update += OnFrameworkUpdate;
     }
 
+    private const string VideoPath = @"";
+
     public void OnFrameworkUpdate(Framework f)
     {
         if (_initialized) return;
         _initialized = true;
 
+        _videoReader.Open(VideoPath);
+
+        // var x = new byte[1];
+        // var y = new long[1];
+        // _videoReader.ReadFrame(x.AsSpan(), y.AsSpan());
+
         using var pngFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.test.png") ??
                             throw new InvalidOperationException("Could not find embedded file.");
         using var pngImage = Image.Load(pngFile);
-        
+
         _textureBootstrap.Initialize(pngImage.Width, pngImage.Height);
 
         // Get the replacement image buffer as B8G8R8A8Unorm data
@@ -218,6 +230,8 @@ public class Simulacrum : IDalamudPlugin
         _framework.Update -= OnFrameworkUpdate;
         _textureBootstrap.Dispose();
         _unsubscribe?.Dispose();
+        _videoReader.Close();
+        _videoReader.Dispose();
     }
 
     public void Dispose()

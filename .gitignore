@@ -6,3 +6,7 @@ riderModule.iml
 .idea/
 .vs/
 .vscode/
+x64/
+*.vcxproj.filters
+*.vcxproj.user
+*.sln.*.user
