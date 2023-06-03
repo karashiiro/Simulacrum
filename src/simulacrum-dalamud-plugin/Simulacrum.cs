@@ -137,8 +137,8 @@ public class Simulacrum : IDalamudPlugin
                 var context = _primitive.GetContext();
                 var vertexPtr = context.DrawCommand(0x21, 4, 5, materialPtr);
 
-                var aspectRatio = GetAspectRatio(_textureHook.Texture);
-                var dimensions = new Vector3(aspectRatio, 1, 0);
+                var aspectRatio = GetAspectRatio(_textureBootstrap.Texture);
+                var dimensions = new Vector3(1, aspectRatio, 0);
                 var translation = _customizationWindow.Translation;
                 var scale = _customizationWindow.Scale;
                 var color = _customizationWindow.Color;
