@@ -1,4 +1,6 @@
 ﻿using System.Numerics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
@@ -24,7 +26,7 @@ public class Simulacrum : IDalamudPlugin
     private readonly PrimitiveDebug _primitive;
     private readonly WindowSystem _windows;
 
-    private readonly TextureHook _textureHook;
+    private readonly TextureBootstrap _textureBootstrap;
 
     private readonly byte[] _material;
 
@@ -46,7 +48,7 @@ public class Simulacrum : IDalamudPlugin
 
         _primitive = new PrimitiveDebug(sigScanner);
 
-        _textureHook = new TextureHook(sigScanner);
+        _textureBootstrap = new TextureBootstrap(sigScanner);
 
         _material = GC.AllocateArray<byte>(Marshal.SizeOf<PrimitiveMaterial>(), pinned: true);
 
@@ -65,14 +67,32 @@ public class Simulacrum : IDalamudPlugin
         if (_initialized) return;
         _initialized = true;
 
-        try
+        using var pngFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.test.png") ??
+                            throw new InvalidOperationException("Could not find embedded file.");
+        using var pngImage = Image.Load(pngFile);
+        
+        _textureBootstrap.Initialize(pngImage.Width, pngImage.Height);
+
+        // Get the replacement image buffer as B8G8R8A8Unorm data
+        var config = Configuration.Default.Clone();
+        config.PreferContiguousImageBuffers = true;
+        using var transcodedImage = pngImage.CloneAs<Bgra32>(config);
+        if (!transcodedImage.DangerousTryGetSinglePixelMemory(out var transcodedData))
         {
-            _textureHook.Initialize();
+            throw new InvalidOperationException("Failed to get transcoded image data.");
         }
-        catch (Exception e)
+
+        _textureBootstrap.Mutate((sub, desc) =>
         {
-            PluginLog.LogError(e, "Failed to hook texture ctor");
-        }
+            unsafe
+            {
+                // Copy the replacement image to the new texture
+                var src = (byte*)Unsafe.AsPointer(ref transcodedData.Span[0]);
+                var dst = (byte*)sub.PData;
+                var pitch = sub.RowPitch;
+                TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, sizeof(Bgra32), pitch);
+            }
+        });
 
         try
         {
@@ -99,7 +119,7 @@ public class Simulacrum : IDalamudPlugin
                     ColorBlendOperation = 0,
                     Enable = true,
                 },
-                Texture = _textureHook.TexturePointer,
+                Texture = _textureBootstrap.TexturePointer,
                 SamplerState = new SamplerState
                 {
                     GammaEnable = false,
@@ -196,7 +216,7 @@ public class Simulacrum : IDalamudPlugin
 
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
         _framework.Update -= OnFrameworkUpdate;
-        _textureHook.Dispose();
+        _textureBootstrap.Dispose();
         _unsubscribe?.Dispose();
     }
 
