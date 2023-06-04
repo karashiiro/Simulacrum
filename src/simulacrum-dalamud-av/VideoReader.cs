@@ -48,24 +48,24 @@ public partial class VideoReader : IDisposable
     }
 
 
-    [LibraryImport("Simulacrum.AV.Core", EntryPoint = "VideoReaderAlloc")]
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderAlloc")]
     internal static partial nint VideoReaderAlloc();
 
-    [LibraryImport("Simulacrum.AV.Core", EntryPoint = "VideoReaderFree")]
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderFree")]
     internal static partial void VideoReaderFree(nint reader);
 
-    [LibraryImport("Simulacrum.AV.Core", EntryPoint = "VideoReaderOpen")]
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderOpen")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool VideoReaderOpen(nint reader, [MarshalAs(UnmanagedType.LPStr)] string filename);
 
-    [LibraryImport("Simulacrum.AV.Core", EntryPoint = "VideoReaderReadFrame")]
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderReadFrame")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool VideoReaderReadFrame(nint reader, Span<byte> frameBuffer, out long pts);
 
-    [LibraryImport("Simulacrum.AV.Core", EntryPoint = "VideoReaderSeekFrame")]
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderSeekFrame")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool VideoReaderSeekFrame(nint reader, long ts);
 
-    [LibraryImport("Simulacrum.AV.Core", EntryPoint = "VideoReaderClose")]
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderClose")]
     internal static partial void VideoReaderClose(nint reader);
 }

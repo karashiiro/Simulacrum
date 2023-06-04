@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net7.0-windows</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <Version>0.1.0.0</Version>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -82,7 +82,7 @@
              In D17, the native libraries are vendored since this depends on
              having libav available. -->
         <ItemGroup>
-            <NativeDeps Include="..\..\$(Configuration)\**\*"/>
+            <NativeDeps Include="..\..\x64\$(Configuration)\**\*"/>
         </ItemGroup>
         <Copy
                 SourceFiles="@(NativeDeps)"

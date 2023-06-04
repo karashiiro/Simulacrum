@@ -28,8 +28,7 @@ class Build : NukeBuild
         .Before(Restore)
         .Executes(() =>
         {
-            SourceDirectory.GlobDirectories("**/bin", "**/obj", "**/x64", "**/Debug", "**/Release")
-                .ForEach(dir => dir.DeleteDirectory());
+            SourceDirectory.GlobDirectories("**/bin", "**/obj", "**/x64").ForEach(dir => dir.DeleteDirectory());
         });
 
     Target RestoreD17 => _ => _
