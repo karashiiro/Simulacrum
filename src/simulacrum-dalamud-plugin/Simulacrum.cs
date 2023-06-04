@@ -67,17 +67,25 @@ public class Simulacrum : IDalamudPlugin
         _customizationWindow.IsOpen = true;
 
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
+        _pluginInterface.UiBuilder.Draw += UpdateTextures;
 
         _framework.Update += OnFrameworkUpdate;
 
-        commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _playing = true));
+        _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _playing = true));
+        _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _playing = false));
+        _commandManager.AddHandler("/simreset", new CommandInfo((_, _) =>
+        {
+            if (!_videoReader.SeekFrame(0))
+            {
+                PluginLog.LogWarning("Failed to seek to start of video");
+            }
+        }));
     }
 
     private const string VideoPath = @"D:\rider64_xKQhMNjffD.mp4";
 
-    public void OnFrameworkUpdate(Framework f)
+    private void UpdateTextures()
     {
-        // TODO: See if this can be moved into the hook subscription
         if (_playing && _videoReader.ReadFrame(_videoFrame.AsSpan(), out var pts))
         {
             var timeBase = _videoReader.TimeBase;
@@ -97,7 +105,10 @@ public class Simulacrum : IDalamudPlugin
                 }
             });
         }
+    }
 
+    public void OnFrameworkUpdate(Framework f)
+    {
         if (_initialized) return;
 
         PluginLog.Log("Opening video");
@@ -262,7 +273,10 @@ public class Simulacrum : IDalamudPlugin
     {
         if (!disposing) return;
 
+        _commandManager.RemoveHandler("/simreset");
+        _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simplay");
+        _pluginInterface.UiBuilder.Draw -= UpdateTextures;
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
         _framework.Update -= OnFrameworkUpdate;
         _textureBootstrap.Dispose();

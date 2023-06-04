@@ -50,7 +50,7 @@ public unsafe class TextureBootstrap : IDisposable
 
         dxContext->Unmap(dxResource, 0);
     }
-    
+
     public void Initialize(int width, int height)
     {
         // TODO: Clean up this signature
