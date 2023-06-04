@@ -8,5 +8,13 @@
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
+    
+    <ItemGroup Condition="'$(SolutionName)' != 'simulacrum-d17'">
+        <ProjectReference Include="..\simulacrum-dalamud-av-core\Simulacrum.AV.Core.vcxproj">
+            <Name>Simulacrum.AV.Core</Name>
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+        </ProjectReference>
+    </ItemGroup>
 
 </Project>

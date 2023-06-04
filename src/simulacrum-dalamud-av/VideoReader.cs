@@ -1,10 +1,15 @@
 ﻿using System.Runtime.InteropServices;
+using Simulacrum.AV.Structures;
 
 namespace Simulacrum.AV;
 
 public partial class VideoReader : IDisposable
 {
-    private readonly nint _ptr;
+    private nint _ptr;
+
+    public int Width => VideoReaderGetWidth(_ptr);
+    public int Height => VideoReaderGetHeight(_ptr);
+    public AVRational TimeBase => VideoReaderGetTimeBase(_ptr);
 
     public VideoReader()
     {
@@ -34,6 +39,7 @@ public partial class VideoReader : IDisposable
     private void ReleaseUnmanagedResources()
     {
         VideoReaderFree(_ptr);
+        _ptr = nint.Zero;
     }
 
     public void Dispose()
@@ -46,7 +52,6 @@ public partial class VideoReader : IDisposable
     {
         ReleaseUnmanagedResources();
     }
-
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderAlloc")]
     internal static partial nint VideoReaderAlloc();
@@ -68,4 +73,13 @@ public partial class VideoReader : IDisposable
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderClose")]
     internal static partial void VideoReaderClose(nint reader);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetWidth")]
+    internal static partial int VideoReaderGetWidth(nint reader);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetHeight")]
+    internal static partial int VideoReaderGetHeight(nint reader);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetTimeBase")]
+    internal static partial AVRational VideoReaderGetTimeBase(nint reader);
 }

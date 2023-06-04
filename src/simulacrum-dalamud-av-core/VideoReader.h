@@ -1,42 +1,40 @@
 ﻿#pragma once
 
-#define DllExport __declspec(dllexport)
-
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 }
 
-namespace Simulacrum
+#define DllExport __declspec(dllexport)
+
+namespace Simulacrum::AV::Core
 {
-    namespace AV
+    class VideoReader
     {
-        namespace Core
-        {
-            class VideoReader
-            {
-            public:
-                int width, height;
-                AVRational time_base;
+    public:
+        int width, height;
+        AVRational time_base;
 
-                VideoReader();
+        VideoReader();
 
-                bool Open(const char* filename);
-                bool ReadFrame(uint8_t* frame_buffer, int64_t* pts);
-                bool SeekFrame(int64_t ts) const;
-                void Close();
+        bool Open(const char* filename);
+        bool ReadFrame(uint8_t* frame_buffer, int64_t* pts);
+        [[nodiscard]] bool SeekFrame(int64_t ts) const;
+        void Close();
 
-            private:
-                AVFormatContext* av_format_ctx;
-                AVCodecContext* av_codec_ctx;
-                int video_stream_index;
-                AVFrame* av_frame;
-                AVPacket* av_packet;
-                SwsContext* sws_scaler_ctx;
-            };
-        }
-    }
+        [[nodiscard]] int GetWidth() const;
+        [[nodiscard]] int GetHeight() const;
+        [[nodiscard]] AVRational GetTimeBase() const;
+
+    private:
+        AVFormatContext* av_format_ctx;
+        AVCodecContext* av_codec_ctx;
+        int video_stream_index;
+        AVFrame* av_frame;
+        AVPacket* av_packet;
+        SwsContext* sws_scaler_ctx;
+    };
 }
 
 extern "C" {
@@ -63,7 +61,7 @@ inline DllExport bool VideoReaderReadFrame(
     return reader->ReadFrame(frame_buffer, pts);
 }
 
-inline DllExport bool VideoReaderSeekFrame(Simulacrum::AV::Core::VideoReader* reader, int64_t ts)
+inline DllExport bool VideoReaderSeekFrame(const Simulacrum::AV::Core::VideoReader* reader, const int64_t ts)
 {
     return reader->SeekFrame(ts);
 }
@@ -71,5 +69,20 @@ inline DllExport bool VideoReaderSeekFrame(Simulacrum::AV::Core::VideoReader* re
 inline DllExport void VideoReaderClose(Simulacrum::AV::Core::VideoReader* reader)
 {
     reader->Close();
+}
+
+inline DllExport int VideoReaderGetWidth(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->GetWidth();
+}
+
+inline DllExport int VideoReaderGetHeight(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->GetHeight();
+}
+
+inline DllExport AVRational VideoReaderGetTimeBase(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->GetTimeBase();
 }
 }

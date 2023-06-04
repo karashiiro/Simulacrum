@@ -21,7 +21,9 @@ public unsafe class TextureBootstrap : IDisposable
         ? Marshal.PtrToStructure<Texture>((nint)_apricotTexture->Texture)
         : default;
 
-    public nint TexturePointer => (nint)_apricotTexture->Texture;
+    public nint TexturePointer => _apricotTexture != null
+        ? (nint)_apricotTexture->Texture
+        : nint.Zero;
 
     public TextureBootstrap(SigScanner sigScanner)
     {
@@ -38,9 +40,9 @@ public unsafe class TextureBootstrap : IDisposable
         {
             throw new InvalidOperationException("Only default or dynamic textures may be mutated.");
         }
-        
+
         var dxResource = (ID3D11Resource*)dxTexture;
-        
+
         var dxMappedSubresource = new MappedSubresource();
         SilkMarshal.ThrowHResult(dxContext->Map(dxResource, 0, Map.WriteDiscard, 0, ref dxMappedSubresource));
 
@@ -48,7 +50,7 @@ public unsafe class TextureBootstrap : IDisposable
 
         dxContext->Unmap(dxResource, 0);
     }
-
+    
     public void Initialize(int width, int height)
     {
         // TODO: Clean up this signature
@@ -65,11 +67,16 @@ public unsafe class TextureBootstrap : IDisposable
         {
             throw new InvalidOperationException("Failed to read stream data.");
         }
-        
+
         fixed (byte* tex = _tex)
         {
-            // TODO: This can return null if it's called early enough, defer it somehow
+            // TODO: This can return null if it's called early enough, defer it somehow to avoid needing to catch this exception
             _apricotTexture = (ApricotTexture*)easyCreate(nint.Zero, (nint)tex, _tex.Length);
+            if (_apricotTexture == null)
+            {
+                throw new InvalidOperationException("The returned texture was null.");
+            }
+
             TextureUtils.DescribeTexture(_apricotTexture->Texture);
 
             // Swap the texture for a mutable one
@@ -78,7 +85,7 @@ public unsafe class TextureBootstrap : IDisposable
             var dxTextureDesc = new Texture2DDesc();
             dxTexture->GetDesc(ref dxTextureDesc);
             var dxShaderView = (ID3D11ShaderResourceView1*)_apricotTexture->Texture->D3D11ShaderResourceView;
-            
+
             // Set the size as needed
             dxTextureDesc.Width = Convert.ToUInt32(width);
             dxTextureDesc.Height = Convert.ToUInt32(height);

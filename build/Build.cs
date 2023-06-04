@@ -7,6 +7,8 @@ using Nuke.Common.Tools.MSBuild;
 using Nuke.Common.Utilities.Collections;
 
 [SuppressMessage("ReSharper", "UnusedMember.Local")]
+[SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
+[SuppressMessage("Performance", "CA1822:Mark members as static")]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
@@ -16,8 +18,8 @@ class Build : NukeBuild
     ///   - Microsoft VSCode           https://nuke.build/vscode
     public static int Main() => Execute<Build>(x => x.Compile);
 
-    static AbsolutePath SourceDirectory => RootDirectory / "src";
-    static AbsolutePath SolutionD17 => RootDirectory / "targets" / "simulacrum-d17.sln";
+    AbsolutePath SourceDirectory => RootDirectory / "src";
+    AbsolutePath SolutionD17 => RootDirectory / "targets" / "simulacrum-d17.sln";
 
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
@@ -25,10 +27,13 @@ class Build : NukeBuild
     [Solution] readonly Solution Solution;
 
     Target Clean => _ => _
-        .Before(Restore)
+        .Before(Restore, RestoreD17)
         .Executes(() =>
         {
             SourceDirectory.GlobDirectories("**/bin", "**/obj", "**/x64").ForEach(dir => dir.DeleteDirectory());
+
+            var cxxOutput = RootDirectory / "x64";
+            cxxOutput.DeleteDirectory();
         });
 
     Target RestoreD17 => _ => _
@@ -58,13 +63,13 @@ class Build : NukeBuild
         .DependsOn(Restore)
         .Executes(() =>
         {
-            MSBuildTasks.MSBuild(_ => _
+            MSBuildTasks.MSBuild(s => s
                 .SetTargetPath(Solution)
                 .SetTargets("Build")
                 .SetConfiguration(Configuration)
+                .SetTargetPlatform(MSBuildTargetPlatform.x64)
                 .EnableNodeReuse());
         });
 
     // TODO: Vendor Simulacrum.AV
-    // TODO: Add custom compile task for D17
 }

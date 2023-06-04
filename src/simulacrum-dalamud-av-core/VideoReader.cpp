@@ -1,6 +1,7 @@
-﻿#include "VideoReader.h"
+﻿#include <string>
+#include "VideoReader.h"
 
-#include <string>
+#include <windows.h>
 
 // Ripped from https://github.com/bmewj/video-app
 
@@ -232,4 +233,19 @@ void Simulacrum::AV::Core::VideoReader::Close()
         avcodec_free_context(&av_codec_ctx);
         av_codec_ctx = nullptr;
     }
+}
+
+int Simulacrum::AV::Core::VideoReader::GetWidth() const
+{
+    return width;
+}
+
+int Simulacrum::AV::Core::VideoReader::GetHeight() const
+{
+    return height;
+}
+
+AVRational Simulacrum::AV::Core::VideoReader::GetTimeBase() const
+{
+    return time_base;
 }

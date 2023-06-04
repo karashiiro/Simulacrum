@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
+using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Logging;
@@ -19,6 +20,7 @@ public class Simulacrum : IDalamudPlugin
     public string Name => "Simulacrum";
 
     private readonly ClientState _clientState;
+    private readonly CommandManager _commandManager;
     private readonly DalamudPluginInterface _pluginInterface;
     private readonly Framework _framework;
     private readonly CustomizationWindow _customizationWindow;
@@ -32,15 +34,19 @@ public class Simulacrum : IDalamudPlugin
     private readonly byte[] _material;
 
     private IDisposable? _unsubscribe;
+    private byte[]? _videoFrame;
     private bool _initialized;
+    private bool _playing;
 
     public Simulacrum(
         [RequiredVersion("1.0")] ClientState clientState,
+        [RequiredVersion("1.0")] CommandManager commandManager,
         [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
         [RequiredVersion("1.0")] Framework framework,
         [RequiredVersion("1.0")] SigScanner sigScanner)
     {
         _clientState = clientState;
+        _commandManager = commandManager;
         _framework = framework;
         _pluginInterface = pluginInterface;
 
@@ -63,37 +69,76 @@ public class Simulacrum : IDalamudPlugin
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
         _framework.Update += OnFrameworkUpdate;
+
+        commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _playing = true));
     }
 
     private const string VideoPath = @"D:\rider64_xKQhMNjffD.mp4";
 
     public void OnFrameworkUpdate(Framework f)
     {
-        if (_initialized) return;
-        _initialized = true;
-
-        _videoReader.Open(VideoPath);
-
-        const int width = 424;
-        const int height = 310;
-        const int pixelSize = 4;
-
-        var frameBuffer = new byte[width * height * pixelSize];
-        _videoReader.ReadFrame(frameBuffer.AsSpan(), out _);
-
-        _textureBootstrap.Initialize(width, height);
-
-        _textureBootstrap.Mutate((sub, desc) =>
+        // TODO: See if this can be moved into the hook subscription
+        if (_playing && _videoReader.ReadFrame(_videoFrame.AsSpan(), out var pts))
         {
-            unsafe
+            var timeBase = _videoReader.TimeBase;
+            var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;
+            PluginLog.Log($"Presentation timestamp: {ptsSeconds}");
+
+            // TODO: Why does this crash after a couple of frames?
+            _textureBootstrap.Mutate((sub, desc) =>
             {
-                // Copy the replacement image to the new texture
-                var src = (byte*)Unsafe.AsPointer(ref frameBuffer.AsSpan()[0]);
-                var dst = (byte*)sub.PData;
-                var pitch = sub.RowPitch;
-                TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, sizeof(Bgra32), pitch);
+                unsafe
+                {
+                    // Copy the replacement image to the new texture
+                    var src = (byte*)Unsafe.AsPointer(ref _videoFrame.AsSpan()[0]);
+                    var dst = (byte*)sub.PData;
+                    var pitch = sub.RowPitch;
+                    TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, sizeof(Bgra32), pitch);
+                }
+            });
+        }
+
+        if (_initialized) return;
+
+        PluginLog.Log("Opening video");
+        if (_videoReader.Open(VideoPath))
+        {
+            var width = _videoReader.Width;
+            var height = _videoReader.Height;
+            const int pixelSize = 4;
+
+            _videoFrame = GC.AllocateArray<byte>(width * height * pixelSize, pinned: true);
+
+            PluginLog.Log("Reading frame");
+            if (_videoReader.ReadFrame(_videoFrame.AsSpan(), out _))
+            {
+                PluginLog.Log("Successfully read frame, bootstrapping texture");
+                _textureBootstrap.Initialize(width, height);
+
+                PluginLog.Log("Copying frame to bootstrapped texture");
+                _textureBootstrap.Mutate((sub, desc) =>
+                {
+                    unsafe
+                    {
+                        // Copy the replacement image to the new texture
+                        var src = (byte*)Unsafe.AsPointer(ref _videoFrame.AsSpan()[0]);
+                        var dst = (byte*)sub.PData;
+                        var pitch = sub.RowPitch;
+                        TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, sizeof(Bgra32), pitch);
+                    }
+                });
             }
-        });
+            else
+            {
+                PluginLog.Log("Failed to read frame");
+            }
+        }
+        else
+        {
+            PluginLog.Log("Failed to open video");
+        }
+
+        _initialized = true;
 
         try
         {
@@ -107,7 +152,7 @@ public class Simulacrum : IDalamudPlugin
             }
 
             PluginLog.Log("Serializing material");
-            new PrimitiveMaterial
+            var primitiveMaterial = new PrimitiveMaterial
             {
                 BlendState = new BlendState
                 {
@@ -141,7 +186,9 @@ public class Simulacrum : IDalamudPlugin
                     TextureRemapAlpha = 0x2,
                     TextureRemapColor = 0x2,
                 },
-            }.WriteStructure(materialPtr);
+            };
+
+            primitiveMaterial.WriteStructure(materialPtr);
 
             PluginLog.Log("Initializing PrimitiveDebug");
             _primitive.Initialize();
@@ -215,6 +262,7 @@ public class Simulacrum : IDalamudPlugin
     {
         if (!disposing) return;
 
+        _commandManager.RemoveHandler("/simplay");
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
         _framework.Update -= OnFrameworkUpdate;
         _textureBootstrap.Dispose();
