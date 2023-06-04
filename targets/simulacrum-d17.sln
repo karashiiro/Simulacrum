@@ -3,13 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33403.182
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Simulacrum", "src\simulacrum-dalamud-plugin\Simulacrum.csproj", "{7C2AE2C0-6D2E-44CD-BBEE-6B41B9E701DA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Simulacrum", "..\src\simulacrum-dalamud-plugin\Simulacrum.csproj", "{7C2AE2C0-6D2E-44CD-BBEE-6B41B9E701DA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "build\_build.csproj", "{5A4B2A89-8E57-4544-A68B-83DEE758AB85}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "..\build\_build.csproj", "{5A4B2A89-8E57-4544-A68B-83DEE758AB85}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Simulacrum.AV.Core", "src\simulacrum-dalamud-av-core\Simulacrum.AV.Core.vcxproj", "{2B55FD05-C5B8-4E6A-B221-80D7E27B0C19}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulacrum.AV", "src\simulacrum-dalamud-av\Simulacrum.AV.csproj", "{5763F56B-5E2F-4268-8B66-F68408FA6624}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulacrum.AV", "..\src\simulacrum-dalamud-av\Simulacrum.AV.csproj", "{5763F56B-5E2F-4268-8B66-F68408FA6624}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

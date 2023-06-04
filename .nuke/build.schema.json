@@ -74,7 +74,9 @@
             "enum": [
               "Clean",
               "Compile",
-              "Restore"
+              "CompileD17",
+              "Restore",
+              "RestoreD17"
             ]
           }
         },
@@ -90,7 +92,9 @@
             "enum": [
               "Clean",
               "Compile",
-              "Restore"
+              "CompileD17",
+              "Restore",
+              "RestoreD17"
             ]
           }
         },

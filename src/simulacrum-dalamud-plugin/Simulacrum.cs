@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
@@ -66,7 +65,7 @@ public class Simulacrum : IDalamudPlugin
         _framework.Update += OnFrameworkUpdate;
     }
 
-    private const string VideoPath = @"";
+    private const string VideoPath = @"D:\rider64_xKQhMNjffD.mp4";
 
     public void OnFrameworkUpdate(Framework f)
     {
@@ -75,31 +74,21 @@ public class Simulacrum : IDalamudPlugin
 
         _videoReader.Open(VideoPath);
 
-        // var x = new byte[1];
-        // var y = new long[1];
-        // _videoReader.ReadFrame(x.AsSpan(), y.AsSpan());
+        const int width = 424;
+        const int height = 310;
+        const int pixelSize = 4;
 
-        using var pngFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.test.png") ??
-                            throw new InvalidOperationException("Could not find embedded file.");
-        using var pngImage = Image.Load(pngFile);
+        var frameBuffer = new byte[width * height * pixelSize];
+        _videoReader.ReadFrame(frameBuffer.AsSpan(), out _);
 
-        _textureBootstrap.Initialize(pngImage.Width, pngImage.Height);
-
-        // Get the replacement image buffer as B8G8R8A8Unorm data
-        var config = Configuration.Default.Clone();
-        config.PreferContiguousImageBuffers = true;
-        using var transcodedImage = pngImage.CloneAs<Bgra32>(config);
-        if (!transcodedImage.DangerousTryGetSinglePixelMemory(out var transcodedData))
-        {
-            throw new InvalidOperationException("Failed to get transcoded image data.");
-        }
+        _textureBootstrap.Initialize(width, height);
 
         _textureBootstrap.Mutate((sub, desc) =>
         {
             unsafe
             {
                 // Copy the replacement image to the new texture
-                var src = (byte*)Unsafe.AsPointer(ref transcodedData.Span[0]);
+                var src = (byte*)Unsafe.AsPointer(ref frameBuffer.AsSpan()[0]);
                 var dst = (byte*)sub.PData;
                 var pitch = sub.RowPitch;
                 TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, sizeof(Bgra32), pitch);

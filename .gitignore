@@ -7,7 +7,11 @@ riderModule.iml
 .nuke/temp/
 .vs/
 .vscode/
+
 x64/
+Debug/
+Release/
+
 *.vcxproj.filters
 *.vcxproj.user
 *.sln.*.user

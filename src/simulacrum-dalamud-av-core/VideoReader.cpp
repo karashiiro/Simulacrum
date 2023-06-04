@@ -1,6 +1,4 @@
-#include "pch.h"
-
-#include "VideoReader.h"
+﻿#include "VideoReader.h"
 
 #include <string>
 
@@ -18,7 +16,7 @@ static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix
 {
     // Fix swscaler deprecated pixel format warning
     // (YUVJ has been deprecated, change pixel format to regular YUV)
-    switch (pix_fmt)
+    switch (pix_fmt) // NOLINT(clang-diagnostic-switch-enum)
     {
     case AV_PIX_FMT_YUVJ420P: return AV_PIX_FMT_YUV420P;
     case AV_PIX_FMT_YUVJ422P: return AV_PIX_FMT_YUV422P;
@@ -28,7 +26,7 @@ static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix
     }
 }
 
-Simulacrum::AV::VideoReaderInternal::VideoReaderInternal()
+Simulacrum::AV::Core::VideoReader::VideoReader()
     : width{},
       height{},
       time_base{},
@@ -41,7 +39,7 @@ Simulacrum::AV::VideoReaderInternal::VideoReaderInternal()
 {
 }
 
-bool Simulacrum::AV::VideoReaderInternal::Open(const char* filename)
+bool Simulacrum::AV::Core::VideoReader::Open(const char* filename)
 {
     // Open the file using libavformat
     av_format_ctx = avformat_alloc_context();
@@ -69,7 +67,7 @@ bool Simulacrum::AV::VideoReaderInternal::Open(const char* filename)
         }
         if (av_codec_params->codec_type == AVMEDIA_TYPE_VIDEO)
         {
-            video_stream_index = i;
+            video_stream_index = static_cast<int>(i);
             width = av_codec_params->width;
             height = av_codec_params->height;
             time_base = av_format_ctx->streams[i]->time_base;
@@ -110,7 +108,7 @@ bool Simulacrum::AV::VideoReaderInternal::Open(const char* filename)
     return true;
 }
 
-bool Simulacrum::AV::VideoReaderInternal::ReadFrame(uint8_t* frame_buffer, int64_t* pts)
+bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t* pts)
 {
     // Decode one frame
     while (av_read_frame(av_format_ctx, av_packet) >= 0)
@@ -133,7 +131,8 @@ bool Simulacrum::AV::VideoReaderInternal::ReadFrame(uint8_t* frame_buffer, int64
             av_packet_unref(av_packet);
             continue;
         }
-        else if (response < 0)
+
+        if (response < 0)
         {
             return false;
         }
@@ -149,7 +148,7 @@ bool Simulacrum::AV::VideoReaderInternal::ReadFrame(uint8_t* frame_buffer, int64
     {
         const auto source_pix_fmt = correct_for_deprecated_pixel_format(av_codec_ctx->pix_fmt);
         sws_scaler_ctx = sws_getContext(width, height, source_pix_fmt,
-                                        width, height, AV_PIX_FMT_RGB0,
+                                        width, height, AV_PIX_FMT_BGRA,
                                         SWS_BILINEAR, nullptr, nullptr, nullptr);
     }
     if (!sws_scaler_ctx)
@@ -164,7 +163,7 @@ bool Simulacrum::AV::VideoReaderInternal::ReadFrame(uint8_t* frame_buffer, int64
     return true;
 }
 
-bool Simulacrum::AV::VideoReaderInternal::SeekFrame(int64_t ts)
+bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
 {
     av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD);
 
@@ -205,7 +204,7 @@ bool Simulacrum::AV::VideoReaderInternal::SeekFrame(int64_t ts)
     return true;
 }
 
-void Simulacrum::AV::VideoReaderInternal::Close()
+void Simulacrum::AV::Core::VideoReader::Close()
 {
     if (sws_scaler_ctx)
     {
@@ -233,50 +232,4 @@ void Simulacrum::AV::VideoReaderInternal::Close()
         avcodec_free_context(&av_codec_ctx);
         av_codec_ctx = nullptr;
     }
-}
-
-Simulacrum::AV::VideoReader::VideoReader()
-{
-    reader = new VideoReaderInternal();
-}
-
-Simulacrum::AV::VideoReader::~VideoReader()
-{
-    delete reader;
-}
-
-bool Simulacrum::AV::VideoReader::Open(String^ filename)
-{
-    array<Byte>^ bytes = Text::Encoding::UTF8->GetBytes(filename);
-
-    const auto filename_raw = new char[bytes->Length + 1];
-
-    // This errors in Rider, saying that IntPtr is abstract. It isn't, and it compiles.
-    Runtime::InteropServices::Marshal::Copy(bytes, 0, IntPtr(filename_raw), bytes->Length);
-    filename_raw[bytes->Length] = '\0';
-
-    auto result = reader->Open(filename_raw);
-    delete[] filename_raw;
-
-    return result;
-}
-
-bool Simulacrum::AV::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t* pts)
-{
-    return reader->ReadFrame(frame_buffer, pts);
-}
-
-bool Simulacrum::AV::VideoReader::SeekFrame(const int64_t ts)
-{
-    return reader->SeekFrame(ts);
-}
-
-void Simulacrum::AV::VideoReader::Close()
-{
-    reader->Close();
-}
-
-void Simulacrum::AV::VideoReader::!VideoReader()
-{
-    delete reader;
 }
