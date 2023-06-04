@@ -67,6 +67,8 @@ public class Simulacrum : IDalamudPlugin
         _customizationWindow.IsOpen = true;
 
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
+        
+        // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui 
         _pluginInterface.UiBuilder.Draw += UpdateTextures;
 
         _framework.Update += OnFrameworkUpdate;
@@ -92,7 +94,6 @@ public class Simulacrum : IDalamudPlugin
             var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;
             PluginLog.Log($"Presentation timestamp: {ptsSeconds}");
 
-            // TODO: Why does this crash after a couple of frames?
             _textureBootstrap.Mutate((sub, desc) =>
             {
                 unsafe
