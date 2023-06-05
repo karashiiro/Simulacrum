@@ -171,6 +171,7 @@ public class Simulacrum : IDalamudPlugin
         if (!disposing) return;
 
         _commandManager.RemoveHandler("/simsync");
+        _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simplay");
         _screen?.Dispose();
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
