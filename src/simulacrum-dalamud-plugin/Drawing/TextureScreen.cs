@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Dalamud.Interface;
+﻿using Dalamud.Interface;
 using Simulacrum.Drawing.Common;
 using Simulacrum.Game;
 
@@ -30,7 +29,7 @@ public class TextureScreen : IScreen, IDisposable
             var sourceSize = _source.Size();
             var sourcePixelSize = _source.PixelSize();
             var bufferSize = Convert.ToInt32(sourceSize.X * sourceSize.Y * sourcePixelSize);
-            _buffer = GC.AllocateArray<byte>(bufferSize, pinned: true);
+            _buffer = new byte[bufferSize];
         }
 
         _source.RenderTo(_buffer);
@@ -39,11 +38,13 @@ public class TextureScreen : IScreen, IDisposable
         {
             unsafe
             {
-                var src = (byte*)Unsafe.AsPointer(ref _buffer.AsSpan()[0]);
-                var dst = (byte*)sub.PData;
-                var pitch = sub.RowPitch;
-                const int pixelSize = 4;
-                TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, pixelSize, pitch);
+                fixed (byte* src = _buffer)
+                {
+                    var dst = (byte*)sub.PData;
+                    var pitch = sub.RowPitch;
+                    const int pixelSize = 4;
+                    TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, pixelSize, pitch);
+                }
             }
         });
     }

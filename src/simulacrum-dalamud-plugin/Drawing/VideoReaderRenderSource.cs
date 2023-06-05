@@ -5,7 +5,7 @@ using Simulacrum.Drawing.Common;
 
 namespace Simulacrum.Drawing;
 
-public class VideoReaderRenderer : IRenderSource, IDisposable
+public class VideoReaderRenderSource : IRenderSource, IDisposable
 {
     private readonly VideoReader _reader;
     private readonly byte[] _cacheBuffer;
@@ -13,7 +13,7 @@ public class VideoReaderRenderer : IRenderSource, IDisposable
     private readonly IDisposable _unsubscribe;
     private double _ptsSeconds;
 
-    public VideoReaderRenderer(VideoReader reader, IReadOnlyPlaybackTracker sync)
+    public VideoReaderRenderSource(VideoReader reader, IReadOnlyPlaybackTracker sync)
     {
         _reader = reader;
         _sync = sync;

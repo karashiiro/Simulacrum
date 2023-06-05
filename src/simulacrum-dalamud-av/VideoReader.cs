@@ -18,26 +18,37 @@ public partial class VideoReader : IDisposable
 
     public bool Open(string filename)
     {
-        return VideoReaderOpen(_ptr, filename);
+        return _ptr != nint.Zero && VideoReaderOpen(_ptr, filename);
     }
 
     public bool ReadFrame(Span<byte> frameBuffer, out long pts)
     {
-        return VideoReaderReadFrame(_ptr, frameBuffer, out pts);
+        pts = 0;
+        return _ptr != nint.Zero && VideoReaderReadFrame(_ptr, frameBuffer, out pts);
     }
 
     public bool SeekFrame(long ts)
     {
-        return VideoReaderSeekFrame(_ptr, ts);
+        return _ptr != nint.Zero && VideoReaderSeekFrame(_ptr, ts);
     }
 
     public void Close()
     {
+        if (_ptr == nint.Zero)
+        {
+            return;
+        }
+
         VideoReaderClose(_ptr);
     }
 
     private void ReleaseUnmanagedResources()
     {
+        if (_ptr == nint.Zero)
+        {
+            return;
+        }
+
         VideoReaderFree(_ptr);
         _ptr = nint.Zero;
     }

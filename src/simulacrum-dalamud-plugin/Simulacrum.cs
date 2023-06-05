@@ -34,7 +34,7 @@ public class Simulacrum : IDalamudPlugin
     private IDisposable? _unsubscribe;
     private IPlaybackTracker? _sync;
     private TextureScreen? _screen;
-    private VideoReaderRenderer? _renderSource;
+    private VideoReaderRenderSource? _renderSource;
     private bool _initialized;
 
     public Simulacrum(
@@ -96,7 +96,7 @@ public class Simulacrum : IDalamudPlugin
 
         // Initialize the screen
         _sync = new TimePlaybackTracker();
-        _renderSource = new VideoReaderRenderer(_videoReader, _sync);
+        _renderSource = new VideoReaderRenderSource(_videoReader, _sync);
         _screen = new TextureScreen(_textureBootstrap, _pluginInterface.UiBuilder);
         _screen.Show(_renderSource);
 
