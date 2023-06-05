@@ -1,9 +1,11 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Simulacrum.Game.Structures;
 
 [StructLayout(LayoutKind.Sequential, Size = 24)]
-public struct PrimitiveMaterial : INativeObject
+[SuppressMessage("ReSharper", "FieldCanBeMadeReadOnly.Global")]
+public struct PrimitiveMaterial
 {
     public BlendState BlendState;
     public int Unknown;

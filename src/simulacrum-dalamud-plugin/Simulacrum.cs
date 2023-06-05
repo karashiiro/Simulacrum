@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
@@ -31,8 +30,6 @@ public class Simulacrum : IDalamudPlugin
 
     private readonly TextureBootstrap _textureBootstrap;
 
-    private readonly byte[] _material;
-
     private IDisposable? _unsubscribe;
     private TextureScreen? _screen;
     private VideoReaderRenderer? _renderSource;
@@ -58,8 +55,6 @@ public class Simulacrum : IDalamudPlugin
         _textureBootstrap = new TextureBootstrap(sigScanner);
 
         _videoReader = new VideoReader();
-
-        _material = GC.AllocateArray<byte>(Marshal.SizeOf<PrimitiveMaterial>(), pinned: true);
 
         _windows = new WindowSystem("Simulacrum");
         _customizationWindow = new CustomizationWindow();
@@ -101,53 +96,7 @@ public class Simulacrum : IDalamudPlugin
 
         try
         {
-            nint materialPtr;
-            unsafe
-            {
-                fixed (byte* material = _material)
-                {
-                    materialPtr = (nint)material;
-                }
-            }
-
-            PluginLog.Log("Serializing material");
-            var primitiveMaterial = new PrimitiveMaterial
-            {
-                BlendState = new BlendState
-                {
-                    ColorWriteEnable = ColorMask.RGBA,
-                    AlphaBlendFactorDst = 0x5,
-                    AlphaBlendFactorSrc = 0x0,
-                    AlphaBlendOperation = 0,
-                    ColorBlendFactorDst = 0x5,
-                    ColorBlendFactorSrc = 0x4,
-                    ColorBlendOperation = 0,
-                    Enable = true,
-                },
-                Texture = _textureBootstrap.TexturePointer,
-                SamplerState = new SamplerState
-                {
-                    GammaEnable = false,
-                    MaxAnisotropy = 0,
-                    MinLOD = 0x0,
-                    MipLODBias = 0,
-                    Filter = 9,
-                    AddressW = 0,
-                    AddressV = 0,
-                    AddressU = 0,
-                },
-                Params = new PrimitiveMaterialParams
-                {
-                    FaceCullMode = 0,
-                    FaceCullEnable = false,
-                    DepthWriteEnable = true,
-                    DepthTestEnable = true,
-                    TextureRemapAlpha = 0x2,
-                    TextureRemapColor = 0x2,
-                },
-            };
-
-            primitiveMaterial.WriteStructure(materialPtr);
+            var material = Material.CreateFromTexture(_textureBootstrap.TexturePointer);
 
             PluginLog.Log("Initializing PrimitiveDebug");
             _primitive.Initialize();
@@ -162,7 +111,7 @@ public class Simulacrum : IDalamudPlugin
 
                 // TODO: There's a 1px texture wraparound on all sides of the primitive, possibly due to UV/command type
                 var context = _primitive.GetContext();
-                var vertexPtr = context.DrawCommand(0x21, 4, 5, materialPtr);
+                var vertexPtr = context.DrawCommand(0x21, 4, 5, material.Pointer);
 
                 var aspectRatio = GetAspectRatio(_textureBootstrap.Texture);
                 var dimensions = new Vector3(1, aspectRatio, 0);

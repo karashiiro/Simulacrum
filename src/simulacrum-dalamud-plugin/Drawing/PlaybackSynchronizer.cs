@@ -1,6 +1,4 @@
-﻿using Dalamud.Logging;
-
-namespace Simulacrum.Drawing;
+﻿namespace Simulacrum.Drawing;
 
 public class PlaybackSynchronizer
 {
