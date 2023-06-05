@@ -9,6 +9,7 @@ using Dalamud.Plugin;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Simulacrum.AV;
 using Simulacrum.Drawing;
+using Simulacrum.Drawing.Common;
 using Simulacrum.Game;
 using Simulacrum.Game.Structures;
 
@@ -31,6 +32,7 @@ public class Simulacrum : IDalamudPlugin
     private readonly TextureBootstrap _textureBootstrap;
 
     private IDisposable? _unsubscribe;
+    private IPlaybackTracker? _sync;
     private TextureScreen? _screen;
     private VideoReaderRenderer? _renderSource;
     private bool _initialized;
@@ -65,9 +67,9 @@ public class Simulacrum : IDalamudPlugin
 
         _framework.Update += OnFrameworkUpdate;
 
-        _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _screen?.Play()));
-        _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _screen?.Pause()));
-        _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _renderSource?.Sync()));
+        _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _sync?.Play()));
+        _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _sync?.Pause()));
+        _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
     }
 
     private const string VideoPath = @"D:\rider64_xKQhMNjffD.mp4";
@@ -75,7 +77,13 @@ public class Simulacrum : IDalamudPlugin
     public void OnFrameworkUpdate(Framework f)
     {
         // TODO: Something here randomly causes a CTD, fix it
+        if (_clientState.LocalPlayer is null)
+        {
+            return;
+        }
+
         if (_initialized) return;
+        _initialized = true;
 
         if (!_videoReader.Open(VideoPath))
         {
@@ -86,12 +94,10 @@ public class Simulacrum : IDalamudPlugin
         var height = _videoReader.Height;
         _textureBootstrap.Initialize(width, height);
 
-        _initialized = true;
-
         // Initialize the screen
-        var sync = new PlaybackSynchronizer();
-        _renderSource = new VideoReaderRenderer(_videoReader, sync);
-        _screen = new TextureScreen(_textureBootstrap, _pluginInterface.UiBuilder, sync);
+        _sync = new TimePlaybackTracker();
+        _renderSource = new VideoReaderRenderer(_videoReader, _sync);
+        _screen = new TextureScreen(_textureBootstrap, _pluginInterface.UiBuilder);
         _screen.Show(_renderSource);
 
         try
@@ -174,6 +180,7 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simplay");
         _screen?.Dispose();
+        _renderSource?.Dispose();
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
         _framework.Update -= OnFrameworkUpdate;
         _unsubscribe?.Dispose();

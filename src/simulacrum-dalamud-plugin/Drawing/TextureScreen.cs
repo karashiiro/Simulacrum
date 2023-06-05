@@ -9,17 +9,13 @@ public class TextureScreen : IScreen, IDisposable
 {
     private readonly TextureBootstrap _texture;
     private readonly UiBuilder _ui;
-    private readonly PlaybackSynchronizer _sync;
     private byte[]? _buffer;
     private IRenderSource? _source;
-    private bool _playing;
-    private double? _ts;
 
-    public TextureScreen(TextureBootstrap texture, UiBuilder ui, PlaybackSynchronizer sync)
+    public TextureScreen(TextureBootstrap texture, UiBuilder ui)
     {
         _texture = texture;
         _ui = ui;
-        _sync = sync;
 
         // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui
         _ui.Draw += Draw;
@@ -27,12 +23,7 @@ public class TextureScreen : IScreen, IDisposable
 
     private void Draw()
     {
-        if (!_playing || _source == null || _texture.TexturePointer == nint.Zero) return;
-
-        var now = Convert.ToDouble(DateTimeOffset.Now.ToUnixTimeMilliseconds()) / 1000;
-        _ts ??= now;
-        _sync.AddTime(now - _ts.Value);
-        _ts = now;
+        if (_source == null || _texture.TexturePointer == nint.Zero) return;
 
         if (_buffer == null)
         {
@@ -60,16 +51,6 @@ public class TextureScreen : IScreen, IDisposable
     public void Show(IRenderSource source)
     {
         _source = source;
-    }
-
-    public void Play()
-    {
-        _playing = true;
-    }
-
-    public void Pause()
-    {
-        _playing = false;
     }
 
     public void Dispose()

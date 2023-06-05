@@ -9,7 +9,4 @@ public interface IRenderSource
     int PixelSize();
 
     Vector2 Size();
-
-    // TODO: Does this make sense as an interface method?
-    void Sync();
 }

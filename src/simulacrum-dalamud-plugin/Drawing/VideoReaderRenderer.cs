@@ -1,21 +1,32 @@
 ﻿using System.Numerics;
+using Dalamud.Logging;
 using Simulacrum.AV;
 using Simulacrum.Drawing.Common;
 
 namespace Simulacrum.Drawing;
 
-public class VideoReaderRenderer : IRenderSource
+public class VideoReaderRenderer : IRenderSource, IDisposable
 {
     private readonly VideoReader _reader;
     private readonly byte[] _cacheBuffer;
-    private readonly PlaybackSynchronizer _sync;
+    private readonly IReadOnlyPlaybackTracker _sync;
+    private readonly IDisposable _unsubscribe;
     private double _ptsSeconds;
 
-    public VideoReaderRenderer(VideoReader reader, PlaybackSynchronizer sync)
+    public VideoReaderRenderer(VideoReader reader, IReadOnlyPlaybackTracker sync)
     {
         _reader = reader;
         _sync = sync;
         _cacheBuffer = GC.AllocateArray<byte>(reader.Width * reader.Height * PixelSize(), pinned: true);
+
+        _unsubscribe = sync.OnPan().Subscribe(ts =>
+        {
+            _ptsSeconds = ts;
+            if (!_reader.SeekFrame(Convert.ToInt64(ts)))
+            {
+                PluginLog.LogWarning("Failed to seek through video");
+            }
+        });
     }
 
     public void RenderTo(Span<byte> buffer)
@@ -28,7 +39,7 @@ public class VideoReaderRenderer : IRenderSource
 
         if (!_reader.ReadFrame(_cacheBuffer, out var pts))
         {
-            throw new InvalidOperationException("Failed to read frame from video reader");
+            throw new InvalidOperationException("Failed to read frame from video reader.");
         }
 
         var timeBase = _reader.TimeBase;
@@ -47,14 +58,9 @@ public class VideoReaderRenderer : IRenderSource
         return new Vector2(_reader.Width, _reader.Height);
     }
 
-    public void Sync()
+    public void Dispose()
     {
-        if (!_reader.SeekFrame(0))
-        {
-            throw new InvalidOperationException("Failed to seek stream.");
-        }
-
-        _ptsSeconds = 0;
-        _sync.SetTime(0);
+        GC.SuppressFinalize(this);
+        _unsubscribe.Dispose();
     }
 }
