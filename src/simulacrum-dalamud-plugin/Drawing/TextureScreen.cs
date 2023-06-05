@@ -51,9 +51,8 @@ public class TextureScreen : IScreen, IDisposable
                 var src = (byte*)Unsafe.AsPointer(ref _buffer.AsSpan()[0]);
                 var dst = (byte*)sub.PData;
                 var pitch = sub.RowPitch;
-
-                // TODO: Detect pixel size somehow
-                TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, 4, pitch);
+                const int pixelSize = 4;
+                TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, pixelSize, pitch);
             }
         });
     }

@@ -10,14 +10,12 @@ public class VideoReaderRenderer : IRenderSource
     private readonly byte[] _cacheBuffer;
     private readonly PlaybackSynchronizer _sync;
     private double _ptsSeconds;
-    private long _lastPts;
 
     public VideoReaderRenderer(VideoReader reader, PlaybackSynchronizer sync)
     {
         _reader = reader;
         _sync = sync;
-        // TODO: Detect this somehow
-        _cacheBuffer = GC.AllocateArray<byte>(reader.Width * reader.Height * 4, pinned: true);
+        _cacheBuffer = GC.AllocateArray<byte>(reader.Width * reader.Height * PixelSize(), pinned: true);
     }
 
     public void RenderTo(Span<byte> buffer)
@@ -36,12 +34,11 @@ public class VideoReaderRenderer : IRenderSource
         var timeBase = _reader.TimeBase;
         var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;
         _ptsSeconds = ptsSeconds;
-        _lastPts = pts;
     }
 
     public int PixelSize()
     {
-        // TODO: Detect this somehow
+        // This is set in Simulacrum::AV::Core::VideoReader::ReadFrame
         return 4;
     }
 
