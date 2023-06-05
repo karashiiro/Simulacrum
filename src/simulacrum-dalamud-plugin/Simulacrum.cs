@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
@@ -10,6 +9,7 @@ using Dalamud.Logging;
 using Dalamud.Plugin;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Simulacrum.AV;
+using Simulacrum.Drawing;
 using Simulacrum.Game;
 using Simulacrum.Game.Structures;
 
@@ -34,9 +34,9 @@ public class Simulacrum : IDalamudPlugin
     private readonly byte[] _material;
 
     private IDisposable? _unsubscribe;
-    private byte[]? _videoFrame;
+    private TextureScreen? _screen;
+    private VideoReaderRenderer? _renderSource;
     private bool _initialized;
-    private bool _playing;
 
     public Simulacrum(
         [RequiredVersion("1.0")] ClientState clientState,
@@ -67,90 +67,37 @@ public class Simulacrum : IDalamudPlugin
         _customizationWindow.IsOpen = true;
 
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
-        
-        // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui 
-        _pluginInterface.UiBuilder.Draw += UpdateTextures;
 
         _framework.Update += OnFrameworkUpdate;
 
-        _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _playing = true));
-        _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _playing = false));
-        _commandManager.AddHandler("/simreset", new CommandInfo((_, _) =>
-        {
-            if (!_videoReader.SeekFrame(0))
-            {
-                PluginLog.LogWarning("Failed to seek to start of video");
-            }
-        }));
+        _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _screen?.Play()));
+        _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _screen?.Pause()));
+        _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _renderSource?.Sync()));
     }
 
     private const string VideoPath = @"D:\rider64_xKQhMNjffD.mp4";
 
-    private void UpdateTextures()
-    {
-        if (_playing && _videoReader.ReadFrame(_videoFrame.AsSpan(), out var pts))
-        {
-            var timeBase = _videoReader.TimeBase;
-            var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;
-            PluginLog.Log($"Presentation timestamp: {ptsSeconds}");
-
-            _textureBootstrap.Mutate((sub, desc) =>
-            {
-                unsafe
-                {
-                    // Copy the replacement image to the new texture
-                    var src = (byte*)Unsafe.AsPointer(ref _videoFrame.AsSpan()[0]);
-                    var dst = (byte*)sub.PData;
-                    var pitch = sub.RowPitch;
-                    TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, sizeof(Bgra32), pitch);
-                }
-            });
-        }
-    }
-
     public void OnFrameworkUpdate(Framework f)
     {
+        // TODO: Something here randomly causes a CTD, fix it
         if (_initialized) return;
 
-        PluginLog.Log("Opening video");
-        if (_videoReader.Open(VideoPath))
+        if (!_videoReader.Open(VideoPath))
         {
-            var width = _videoReader.Width;
-            var height = _videoReader.Height;
-            const int pixelSize = 4;
-
-            _videoFrame = GC.AllocateArray<byte>(width * height * pixelSize, pinned: true);
-
-            PluginLog.Log("Reading frame");
-            if (_videoReader.ReadFrame(_videoFrame.AsSpan(), out _))
-            {
-                PluginLog.Log("Successfully read frame, bootstrapping texture");
-                _textureBootstrap.Initialize(width, height);
-
-                PluginLog.Log("Copying frame to bootstrapped texture");
-                _textureBootstrap.Mutate((sub, desc) =>
-                {
-                    unsafe
-                    {
-                        // Copy the replacement image to the new texture
-                        var src = (byte*)Unsafe.AsPointer(ref _videoFrame.AsSpan()[0]);
-                        var dst = (byte*)sub.PData;
-                        var pitch = sub.RowPitch;
-                        TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, sizeof(Bgra32), pitch);
-                    }
-                });
-            }
-            else
-            {
-                PluginLog.Log("Failed to read frame");
-            }
+            throw new InvalidOperationException("Failed to open video.");
         }
-        else
-        {
-            PluginLog.Log("Failed to open video");
-        }
+
+        var width = _videoReader.Width;
+        var height = _videoReader.Height;
+        _textureBootstrap.Initialize(width, height);
 
         _initialized = true;
+
+        // Initialize the screen
+        var sync = new PlaybackSynchronizer();
+        _renderSource = new VideoReaderRenderer(_videoReader, sync);
+        _screen = new TextureScreen(_textureBootstrap, _pluginInterface.UiBuilder, sync);
+        _screen.Show(_renderSource);
 
         try
         {
@@ -274,14 +221,13 @@ public class Simulacrum : IDalamudPlugin
     {
         if (!disposing) return;
 
-        _commandManager.RemoveHandler("/simreset");
-        _commandManager.RemoveHandler("/simpause");
+        _commandManager.RemoveHandler("/simsync");
         _commandManager.RemoveHandler("/simplay");
-        _pluginInterface.UiBuilder.Draw -= UpdateTextures;
+        _screen?.Dispose();
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
         _framework.Update -= OnFrameworkUpdate;
-        _textureBootstrap.Dispose();
         _unsubscribe?.Dispose();
+        _textureBootstrap.Dispose();
         _videoReader.Close();
         _videoReader.Dispose();
     }
