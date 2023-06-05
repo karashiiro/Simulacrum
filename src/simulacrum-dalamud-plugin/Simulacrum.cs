@@ -76,7 +76,6 @@ public class Simulacrum : IDalamudPlugin
 
     public void OnFrameworkUpdate(Framework f)
     {
-        // TODO: Something here randomly causes a CTD, fix it
         if (_clientState.LocalPlayer is null)
         {
             return;
@@ -84,6 +83,9 @@ public class Simulacrum : IDalamudPlugin
 
         if (_initialized) return;
         _initialized = true;
+
+        // TODO: Something here randomly causes a CTD, fix it
+        // TODO: Something here causes a reliable CTD when reloading, fix it
 
         if (!_videoReader.Open(VideoPath))
         {
