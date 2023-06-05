@@ -27,6 +27,7 @@ public static class ModuleInitializer
 
         var assemblyLoadContext = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly());
         if (assemblyLoadContext == null) return;
+        nativeLibraries.Reverse();
         assemblyLoadContext.Unloading += _ => { nativeLibraries.ForEach(NativeLibrary.Free); };
     }
 
