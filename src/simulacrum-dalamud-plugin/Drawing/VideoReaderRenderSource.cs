@@ -37,8 +37,8 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
             return;
         }
 
-        // TODO: Calling this eventually leads to a CTD, even without any additional calls
-        // TODO: Calling this causes reloads to CTD
+        // TODO: Calling this eventually leads to a CTD, even without any additional calls at coreclr.dll+41fe1
+        // TODO: Calling this causes reloads to CTD at coreclr.dll+323055
         if (!_reader.ReadFrame(_cacheBuffer, out var pts))
         {
             PluginLog.LogWarning("Failed to read frame from video reader");
