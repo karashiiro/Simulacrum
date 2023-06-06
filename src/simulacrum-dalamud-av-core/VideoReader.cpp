@@ -182,7 +182,6 @@ bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
         int response = avcodec_send_packet(av_codec_ctx, av_packet);
         if (response < 0)
         {
-            printf("Failed to decode packet: %s\n", av_make_error(response));
             return false;
         }
 
@@ -194,7 +193,6 @@ bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
         }
         if (response < 0)
         {
-            printf("Failed to decode packet: %s\n", av_make_error(response));
             return false;
         }
 
