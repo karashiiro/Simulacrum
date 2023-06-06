@@ -12,6 +12,7 @@ using Simulacrum.Drawing;
 using Simulacrum.Drawing.Common;
 using Simulacrum.Game;
 using Simulacrum.Game.Structures;
+using Material = Simulacrum.Game.Material;
 
 namespace Simulacrum;
 
@@ -70,6 +71,7 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _sync?.Play()));
         _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _sync?.Pause()));
         _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
+        _commandManager.AddHandler("/simgc", new CommandInfo((_, _) => GC.Collect(2, GCCollectionMode.Aggressive, true, true)));
     }
 
     private const string VideoPath = @"C:\rider64_xKQhMNjffD.mp4";
@@ -175,6 +177,7 @@ public class Simulacrum : IDalamudPlugin
     {
         if (!disposing) return;
 
+        _commandManager.RemoveHandler("/simgc");
         _commandManager.RemoveHandler("/simsync");
         _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simplay");
