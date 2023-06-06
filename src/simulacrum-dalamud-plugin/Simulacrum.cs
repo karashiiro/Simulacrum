@@ -72,7 +72,7 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
     }
 
-    private const string VideoPath = @"D:\rider64_xKQhMNjffD.mp4";
+    private const string VideoPath = @"C:\rider64_xKQhMNjffD.mp4";
 
     public void OnFrameworkUpdate(Framework f)
     {
@@ -83,9 +83,6 @@ public class Simulacrum : IDalamudPlugin
 
         if (_initialized) return;
         _initialized = true;
-
-        // TODO: Something here randomly causes a CTD, fix it
-        // TODO: Something here causes a reliable CTD when reloading, fix it
 
         if (!_videoReader.Open(VideoPath))
         {

@@ -33,7 +33,7 @@ Simulacrum::AV::Core::VideoReader::VideoReader()
       time_base{},
       av_format_ctx{},
       av_codec_ctx{},
-      video_stream_index{},
+      video_stream_index(-1),
       av_frame{},
       av_packet{},
       sws_scaler_ctx{}

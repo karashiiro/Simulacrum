@@ -17,7 +17,7 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
     {
         _reader = reader;
         _sync = sync;
-        _cacheBuffer = GC.AllocateArray<byte>(reader.Width * reader.Height * PixelSize(), pinned: true);
+        _cacheBuffer = new byte[reader.Width * reader.Height * PixelSize()];
 
         _unsubscribe = sync.OnPan().Subscribe(ts =>
         {
@@ -37,9 +37,12 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
             return;
         }
 
+        // TODO: Calling this eventually leads to a CTD, even without any additional calls
+        // TODO: Calling this causes reloads to CTD
         if (!_reader.ReadFrame(_cacheBuffer, out var pts))
         {
-            throw new InvalidOperationException("Failed to read frame from video reader.");
+            PluginLog.LogWarning("Failed to read frame from video reader");
+            return;
         }
 
         var timeBase = _reader.TimeBase;
