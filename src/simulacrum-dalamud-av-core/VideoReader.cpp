@@ -5,14 +5,6 @@
 
 // Ripped from https://github.com/bmewj/video-app
 
-// av_err2str returns a temporary array. This doesn't work in gcc.
-// This function can be used as a replacement for av_err2str.
-static const char* av_make_error(int errnum)
-{
-    static char str[AV_ERROR_MAX_STRING_SIZE] = {};
-    return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
-}
-
 static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix_fmt)
 {
     // Fix swscaler deprecated pixel format warning
