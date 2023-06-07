@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "./src/simulacrum-cloud-aws-cdk"
+		}
+	],
+	"settings": {}
+}
