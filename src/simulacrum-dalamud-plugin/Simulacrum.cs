@@ -133,33 +133,36 @@ public class Simulacrum : IDalamudPlugin
                 var scale = _customizationWindow.Scale;
                 var color = _customizationWindow.Color;
 
-                Marshal.StructureToPtr(new Vertex
+                unsafe
                 {
-                    Position = position + translation + Vector3.UnitY * dimensions * scale,
-                    Color = color,
-                    UV = UV.FromUV(0, 0),
-                }, vertexPtr, false);
-
-                Marshal.StructureToPtr(new Vertex
-                {
-                    Position = position + translation,
-                    Color = color,
-                    UV = UV.FromUV(0, 1),
-                }, vertexPtr + Marshal.SizeOf<Vertex>(), false);
-
-                Marshal.StructureToPtr(new Vertex
-                {
-                    Position = position + translation + dimensions * scale,
-                    Color = color,
-                    UV = UV.FromUV(1, 0),
-                }, vertexPtr + Marshal.SizeOf<Vertex>() * 2, false);
-
-                Marshal.StructureToPtr(new Vertex
-                {
-                    Position = position + translation + Vector3.UnitX * dimensions * scale,
-                    Color = color,
-                    UV = UV.FromUV(1, 1),
-                }, vertexPtr + Marshal.SizeOf<Vertex>() * 3, false);
+                    _ = new Span<Vertex>((void*)vertexPtr, 4)
+                    {
+                        [0] = new()
+                        {
+                            Position = position + translation + Vector3.UnitY * dimensions * scale,
+                            Color = color,
+                            UV = UV.FromUV(0, 0),
+                        },
+                        [1] = new()
+                        {
+                            Position = position + translation,
+                            Color = color,
+                            UV = UV.FromUV(0, 1),
+                        },
+                        [2] = new()
+                        {
+                            Position = position + translation + dimensions * scale,
+                            Color = color,
+                            UV = UV.FromUV(1, 0),
+                        },
+                        [3] = new()
+                        {
+                            Position = position + translation + Vector3.UnitX * dimensions * scale,
+                            Color = color,
+                            UV = UV.FromUV(1, 1),
+                        },
+                    };
+                }
             });
         }
         catch (Exception e)
