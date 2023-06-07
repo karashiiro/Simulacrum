@@ -59,7 +59,7 @@ public unsafe class Material : IDisposable
 
     public void Dispose()
     {
-        GC.SuppressFinalize(this);
         Marshal.FreeHGlobal(Pointer);
+        GC.SuppressFinalize(this);
     }
 }
