@@ -23,7 +23,9 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
         _sync = sync;
         _cacheBufferSize = reader.Width * reader.Height * PixelSize();
 
-        // For some reason, sws_scale writes 8 black pixels after the end of the buffer
+        // For some reason, sws_scale writes 8 black pixels after the end of the buffer.
+        // If video playback randomly crashes, it's probably because this needs to be
+        // more specific.
         _cacheBufferRawSize = _cacheBufferSize + 32;
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
