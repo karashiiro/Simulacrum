@@ -1,22 +1,17 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Simulacrum.Game.Structures;
 
 namespace Simulacrum.Game;
 
-public unsafe class Material
+public unsafe class Material : IDisposable
 {
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly byte[] _material;
-
     public nint Pointer { get; }
 
     private PrimitiveMaterial* PrimitiveMaterial => (PrimitiveMaterial*)Pointer;
 
     private Material()
     {
-        _material = GC.AllocateArray<byte>(Marshal.SizeOf<PrimitiveMaterial>(), pinned: true);
-        Pointer = (nint)Unsafe.AsPointer(ref _material.AsSpan()[0]);
+        Pointer = Marshal.AllocHGlobal(Marshal.SizeOf<PrimitiveMaterial>());
     }
 
     public static Material CreateFromTexture(nint texture)
@@ -60,5 +55,11 @@ public unsafe class Material
         };
 
         return material;
+    }
+
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+        Marshal.FreeHGlobal(Pointer);
     }
 }

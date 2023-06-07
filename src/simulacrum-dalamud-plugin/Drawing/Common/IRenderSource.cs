@@ -8,5 +8,5 @@ public interface IRenderSource
 
     int PixelSize();
 
-    Vector2 Size();
+    IntVector2 Size();
 }

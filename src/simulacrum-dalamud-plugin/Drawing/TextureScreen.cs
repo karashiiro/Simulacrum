@@ -28,7 +28,7 @@ public class TextureScreen : IScreen, IDisposable
         {
             var sourceSize = _source.Size();
             var sourcePixelSize = _source.PixelSize();
-            var bufferSize = Convert.ToInt32(sourceSize.X * sourceSize.Y * sourcePixelSize);
+            var bufferSize = sourceSize.X * sourceSize.Y * sourcePixelSize;
             _buffer = new byte[bufferSize];
         }
 
@@ -56,7 +56,7 @@ public class TextureScreen : IScreen, IDisposable
 
     public void Dispose()
     {
-        GC.SuppressFinalize(this);
         _ui.Draw -= Draw;
+        GC.SuppressFinalize(this);
     }
 }

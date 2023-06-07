@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+﻿using System.Runtime.InteropServices;
 using Dalamud.Logging;
 using Simulacrum.AV;
 using Simulacrum.Drawing.Common;
@@ -7,8 +7,11 @@ namespace Simulacrum.Drawing;
 
 public class VideoReaderRenderSource : IRenderSource, IDisposable
 {
+    private const int Alignment = 128;
+
     private readonly VideoReader _reader;
-    private readonly byte[] _cacheBuffer;
+    private readonly nint _cacheBufferPtr;
+    private readonly Memory<byte> _cacheBuffer;
     private readonly IReadOnlyPlaybackTracker _sync;
     private readonly IDisposable _unsubscribe;
     private double _ptsSeconds;
@@ -17,7 +20,23 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
     {
         _reader = reader;
         _sync = sync;
-        _cacheBuffer = new byte[reader.Width * reader.Height * PixelSize()];
+        var cacheBufferSize = reader.Width * reader.Height * PixelSize();
+
+        /*
+         * This video reader requires that frame data is 128-byte aligned. Windows
+         * always allocates on an 8-byte (or word-sized?) alignment boundary, so
+         * this needs to over-allocate memory and adjust the bounds accordingly.
+         * https://github.com/bmewj/video-app/blob/efda3fbd11133842e6154a62f853a6066ccc190c/src/main.cpp#L40
+         * https://stackoverflow.com/a/13416185
+         */
+        var cacheBufferRawSize = cacheBufferSize + Alignment - 8;
+        _cacheBufferPtr = Marshal.AllocHGlobal(cacheBufferRawSize);
+        unsafe
+        {
+            var alignedPtr = (nint)(Alignment * (((long)_cacheBufferPtr + (Alignment - 1)) / Alignment));
+            var manager = new UnmanagedMemoryManager<byte>((byte*)alignedPtr, cacheBufferSize);
+            _cacheBuffer = manager.Memory;
+        }
 
         _unsubscribe = sync.OnPan().Subscribe(ts =>
         {
@@ -33,13 +52,11 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
     {
         if (_sync.GetTime() < _ptsSeconds)
         {
-            _cacheBuffer.CopyTo(buffer);
+            _cacheBuffer.Span.CopyTo(buffer);
             return;
         }
 
-        // TODO: Calling this eventually leads to a CTD, even without any additional calls at coreclr.dll+41fe1
-        // TODO: Calling this causes reloads to CTD at coreclr.dll+323055
-        if (!_reader.ReadFrame(_cacheBuffer, out var pts))
+        if (!_reader.ReadFrame(_cacheBuffer.Span, out var pts))
         {
             PluginLog.LogWarning("Failed to read frame from video reader");
             return;
@@ -56,14 +73,15 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
         return 4;
     }
 
-    public Vector2 Size()
+    public IntVector2 Size()
     {
-        return new Vector2(_reader.Width, _reader.Height);
+        return new IntVector2(_reader.Width, _reader.Height);
     }
 
     public void Dispose()
     {
-        GC.SuppressFinalize(this);
         _unsubscribe.Dispose();
+        Marshal.FreeHGlobal(_cacheBufferPtr);
+        GC.SuppressFinalize(this);
     }
 }

@@ -13,7 +13,6 @@ namespace Simulacrum.Game;
 public unsafe class TextureBootstrap : IDisposable
 {
     private readonly SigScanner _sigScanner;
-    private byte[]? _tex;
 
     private ApricotTexture* _apricotTexture;
 
@@ -61,17 +60,17 @@ public unsafe class TextureBootstrap : IDisposable
 
         using var texFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.test.tex") ??
                             throw new InvalidOperationException("Could not find embedded file.");
-        _tex = GC.AllocateArray<byte>(Convert.ToInt32(texFile.Length), pinned: true);
-        var read = texFile.Read(_tex);
+        var tex = new byte[texFile.Length];
+        var read = texFile.Read(tex);
         if (read != texFile.Length)
         {
             throw new InvalidOperationException("Failed to read stream data.");
         }
 
-        fixed (byte* tex = _tex)
+        fixed (byte* texPtr = tex)
         {
             // TODO: This can return null if it's called early enough, defer it somehow to avoid needing to catch this exception
-            _apricotTexture = (ApricotTexture*)easyCreate(nint.Zero, (nint)tex, _tex.Length);
+            _apricotTexture = (ApricotTexture*)easyCreate(nint.Zero, (nint)texPtr, tex.Length);
             if (_apricotTexture == null)
             {
                 throw new InvalidOperationException("The returned texture was null.");
@@ -124,12 +123,12 @@ public unsafe class TextureBootstrap : IDisposable
 
     public void Dispose()
     {
-        GC.SuppressFinalize(this);
-
         if (_apricotTexture != null)
         {
             _apricotTexture->Release();
             _apricotTexture = null;
         }
+
+        GC.SuppressFinalize(this);
     }
 }

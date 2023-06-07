@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
@@ -34,6 +35,7 @@ public class Simulacrum : IDalamudPlugin
 
     private IDisposable? _unsubscribe;
     private IPlaybackTracker? _sync;
+    private Material? _material;
     private TextureScreen? _screen;
     private VideoReaderRenderSource? _renderSource;
     private bool _initialized;
@@ -71,7 +73,8 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _sync?.Play()));
         _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _sync?.Pause()));
         _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
-        _commandManager.AddHandler("/simgc", new CommandInfo((_, _) => GC.Collect(2, GCCollectionMode.Aggressive, true, true)));
+        _commandManager.AddHandler("/simgc",
+            new CommandInfo((_, _) => GC.Collect(2, GCCollectionMode.Aggressive, true, true)));
     }
 
     private const string VideoPath = @"C:\rider64_xKQhMNjffD.mp4";
@@ -103,7 +106,7 @@ public class Simulacrum : IDalamudPlugin
 
         try
         {
-            var material = Material.CreateFromTexture(_textureBootstrap.TexturePointer);
+            _material = Material.CreateFromTexture(_textureBootstrap.TexturePointer);
 
             PluginLog.Log("Initializing PrimitiveDebug");
             _primitive.Initialize();
@@ -118,43 +121,45 @@ public class Simulacrum : IDalamudPlugin
 
                 // TODO: There's a 1px texture wraparound on all sides of the primitive, possibly due to UV/command type
                 var context = _primitive.GetContext();
-                var vertexPtr = context.DrawCommand(0x21, 4, 5, material.Pointer);
+                var vertexPtr = context.DrawCommand(0x21, 4, 5, _material.Pointer);
+                if (vertexPtr == nint.Zero)
+                {
+                    return;
+                }
 
                 var aspectRatio = GetAspectRatio(_textureBootstrap.Texture);
                 var dimensions = new Vector3(1, aspectRatio, 0);
                 var translation = _customizationWindow.Translation;
                 var scale = _customizationWindow.Scale;
                 var color = _customizationWindow.Color;
-                unsafe
+
+                Marshal.StructureToPtr(new Vertex
                 {
-                    var vertices = new Span<Vertex>((void*)vertexPtr, 4)
-                    {
-                        [0] = new()
-                        {
-                            Position = position + translation + Vector3.UnitY * dimensions * scale,
-                            Color = color,
-                            UV = UV.FromUV(0, 0),
-                        },
-                        [1] = new()
-                        {
-                            Position = position + translation,
-                            Color = color,
-                            UV = UV.FromUV(0, 1),
-                        },
-                        [2] = new()
-                        {
-                            Position = position + translation + dimensions * scale,
-                            Color = color,
-                            UV = UV.FromUV(1, 0),
-                        },
-                        [3] = new()
-                        {
-                            Position = position + translation + Vector3.UnitX * dimensions * scale,
-                            Color = color,
-                            UV = UV.FromUV(1, 1),
-                        },
-                    };
-                }
+                    Position = position + translation + Vector3.UnitY * dimensions * scale,
+                    Color = color,
+                    UV = UV.FromUV(0, 0),
+                }, vertexPtr, false);
+
+                Marshal.StructureToPtr(new Vertex
+                {
+                    Position = position + translation,
+                    Color = color,
+                    UV = UV.FromUV(0, 1),
+                }, vertexPtr + Marshal.SizeOf<Vertex>(), false);
+
+                Marshal.StructureToPtr(new Vertex
+                {
+                    Position = position + translation + dimensions * scale,
+                    Color = color,
+                    UV = UV.FromUV(1, 0),
+                }, vertexPtr + Marshal.SizeOf<Vertex>() * 2, false);
+
+                Marshal.StructureToPtr(new Vertex
+                {
+                    Position = position + translation + Vector3.UnitX * dimensions * scale,
+                    Color = color,
+                    UV = UV.FromUV(1, 1),
+                }, vertexPtr + Marshal.SizeOf<Vertex>() * 3, false);
             });
         }
         catch (Exception e)
@@ -181,12 +186,16 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.RemoveHandler("/simsync");
         _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simplay");
+
         _screen?.Dispose();
         _renderSource?.Dispose();
+
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
         _framework.Update -= OnFrameworkUpdate;
+
         _unsubscribe?.Dispose();
         _textureBootstrap.Dispose();
+        _material?.Dispose();
         _videoReader.Close();
         _videoReader.Dispose();
     }
