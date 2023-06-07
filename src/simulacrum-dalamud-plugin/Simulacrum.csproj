@@ -19,7 +19,6 @@
     <ItemGroup>
         <PackageReference Include="DalamudPackager" Version="2.1.11" />
         <PackageReference Include="Silk.NET.Direct3D11" Version="2.17.1" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
         <PackageReference Include="System.Reactive" Version="6.0.0" />
     </ItemGroup>
 

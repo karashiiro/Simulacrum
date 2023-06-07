@@ -7,11 +7,12 @@ namespace Simulacrum.Drawing;
 
 public class VideoReaderRenderSource : IRenderSource, IDisposable
 {
-    private const int Alignment = 128;
-
     private readonly VideoReader _reader;
+
     private readonly nint _cacheBufferPtr;
     private readonly Memory<byte> _cacheBuffer;
+    private readonly int _cacheBufferSize;
+
     private readonly IReadOnlyPlaybackTracker _sync;
     private readonly IDisposable _unsubscribe;
     private double _ptsSeconds;
@@ -20,21 +21,15 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
     {
         _reader = reader;
         _sync = sync;
-        var cacheBufferSize = reader.Width * reader.Height * PixelSize();
+        _cacheBufferSize = reader.Width * reader.Height * PixelSize();
 
-        /*
-         * This video reader requires that frame data is 128-byte aligned. Windows
-         * always allocates on an 8-byte (or word-sized?) alignment boundary, so
-         * this needs to over-allocate memory and adjust the bounds accordingly.
-         * https://github.com/bmewj/video-app/blob/efda3fbd11133842e6154a62f853a6066ccc190c/src/main.cpp#L40
-         * https://stackoverflow.com/a/13416185
-         */
-        var cacheBufferRawSize = cacheBufferSize + Alignment - 8;
+        // For some reason, sws_scale writes 8 black pixels after the end of the buffer
+        var cacheBufferRawSize = _cacheBufferSize + 32;
+
         _cacheBufferPtr = Marshal.AllocHGlobal(cacheBufferRawSize);
         unsafe
         {
-            var alignedPtr = (nint)(Alignment * (((long)_cacheBufferPtr + (Alignment - 1)) / Alignment));
-            var manager = new UnmanagedMemoryManager<byte>((byte*)alignedPtr, cacheBufferSize);
+            var manager = new UnmanagedMemoryManager<byte>((byte*)_cacheBufferPtr, cacheBufferRawSize);
             _cacheBuffer = manager.Memory;
         }
 
@@ -52,7 +47,7 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
     {
         if (_sync.GetTime() < _ptsSeconds)
         {
-            _cacheBuffer.Span.CopyTo(buffer);
+            _cacheBuffer.Span[.._cacheBufferSize].CopyTo(buffer);
             return;
         }
 
