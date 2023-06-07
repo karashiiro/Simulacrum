@@ -10,7 +10,7 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
     private readonly VideoReader _reader;
 
     private readonly nint _cacheBufferPtr;
-    private readonly Memory<byte> _cacheBuffer;
+    private readonly int _cacheBufferRawSize;
     private readonly int _cacheBufferSize;
 
     private readonly IReadOnlyPlaybackTracker _sync;
@@ -24,14 +24,8 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
         _cacheBufferSize = reader.Width * reader.Height * PixelSize();
 
         // For some reason, sws_scale writes 8 black pixels after the end of the buffer
-        var cacheBufferRawSize = _cacheBufferSize + 32;
-
-        _cacheBufferPtr = Marshal.AllocHGlobal(cacheBufferRawSize);
-        unsafe
-        {
-            var manager = new UnmanagedMemoryManager<byte>((byte*)_cacheBufferPtr, cacheBufferRawSize);
-            _cacheBuffer = manager.Memory;
-        }
+        _cacheBufferRawSize = _cacheBufferSize + 32;
+        _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
         _unsubscribe = sync.OnPan().Subscribe(ts =>
         {
@@ -43,15 +37,16 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
         });
     }
 
-    public void RenderTo(Span<byte> buffer)
+    public unsafe void RenderTo(Span<byte> buffer)
     {
+        var cacheBuffer = new Span<byte>((byte*)_cacheBufferPtr, _cacheBufferRawSize);
         if (_sync.GetTime() < _ptsSeconds)
         {
-            _cacheBuffer.Span[.._cacheBufferSize].CopyTo(buffer);
+            cacheBuffer[.._cacheBufferSize].CopyTo(buffer);
             return;
         }
 
-        if (!_reader.ReadFrame(_cacheBuffer.Span, out var pts))
+        if (!_reader.ReadFrame(cacheBuffer, out var pts))
         {
             PluginLog.LogWarning("Failed to read frame from video reader");
             return;
