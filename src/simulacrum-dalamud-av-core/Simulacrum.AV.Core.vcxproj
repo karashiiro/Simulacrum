@@ -89,10 +89,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AVLog.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="VideoReader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AVLog.h" />
     <ClInclude Include="VideoReader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
@@ -37,6 +39,7 @@ public class Simulacrum : IDalamudPlugin
     private Material? _material;
     private TextureScreen? _screen;
     private VideoReaderRenderSource? _renderSource;
+    private GCHandle? _logFunctionHandle;
     private bool _initialized;
 
     public Simulacrum(
@@ -46,6 +49,8 @@ public class Simulacrum : IDalamudPlugin
         [RequiredVersion("1.0")] Framework framework,
         [RequiredVersion("1.0")] SigScanner sigScanner)
     {
+        InstallAVLogHandler();
+
         _clientState = clientState;
         _commandManager = commandManager;
         _framework = framework;
@@ -76,7 +81,7 @@ public class Simulacrum : IDalamudPlugin
             new CommandInfo((_, _) => GC.Collect(2, GCCollectionMode.Aggressive, true, true)));
     }
 
-    private const string VideoPath = @"C:\rider64_xKQhMNjffD.mp4";
+    private const string VideoPath = @"https://dyov71j0t4ngh.cloudfront.net/rider64_xKQhMNjffD.m3u8";
 
     public void OnFrameworkUpdate(Framework f)
     {
@@ -95,6 +100,7 @@ public class Simulacrum : IDalamudPlugin
 
         var width = _videoReader.Width;
         var height = _videoReader.Height;
+        PluginLog.Log($"Bootstrapping texture with dimensions ({width}, {height})");
         _textureBootstrap.Initialize(width, height);
 
         // Initialize the screen
@@ -180,6 +186,57 @@ public class Simulacrum : IDalamudPlugin
         return (float)height / width;
     }
 
+    [Conditional("DEBUG")]
+    private void InstallAVLogHandler()
+    {
+        var logFunction = new AVLog.AVLogCallback(HandleAVLog);
+        _logFunctionHandle = GCHandle.Alloc(logFunction);
+        AVLog.SetCallback(logFunction);
+    }
+
+    [Conditional("DEBUG")]
+    private void UninstallAVLogHandler()
+    {
+        _logFunctionHandle?.Free();
+        AVLog.UseDefaultCallback();
+    }
+
+    private static void HandleAVLog(AVLogLevel level, string? message)
+    {
+        message = $"[libav] {message}";
+        switch (level)
+        {
+            case AVLogLevel.Quiet:
+                break;
+            case AVLogLevel.Panic:
+                PluginLog.LogFatal(message);
+                break;
+            case AVLogLevel.Fatal:
+                PluginLog.LogFatal(message);
+                break;
+            case AVLogLevel.Error:
+                PluginLog.LogError(message);
+                break;
+            case AVLogLevel.Warning:
+                PluginLog.LogWarning(message);
+                break;
+            case AVLogLevel.Info:
+                PluginLog.LogInformation(message);
+                break;
+            case AVLogLevel.Verbose:
+                PluginLog.LogVerbose(message);
+                break;
+            case AVLogLevel.Debug:
+                PluginLog.LogDebug(message);
+                break;
+            case AVLogLevel.Trace:
+                PluginLog.LogVerbose(message);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(level), level, null);
+        }
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (!disposing) return;
@@ -200,6 +257,8 @@ public class Simulacrum : IDalamudPlugin
         _material?.Dispose();
         _videoReader.Close();
         _videoReader.Dispose();
+
+        UninstallAVLogHandler();
     }
 
     public void Dispose()
