@@ -21,6 +21,8 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
     {
         _reader = reader;
         _sync = sync;
+
+        // TODO: Use reader.RequiredBufferSize
         _cacheBufferSize = reader.Width * reader.Height * PixelSize();
 
         // For some reason, sws_scale writes 8 black pixels after the end of the buffer.
