@@ -1,7 +1,10 @@
 ﻿#include <string>
+#include <windows.h>
 #include "VideoReader.h"
 
-#include <windows.h>
+extern "C" {
+#include <libavutil/imgutils.h>
+}
 
 // Ripped from https://github.com/bmewj/video-app
 // and https://ffmpeg.org/doxygen/trunk/api-h264-test_8c_source.html
@@ -23,6 +26,7 @@ static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix
 Simulacrum::AV::Core::VideoReader::VideoReader()
     : width{},
       height{},
+      byte_buffer_size{},
       time_base{},
       av_format_ctx{},
       av_codec_ctx{},
@@ -109,11 +113,19 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         return false;
     }
 
+    byte_buffer_size = av_image_get_buffer_size(static_cast<AVPixelFormat>(av_codec_params->format), width, height, 16);
+
     return true;
 }
 
-bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t* pts)
+bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const int64_t frame_buffer_size, int64_t* pts)
 {
+    if (frame_buffer_size < byte_buffer_size)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] The provided buffer is too short to read frame data");
+        return false;
+    }
+
     // Decode one frame
     while (av_read_frame(av_format_ctx, av_packet) >= 0)
     {
@@ -244,6 +256,11 @@ int Simulacrum::AV::Core::VideoReader::GetWidth() const
 int Simulacrum::AV::Core::VideoReader::GetHeight() const
 {
     return height;
+}
+
+int Simulacrum::AV::Core::VideoReader::GetRequiredBufferSize() const
+{
+    return byte_buffer_size;
 }
 
 AVRational Simulacrum::AV::Core::VideoReader::GetTimeBase() const

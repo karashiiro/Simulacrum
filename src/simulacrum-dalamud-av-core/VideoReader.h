@@ -13,18 +13,19 @@ namespace Simulacrum::AV::Core
     class VideoReader
     {
     public:
-        int width, height;
+        int width, height, byte_buffer_size;
         AVRational time_base;
 
         VideoReader();
 
         bool Open(const char* uri);
-        bool ReadFrame(uint8_t* frame_buffer, int64_t* pts);
+        bool ReadFrame(uint8_t* frame_buffer, int64_t frame_buffer_size, int64_t* pts);
         [[nodiscard]] bool SeekFrame(int64_t ts) const;
         void Close();
 
         [[nodiscard]] int GetWidth() const;
         [[nodiscard]] int GetHeight() const;
+        [[nodiscard]] int GetRequiredBufferSize() const;
         [[nodiscard]] AVRational GetTimeBase() const;
 
     private:
@@ -56,9 +57,10 @@ inline DllExport bool VideoReaderOpen(Simulacrum::AV::Core::VideoReader* reader,
 inline DllExport bool VideoReaderReadFrame(
     Simulacrum::AV::Core::VideoReader* reader,
     uint8_t* frame_buffer,
+    const int64_t frame_buffer_size,
     int64_t* pts)
 {
-    return reader->ReadFrame(frame_buffer, pts);
+    return reader->ReadFrame(frame_buffer, frame_buffer_size, pts);
 }
 
 inline DllExport bool VideoReaderSeekFrame(const Simulacrum::AV::Core::VideoReader* reader, const int64_t ts)
@@ -79,6 +81,11 @@ inline DllExport int VideoReaderGetWidth(const Simulacrum::AV::Core::VideoReader
 inline DllExport int VideoReaderGetHeight(const Simulacrum::AV::Core::VideoReader* reader)
 {
     return reader->GetHeight();
+}
+
+inline DllExport int VideoReaderGetRequiredBufferSize(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->GetRequiredBufferSize();
 }
 
 inline DllExport AVRational VideoReaderGetTimeBase(const Simulacrum::AV::Core::VideoReader* reader)
