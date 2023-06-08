@@ -4,6 +4,7 @@
 #include <windows.h>
 
 // Ripped from https://github.com/bmewj/video-app
+// and https://ffmpeg.org/doxygen/trunk/api-h264-test_8c_source.html
 
 static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix_fmt)
 {
@@ -40,65 +41,71 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         return false;
     }
 
+    // Open the input URI
     if (avformat_open_input(&av_format_ctx, uri, nullptr, nullptr) != 0)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not open input object");
         return false;
     }
 
+    // Load the stream info for formats that don't provide size information in their header
     if (avformat_find_stream_info(av_format_ctx, nullptr) != 0)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not find stream info");
         return false;
     }
 
     // Find the first valid video stream inside the file
-    video_stream_index = -1;
-    const AVCodecParameters* av_codec_params = nullptr;
-    const AVCodec* av_codec = nullptr;
-    for (unsigned i = 0; i < av_format_ctx->nb_streams; ++i)
+    video_stream_index = av_find_best_stream(av_format_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (video_stream_index < 0)
     {
-        av_codec_params = av_format_ctx->streams[i]->codecpar;
-        av_codec = const_cast<AVCodec*>(avcodec_find_decoder(av_codec_params->codec_id));
-        if (!av_codec)
-        {
-            continue;
-        }
-        if (av_codec_params->codec_type == AVMEDIA_TYPE_VIDEO)
-        {
-            video_stream_index = static_cast<int>(i);
-            width = av_codec_params->width;
-            height = av_codec_params->height;
-            time_base = av_format_ctx->streams[i]->time_base;
-            break;
-        }
-    }
-    if (video_stream_index == -1 || !av_codec || !av_codec_params)
-    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not find video stream in input file");
         return false;
     }
+
+    const auto* av_codec_params = av_format_ctx->streams[video_stream_index]->codecpar;
+    const auto* av_codec = const_cast<AVCodec*>(avcodec_find_decoder(av_codec_params->codec_id));
+    if (!av_codec)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not find decoder");
+        return false;
+    }
+
+    width = av_codec_params->width;
+    height = av_codec_params->height;
+    time_base = av_format_ctx->streams[video_stream_index]->time_base;
 
     // Set up a codec context for the decoder
     av_codec_ctx = avcodec_alloc_context3(av_codec);
     if (!av_codec_ctx)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate decoder context");
         return false;
     }
+
     if (avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not copy decoder context");
         return false;
     }
+
     if (avcodec_open2(av_codec_ctx, av_codec, nullptr) < 0)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not open decoder");
         return false;
     }
 
     av_frame = av_frame_alloc();
     if (!av_frame)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate frame");
         return false;
     }
+
     av_packet = av_packet_alloc();
     if (!av_packet)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate packet");
         return false;
     }
 
