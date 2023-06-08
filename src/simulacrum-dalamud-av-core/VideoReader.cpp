@@ -32,7 +32,7 @@ Simulacrum::AV::Core::VideoReader::VideoReader()
 {
 }
 
-bool Simulacrum::AV::Core::VideoReader::Open(const char* filename)
+bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
 {
     av_format_ctx = avformat_alloc_context();
     if (!av_format_ctx)
@@ -40,7 +40,7 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* filename)
         return false;
     }
 
-    if (avformat_open_input(&av_format_ctx, filename, nullptr, nullptr) != 0)
+    if (avformat_open_input(&av_format_ctx, uri, nullptr, nullptr) != 0)
     {
         return false;
     }

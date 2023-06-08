@@ -18,7 +18,7 @@ namespace Simulacrum::AV::Core
 
         VideoReader();
 
-        bool Open(const char* filename);
+        bool Open(const char* uri);
         bool ReadFrame(uint8_t* frame_buffer, int64_t* pts);
         [[nodiscard]] bool SeekFrame(int64_t ts) const;
         void Close();
@@ -48,9 +48,9 @@ inline DllExport void VideoReaderFree(const Simulacrum::AV::Core::VideoReader* r
     delete reader;
 }
 
-inline DllExport bool VideoReaderOpen(Simulacrum::AV::Core::VideoReader* reader, const char* filename)
+inline DllExport bool VideoReaderOpen(Simulacrum::AV::Core::VideoReader* reader, const char* uri)
 {
-    return reader->Open(filename);
+    return reader->Open(uri);
 }
 
 inline DllExport bool VideoReaderReadFrame(

@@ -72,7 +72,7 @@ public partial class VideoReader : IDisposable
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderOpen")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool VideoReaderOpen(nint reader, [MarshalAs(UnmanagedType.LPStr)] string filename);
+    internal static partial bool VideoReaderOpen(nint reader, [MarshalAs(UnmanagedType.LPStr)] string uri);
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderReadFrame")]
     [return: MarshalAs(UnmanagedType.Bool)]
