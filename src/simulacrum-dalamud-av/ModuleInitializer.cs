@@ -19,10 +19,41 @@ public static class ModuleInitializer
          * https://learn.microsoft.com/en-us/dotnet/api/System.Runtime.InteropServices.NativeLibrary.Load?view=net-7.0
          */
         var nativeLibraries = new List<nint>();
+        LoadLibrary(nativeLibraries, "OpenCL.dll");
         LoadLibrary(nativeLibraries, "avutil-57.dll");
+        LoadLibrary(nativeLibraries, "soxr.dll");
         LoadLibrary(nativeLibraries, "swresample-4.dll");
         LoadLibrary(nativeLibraries, "swscale-6.dll");
+        LoadLibrary(nativeLibraries, "aom.dll");
+        LoadLibrary(nativeLibraries, "dav1d.dll");
+        LoadLibrary(nativeLibraries, "iconv-2.dll");
+        LoadLibrary(nativeLibraries, "ilbc.dll");
+        LoadLibrary(nativeLibraries, "liblzma.dll");
+        LoadLibrary(nativeLibraries, "libmp3lame.dll");
+        LoadLibrary(nativeLibraries, "libsharpyuv.dll");
+        LoadLibrary(nativeLibraries, "libwebp.dll");
+        LoadLibrary(nativeLibraries, "libwebpmux.dll");
+        LoadLibrary(nativeLibraries, "openh264-6.dll");
+        LoadLibrary(nativeLibraries, "openjp2.dll");
+        LoadLibrary(nativeLibraries, "opus.dll");
+        LoadLibrary(nativeLibraries, "snappy.dll");
+        LoadLibrary(nativeLibraries, "speex-1.dll");
+        LoadLibrary(nativeLibraries, "theoradec.dll");
+        LoadLibrary(nativeLibraries, "ogg.dll");
+        LoadLibrary(nativeLibraries, "theoraenc.dll");
+        LoadLibrary(nativeLibraries, "vorbis.dll");
+        LoadLibrary(nativeLibraries, "vorbisenc.dll");
+        LoadLibrary(nativeLibraries, "zlibd1.dll");
         LoadLibrary(nativeLibraries, "avcodec-59.dll");
+        LoadLibrary(nativeLibraries, "bz2d.dll");
+        LoadLibrary(nativeLibraries, "libxml2.dll");
+        LoadLibrary(nativeLibraries, "modplug.dll");
+        LoadLibrary(nativeLibraries, "mpg123.dll");
+        LoadLibrary(nativeLibraries, "vorbisfile.dll");
+        LoadLibrary(nativeLibraries, "openmpt.dll");
+        LoadLibrary(nativeLibraries, "srt.dll");
+        LoadLibrary(nativeLibraries, "pthreadVC3d.dll");
+        LoadLibrary(nativeLibraries, "ssh.dll");
         LoadLibrary(nativeLibraries, "avformat-59.dll");
 
         var assemblyLoadContext = AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly());
