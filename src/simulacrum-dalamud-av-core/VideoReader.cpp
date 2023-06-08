@@ -34,7 +34,6 @@ Simulacrum::AV::Core::VideoReader::VideoReader()
 
 bool Simulacrum::AV::Core::VideoReader::Open(const char* filename)
 {
-    // Open the file using libavformat
     av_format_ctx = avformat_alloc_context();
     if (!av_format_ctx)
     {
@@ -42,6 +41,11 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* filename)
     }
 
     if (avformat_open_input(&av_format_ctx, filename, nullptr, nullptr) != 0)
+    {
+        return false;
+    }
+
+    if (avformat_find_stream_info(av_format_ctx, nullptr) != 0)
     {
         return false;
     }
