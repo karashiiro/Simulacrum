@@ -15,3 +15,5 @@ Release/
 *.vcxproj.filters
 *.vcxproj.user
 *.sln.*.user
+
+node_modules/
