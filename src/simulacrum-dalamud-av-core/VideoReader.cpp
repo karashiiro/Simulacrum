@@ -171,7 +171,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
 
 bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
 {
-    if (!av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD))
+    if (av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD) < 0)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek stream");
         return false;
