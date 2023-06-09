@@ -11,6 +11,7 @@
     "cdk": "cdk"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.117",
     "@types/jest": "^29.5.1",
     "@types/node": "20.1.7",
     "aws-cdk": "2.82.0",
@@ -20,6 +21,7 @@
     "typescript": "~5.0.4"
   },
   "dependencies": {
+    "@aws-sdk/client-mediaconvert": "^3.348.0",
     "@aws-solutions-constructs/aws-cloudfront-s3": "^2.41.0",
     "aws-cdk-lib": "2.82.0",
     "constructs": "^10.0.0",
