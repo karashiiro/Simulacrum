@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/simulacrum-cloud-api/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/simulacrum-cloud-api/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/simulacrum-cloud-api",
+  "projects": {
+    "simulacrum-cloud-api": {
+      "type": "application",
+      "root": "apps/simulacrum-cloud-api",
+      "entryFile": "main",
+      "sourceRoot": "apps/simulacrum-cloud-api/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/simulacrum-cloud-api/tsconfig.app.json"
+      }
+    },
+    "convert-video": {
+      "type": "application",
+      "root": "apps/convert-video",
+      "entryFile": "main",
+      "sourceRoot": "apps/convert-video/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/convert-video/tsconfig.app.json"
+      }
+    }
+  }
+}
