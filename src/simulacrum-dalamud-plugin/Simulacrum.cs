@@ -81,7 +81,7 @@ public class Simulacrum : IDalamudPlugin
             new CommandInfo((_, _) => GC.Collect(2, GCCollectionMode.Aggressive, true, true)));
     }
 
-    private const string VideoPath = @"https://dyov71j0t4ngh.cloudfront.net/rider64_xKQhMNjffD.m3u8";
+    private const string VideoPath = @"https://dc6xbzf7ukys8.cloudfront.net/rider64_xKQhMNjffD.m3u8";
 
     public void OnFrameworkUpdate(Framework f)
     {

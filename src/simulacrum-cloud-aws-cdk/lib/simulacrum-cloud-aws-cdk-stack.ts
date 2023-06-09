@@ -6,6 +6,13 @@ export class SimulacrumCloudAwsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    new CloudFrontToS3(this, "SimulacrumCloudFrontS3", {});
+    const cfs3 = new CloudFrontToS3(this, "CloudFrontS3", {});
+
+    new cdk.CfnOutput(this, "CloudFrontDomainName", {
+      value: cfs3.cloudFrontWebDistribution.domainName,
+    });
+    new cdk.CfnOutput(this, "CloudFrontS3BucketArn", {
+      value: cfs3.s3Bucket?.bucketArn ?? "",
+    });
   }
 }
