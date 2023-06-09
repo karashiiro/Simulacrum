@@ -5,6 +5,14 @@
 // Ripped from https://github.com/bmewj/video-app
 // and https://ffmpeg.org/doxygen/trunk/api-h264-test_8c_source.html
 
+// av_err2str returns a temporary array. This doesn't work in gcc.
+// This function can be used as a replacement for av_err2str.
+static const char* av_make_error(int errnum)
+{
+    static char str[AV_ERROR_MAX_STRING_SIZE] = {};
+    return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
+}
+
 static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix_fmt)
 {
     // Fix swscaler deprecated pixel format warning
@@ -123,23 +131,23 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
             continue;
         }
 
-        int response = avcodec_send_packet(av_codec_ctx, av_packet);
-        if (response < 0)
+        int result = avcodec_send_packet(av_codec_ctx, av_packet);
+        if (result < 0)
         {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding");
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
             return false;
         }
 
-        response = avcodec_receive_frame(av_codec_ctx, av_frame);
-        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+        result = avcodec_receive_frame(av_codec_ctx, av_frame);
+        if (result == AVERROR(EAGAIN) || result == AVERROR_EOF)
         {
             av_packet_unref(av_packet);
             continue;
         }
 
-        if (response < 0)
+        if (result < 0)
         {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame");
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
             return false;
         }
 
@@ -171,9 +179,10 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
 
 bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
 {
-    if (av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD) < 0)
+    int result = av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD);
+    if (result < 0)
     {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek stream");
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek stream: %s", av_make_error(result));
         return false;
     }
 
@@ -188,22 +197,22 @@ bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
             continue;
         }
 
-        int response = avcodec_send_packet(av_codec_ctx, av_packet);
-        if (response < 0)
+        result = avcodec_send_packet(av_codec_ctx, av_packet);
+        if (result < 0)
         {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding");
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
             return false;
         }
 
-        response = avcodec_receive_frame(av_codec_ctx, av_frame);
-        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+        result = avcodec_receive_frame(av_codec_ctx, av_frame);
+        if (result == AVERROR(EAGAIN) || result == AVERROR_EOF)
         {
             av_packet_unref(av_packet);
             continue;
         }
-        if (response < 0)
+        if (result < 0)
         {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame");
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
             return false;
         }
 
