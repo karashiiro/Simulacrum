@@ -2,10 +2,6 @@
 #include <windows.h>
 #include "VideoReader.h"
 
-extern "C" {
-#include <libavutil/imgutils.h>
-}
-
 // Ripped from https://github.com/bmewj/video-app
 // and https://ffmpeg.org/doxygen/trunk/api-h264-test_8c_source.html
 
@@ -26,7 +22,6 @@ static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix
 Simulacrum::AV::Core::VideoReader::VideoReader()
     : width{},
       height{},
-      byte_buffer_size{},
       time_base{},
       av_format_ctx{},
       av_codec_ctx{},
@@ -42,6 +37,7 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
     av_format_ctx = avformat_alloc_context();
     if (!av_format_ctx)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate format context");
         return false;
     }
 
@@ -113,19 +109,11 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         return false;
     }
 
-    byte_buffer_size = av_image_get_buffer_size(static_cast<AVPixelFormat>(av_codec_params->format), width, height, 16);
-
     return true;
 }
 
-bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const int64_t frame_buffer_size, int64_t* pts)
+bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t* pts)
 {
-    if (frame_buffer_size < byte_buffer_size)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] The provided buffer is too short to read frame data");
-        return false;
-    }
-
     // Decode one frame
     while (av_read_frame(av_format_ctx, av_packet) >= 0)
     {
@@ -138,6 +126,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const i
         int response = avcodec_send_packet(av_codec_ctx, av_packet);
         if (response < 0)
         {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding");
             return false;
         }
 
@@ -150,6 +139,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const i
 
         if (response < 0)
         {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame");
             return false;
         }
 
@@ -159,7 +149,6 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const i
 
     *pts = av_frame->pts;
 
-    // Set up sws scaler
     if (!sws_scaler_ctx)
     {
         const auto source_pix_fmt = correct_for_deprecated_pixel_format(av_codec_ctx->pix_fmt);
@@ -169,6 +158,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const i
     }
     if (!sws_scaler_ctx)
     {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate sws context");
         return false;
     }
 
@@ -181,7 +171,11 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const i
 
 bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
 {
-    av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD);
+    if (!av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD))
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek stream");
+        return false;
+    }
 
     // av_seek_frame takes effect after one frame, so I'm decoding one here
     // so that the next call to video_reader_read_frame() will give the correct
@@ -197,6 +191,7 @@ bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
         int response = avcodec_send_packet(av_codec_ctx, av_packet);
         if (response < 0)
         {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding");
             return false;
         }
 
@@ -208,6 +203,7 @@ bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
         }
         if (response < 0)
         {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame");
             return false;
         }
 
@@ -225,45 +221,29 @@ void Simulacrum::AV::Core::VideoReader::Close()
         sws_freeContext(sws_scaler_ctx);
         sws_scaler_ctx = nullptr;
     }
+
     if (av_format_ctx)
     {
         avformat_close_input(&av_format_ctx);
         avformat_free_context(av_format_ctx);
         av_format_ctx = nullptr;
     }
+
     if (av_frame)
     {
         av_frame_free(&av_frame);
         av_frame = nullptr;
     }
+
     if (av_packet)
     {
         av_packet_free(&av_packet);
         av_packet = nullptr;
     }
+
     if (av_codec_ctx)
     {
         avcodec_free_context(&av_codec_ctx);
         av_codec_ctx = nullptr;
     }
-}
-
-int Simulacrum::AV::Core::VideoReader::GetWidth() const
-{
-    return width;
-}
-
-int Simulacrum::AV::Core::VideoReader::GetHeight() const
-{
-    return height;
-}
-
-int Simulacrum::AV::Core::VideoReader::GetRequiredBufferSize() const
-{
-    return byte_buffer_size;
-}
-
-AVRational Simulacrum::AV::Core::VideoReader::GetTimeBase() const
-{
-    return time_base;
 }
