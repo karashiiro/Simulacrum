@@ -9,6 +9,7 @@ import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import { Construct } from "constructs";
 import path from "path";
 import hlsConverterTemplate from "./aws-mediaconvert-template-hls-converter.json";
+import { MediaConvertEndpoint } from "./resources/mediaconvert-endpoint";
 
 export class SimulacrumCloudAwsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -30,6 +31,11 @@ export class SimulacrumCloudAwsCdkStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal("mediaconvert.amazonaws.com"),
     });
 
+    const mediaConvertEndpoint = new MediaConvertEndpoint(
+      this,
+      "MediaConvertEndpoint"
+    );
+
     const mediaConvertDispatcher = new nodejs.NodejsFunction(
       this,
       "MediaConvertDispatcher",
@@ -42,8 +48,7 @@ export class SimulacrumCloudAwsCdkStack extends cdk.Stack {
         environment: {
           MEDIACONVERT_ROLE: mediaConvertRole.roleArn,
           MEDIACONVERT_TEMPLATE: hlsTemplate.attrArn,
-          MEDIACONVERT_ENDPOINT:
-            "https://mlboolfjb.mediaconvert.us-west-2.amazonaws.com",
+          MEDIACONVERT_ENDPOINT: mediaConvertEndpoint.endpoint,
           REGION: cdk.Aws.REGION,
         },
       }
@@ -72,6 +77,9 @@ export class SimulacrumCloudAwsCdkStack extends cdk.Stack {
       new s3n.LambdaDestination(mediaConvertDispatcher)
     );
 
+    new cdk.CfnOutput(this, "MediaConvertRegionEndpoint", {
+      value: mediaConvertEndpoint.endpoint,
+    });
     new cdk.CfnOutput(this, "CloudFrontDomainName", {
       value: cfs3.cloudFrontWebDistribution.domainName,
     });
