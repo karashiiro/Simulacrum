@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import {
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -26,12 +27,16 @@ function broadcast<T>(server: Server, message: WsResponse<T>) {
 }
 
 @WebSocketGateway()
-export class EventsGateway implements OnGatewayConnection {
+export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   private readonly wss: Server;
 
   handleConnection() {
     Logger.log('Got new connection');
+  }
+
+  handleDisconnect() {
+    Logger.log('Connection from client ended');
   }
 
   @SubscribeMessage('play')
