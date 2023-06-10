@@ -40,6 +40,9 @@ public class Simulacrum : IDalamudPlugin
     private TextureScreen? _screen;
     private VideoReaderRenderSource? _renderSource;
     private GCHandle? _logFunctionHandle;
+    private HostctlClient? _hostctl;
+    private IList<IDisposable> _hostctlBag;
+
     private bool _initialized;
 
     public Simulacrum(
@@ -74,6 +77,8 @@ public class Simulacrum : IDalamudPlugin
 
         _framework.Update += OnFrameworkUpdate;
 
+        _hostctlBag = new List<IDisposable>();
+
         _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _sync?.Play()));
         _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _sync?.Pause()));
         _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
@@ -92,6 +97,27 @@ public class Simulacrum : IDalamudPlugin
 
         if (_initialized) return;
         _initialized = true;
+
+        async Task Connect()
+        {
+            var hostctlUri = new Uri("ws://localhost:3000");
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            _hostctl = await HostctlClient.FromUri(hostctlUri, cts.Token);
+            _hostctlBag.Add(_hostctl.OnScreenPlay().Subscribe(ev =>
+            {
+                PluginLog.Log($"play: {ev.ScreenId}, {ev.ScreenState}");
+            }));
+            _hostctlBag.Add(_hostctl.OnScreenPause().Subscribe(ev =>
+            {
+                PluginLog.Log($"pause: {ev.ScreenId}, {ev.ScreenState}");
+            }));
+            _hostctlBag.Add(_hostctl.OnScreenPan().Subscribe(ev =>
+            {
+                PluginLog.Log($"pan: {ev.ScreenId}, {ev.ScreenState}");
+            }));
+        }
+
+        _ = Connect();
 
         if (!_videoReader.Open(VideoPath))
         {
@@ -255,6 +281,14 @@ public class Simulacrum : IDalamudPlugin
         _unsubscribe?.Dispose();
         _textureBootstrap.Dispose();
         _material?.Dispose();
+
+        foreach (var subscription in _hostctlBag)
+        {
+            subscription.Dispose();
+        }
+
+        _hostctl?.Dispose();
+
         _videoReader.Close();
         _videoReader.Dispose();
 

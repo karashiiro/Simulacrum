@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { ConvertVideoModule } from './../src/convert-video.module';
+import { HostctlModule } from './../src/hostctl.module';
 
-describe('ConvertVideoController (e2e)', () => {
+describe('HostctlController (e2e)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [ConvertVideoModule],
+      imports: [HostctlModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
