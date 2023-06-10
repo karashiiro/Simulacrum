@@ -10,22 +10,22 @@ namespace Simulacrum;
 public class HostctlClient : IDisposable
 {
     private readonly CancellationTokenSource _cts;
-    private readonly ClientWebSocket _ws;
     private readonly SocketsHttpHandler _handler;
     private readonly SemaphoreSlim _sendLock;
     private readonly Subject<EventWrapper<ScreenEvent>> _screenEvents;
     private readonly Uri _uri;
 
+    private ClientWebSocket? _ws;
+
     private HostctlClient(Uri uri)
     {
         _cts = new CancellationTokenSource();
-        _ws = new ClientWebSocket();
-        _ws.Options.HttpVersion = HttpVersion.Version30;
-        _ws.Options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
         _handler = new SocketsHttpHandler();
         _sendLock = new SemaphoreSlim(0, 1);
         _screenEvents = new Subject<EventWrapper<ScreenEvent>>();
         _uri = uri;
+
+        RebuildClient();
     }
 
     public IObservable<ScreenEvent> OnScreenPlay()
@@ -45,9 +45,9 @@ public class HostctlClient : IDisposable
 
     public async Task SendScreenEvent(ScreenEvent @event, CancellationToken cancellationToken = default)
     {
-        if (_ws.State != WebSocketState.Open)
+        if (_ws?.State != WebSocketState.Open)
         {
-            throw new InvalidOperationException("The WebSocket connection is closed.");
+            throw new InvalidOperationException("The WebSocket connection is in an invalid state.");
         }
 
         if (!await _sendLock.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken))
@@ -67,6 +67,13 @@ public class HostctlClient : IDisposable
         }
     }
 
+    private void RebuildClient()
+    {
+        _ws = new ClientWebSocket();
+        _ws.Options.HttpVersion = HttpVersion.Version30;
+        _ws.Options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+    }
+
     private async Task InboundLoop(CancellationToken cancellationToken)
     {
         // Limit inbound message size to 1KB
@@ -74,24 +81,28 @@ public class HostctlClient : IDisposable
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            if (_ws.State != WebSocketState.Open)
+            if (_ws?.State != WebSocketState.Open)
             {
                 // Attempt to reconnect to the server
+                RebuildClient();
                 await Connect(_cts.Token);
                 return;
             }
 
-            // Ideally we would only allocate the buffer as needed since inbound messages are
-            // infrequent, but there doesn't seem to be a way of doing that without refactoring
-            // the entire system into a one that loops over the connections, which probably
-            // doesn't scale well for many connections.
-            var res = await _ws.ReceiveAsync(buffer, cancellationToken);
-            if (res.CloseStatus is not null)
+            try
             {
-                break;
-            }
+                var result = await _ws.ReceiveAsync(buffer, cancellationToken);
+                if (result.CloseStatus is not null)
+                {
+                    break;
+                }
 
-            ReceiveEvent(buffer.AsSpan()[..res.Count]);
+                ReceiveEvent(buffer.AsSpan()[..result.Count]);
+            }
+            catch (Exception)
+            {
+                // TODO: Route to logger
+            }
         }
     }
 
@@ -108,17 +119,34 @@ public class HostctlClient : IDisposable
 
     private async Task Connect(CancellationToken cancellationToken)
     {
+        if (_ws is null)
+        {
+            RebuildClient();
+        }
+
         // The parameter is used to control timeouts from the caller, and
         // the field is used to handle disposal.
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
-        await _ws.ConnectAsync(_uri, new HttpMessageInvoker(_handler), cts.Token);
+        await _ws!.ConnectAsync(_uri, new HttpMessageInvoker(_handler), cts.Token);
         cts.Token.ThrowIfCancellationRequested();
         _ = InboundLoop(_cts.Token);
     }
 
     private async Task Disconnect()
     {
-        await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed", _cts.Token);
+        if (_ws is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed", _cts.Token);
+        }
+        catch (Exception)
+        {
+            // TODO: Route exception to logger
+        }
     }
 
     public static async Task<HostctlClient> FromUri(Uri uri, CancellationToken cancellationToken = default)
@@ -136,7 +164,7 @@ public class HostctlClient : IDisposable
 
         _screenEvents.Dispose();
         _sendLock.Dispose();
-        _ws.Dispose();
+        _ws?.Dispose();
         _handler.Dispose();
 
         GC.SuppressFinalize(this);
