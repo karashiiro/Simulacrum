@@ -82,8 +82,9 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _sync?.Play()));
         _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _sync?.Pause()));
         _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
-        _commandManager.AddHandler("/simgc",
-            new CommandInfo((_, _) => GC.Collect(2, GCCollectionMode.Aggressive, true, true)));
+        _commandManager.AddHandler("/simoff", new CommandInfo((_, _) => _screen?.Show(new BlankRenderSource())));
+        _commandManager.AddHandler("/simon",
+            new CommandInfo((_, _) => _screen?.Show((IRenderSource?)_renderSource ?? new BlankRenderSource())));
     }
 
     private const string VideoPath = @"https://dc6xbzf7ukys8.cloudfront.net/rider64_xKQhMNjffD.m3u8";
@@ -267,7 +268,8 @@ public class Simulacrum : IDalamudPlugin
     {
         if (!disposing) return;
 
-        _commandManager.RemoveHandler("/simgc");
+        _commandManager.RemoveHandler("/simon");
+        _commandManager.RemoveHandler("/simoff");
         _commandManager.RemoveHandler("/simsync");
         _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simplay");
