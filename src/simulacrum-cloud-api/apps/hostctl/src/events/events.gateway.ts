@@ -28,15 +28,17 @@ function broadcast<T>(server: Server, message: WsResponse<T>) {
 
 @WebSocketGateway()
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private readonly logger = new Logger(EventsGateway.name);
+
   @WebSocketServer()
   private readonly wss: Server;
 
   handleConnection() {
-    Logger.log('Got new connection');
+    this.logger.log('Got new connection');
   }
 
   handleDisconnect() {
-    Logger.log('Connection from client ended');
+    this.logger.log('Connection from client ended');
   }
 
   @SubscribeMessage('play')
