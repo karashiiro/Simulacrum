@@ -12,7 +12,7 @@ public class HostctlClient : IDisposable
     private readonly CancellationTokenSource _cts;
     private readonly SocketsHttpHandler _handler;
     private readonly SemaphoreSlim _sendLock;
-    private readonly Subject<EventWrapper<ScreenEvent>> _screenEvents;
+    private readonly Subject<EventWrapper> _playbackTrackerEvents;
     private readonly Uri _uri;
 
     private ClientWebSocket? _ws;
@@ -22,28 +22,40 @@ public class HostctlClient : IDisposable
         _cts = new CancellationTokenSource();
         _handler = new SocketsHttpHandler();
         _sendLock = new SemaphoreSlim(0, 1);
-        _screenEvents = new Subject<EventWrapper<ScreenEvent>>();
+        _playbackTrackerEvents = new Subject<EventWrapper>();
         _uri = uri;
 
         RebuildClient();
     }
 
-    public IObservable<ScreenEvent> OnScreenPlay()
+    public IObservable<PlaybackTrackerDto> OnPlaybackTrackerPlay()
     {
-        return _screenEvents.Where(ev => ev is { Event: "play", Data: not null }).Select(ev => ev.Data!);
+        return _playbackTrackerEvents
+            .Where(ev => ev is { Event: "PLAYBACK_TRACKER_PLAY" })
+            .Select(ev => ev.Data.Deserialize<PlaybackTrackerDto>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
     }
 
-    public IObservable<ScreenEvent> OnScreenPause()
+    public IObservable<PlaybackTrackerDto> OnPlaybackTrackerPause()
     {
-        return _screenEvents.Where(ev => ev is { Event: "pause", Data: not null }).Select(ev => ev.Data!);
+        return _playbackTrackerEvents
+            .Where(ev => ev is { Event: "PLAYBACK_TRACKER_PAUSE" })
+            .Select(ev => ev.Data.Deserialize<PlaybackTrackerDto>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
     }
 
-    public IObservable<ScreenEvent> OnScreenPan()
+    public IObservable<PlaybackTrackerDto> OnPlaybackTrackerPan()
     {
-        return _screenEvents.Where(ev => ev is { Event: "pan", Data: not null }).Select(ev => ev.Data!);
+        return _playbackTrackerEvents
+            .Where(ev => ev is { Event: "PLAYBACK_TRACKER_PAN" })
+            .Select(ev => ev.Data.Deserialize<PlaybackTrackerDto>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
     }
 
-    public async Task SendScreenEvent(ScreenEvent @event, CancellationToken cancellationToken = default)
+    public async Task SendEvent(HostctlEvent @event, CancellationToken cancellationToken = default)
     {
         if (_ws?.State != WebSocketState.Open)
         {
@@ -108,13 +120,13 @@ public class HostctlClient : IDisposable
 
     private void ReceiveEvent(Span<byte> buf)
     {
-        var @event = JsonSerializer.Deserialize<EventWrapper<ScreenEvent>>(buf);
+        var @event = JsonSerializer.Deserialize<EventWrapper>(buf);
         if (@event is null)
         {
             throw new InvalidOperationException("The event was null.");
         }
 
-        _screenEvents.OnNext(@event);
+        _playbackTrackerEvents.OnNext(@event);
     }
 
     private async Task Connect(CancellationToken cancellationToken)
@@ -162,7 +174,7 @@ public class HostctlClient : IDisposable
         Disconnect().GetAwaiter().GetResult();
         _cts.Dispose();
 
-        _screenEvents.Dispose();
+        _playbackTrackerEvents.Dispose();
         _sendLock.Dispose();
         _ws?.Dispose();
         _handler.Dispose();
@@ -170,17 +182,21 @@ public class HostctlClient : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private class EventWrapper<T>
+    private class EventWrapper
     {
         [JsonPropertyName("event")] public string? Event { get; init; }
 
-        [JsonPropertyName("data")] public T? Data { get; init; }
+        [JsonPropertyName("data")] public JsonElement Data { get; init; }
     }
 
-    public class ScreenEvent
+    public class PlaybackTrackerDto
     {
-        [JsonPropertyName("screenId")] public string? ScreenId { get; init; }
+        [JsonPropertyName("id")] public string? Id { get; init; }
 
-        [JsonPropertyName("screenState")] public string? ScreenState { get; init; }
+        [JsonPropertyName("playheadSeconds")] public long PlayheadSeconds { get; init; }
+
+        [JsonPropertyName("state")] public string? State { get; init; }
+
+        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
     }
 }

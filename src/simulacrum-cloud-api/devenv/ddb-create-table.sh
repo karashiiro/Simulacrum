@@ -1,6 +1,7 @@
 #!/bin/sh
 aws dynamodb create-table \
     --endpoint http://localhost:8000 \
+    --no-cli-pager \
     --table-name Simulacrum \
     --key-schema AttributeName=PK,KeyType=HASH AttributeName=SK,KeyType=RANGE \
     --attribute-definitions AttributeName=PK,AttributeType=S AttributeName=SK,AttributeType=S AttributeName=LSI1SK,AttributeType=S AttributeName=GSI1PK,AttributeType=S AttributeName=GSI1SK,AttributeType=S \

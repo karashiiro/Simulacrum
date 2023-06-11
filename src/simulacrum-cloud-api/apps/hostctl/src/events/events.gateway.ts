@@ -9,14 +9,21 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
+import { PlaybackTrackerDto } from '@simulacrum/db/common';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 
-type ScreenState = 'playing' | 'paused';
+interface PlayEvent {
+  id: string;
+}
 
-interface ScreenEvent {
-  screenId: string;
-  screenState: ScreenState;
+interface PauseEvent {
+  id: string;
+}
+
+interface PanEvent {
+  id: string;
+  playheadSeconds: number;
 }
 
 function broadcast<T>(server: Server, message: WsResponse<T>) {
@@ -44,38 +51,60 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Connection from client ended');
   }
 
-  @SubscribeMessage('play')
-  play(@MessageBody() ev: ScreenEvent): void {
-    broadcast<ScreenEvent>(this.wss, {
-      event: 'play',
-      data: {
-        screenId: ev.screenId,
-        screenState: 'playing',
-      },
+  @SubscribeMessage('PLAYBACK_TRACKER_CREATE')
+  async create(): Promise<void> {
+    const dto = await this.db.createPlaybackTracker();
+    broadcast<PlaybackTrackerDto>(this.wss, {
+      event: 'PLAYBACK_TRACKER_CREATE',
+      data: dto,
     });
   }
 
-  @SubscribeMessage('pause')
-  pause(@MessageBody() ev: ScreenEvent): void {
-    broadcast<ScreenEvent>(this.wss, {
-      event: 'pause',
-      data: {
-        screenId: ev.screenId,
-        screenState: 'paused',
-      },
+  @SubscribeMessage('PLAYBACK_TRACKER_PLAY')
+  async play(@MessageBody() ev: PlayEvent): Promise<void> {
+    const dto = await this.db.updatePlaybackTracker(ev.id, {
+      state: 'playing',
+    });
+    if (!dto) {
+      // TODO: return result type
+      return;
+    }
+
+    broadcast<PlaybackTrackerDto>(this.wss, {
+      event: 'PLAYBACK_TRACKER_PLAY',
+      data: dto,
     });
   }
 
-  @SubscribeMessage('pan')
-  async pan(@MessageBody() ev: ScreenEvent): Promise<void> {
-    await this.db.createPlaybackTracker(0);
+  @SubscribeMessage('PLAYBACK_TRACKER_PAUSE')
+  async pause(@MessageBody() ev: PauseEvent): Promise<void> {
+    const dto = await this.db.updatePlaybackTracker(ev.id, {
+      state: 'paused',
+    });
+    if (!dto) {
+      // TODO: return result type
+      return;
+    }
 
-    broadcast<ScreenEvent>(this.wss, {
-      event: 'pan',
-      data: {
-        screenId: ev.screenId,
-        screenState: 'playing',
-      },
+    broadcast<PlaybackTrackerDto>(this.wss, {
+      event: 'PLAYBACK_TRACKER_PAUSE',
+      data: dto,
+    });
+  }
+
+  @SubscribeMessage('PLAYBACK_TRACKER_PAN')
+  async pan(@MessageBody() ev: PanEvent): Promise<void> {
+    const dto = await this.db.updatePlaybackTracker(ev.id, {
+      playheadSeconds: ev.playheadSeconds,
+    });
+    if (!dto) {
+      // TODO: return result type
+      return;
+    }
+
+    broadcast<PlaybackTrackerDto>(this.wss, {
+      event: 'PLAYBACK_TRACKER_PAN',
+      data: dto,
     });
   }
 }

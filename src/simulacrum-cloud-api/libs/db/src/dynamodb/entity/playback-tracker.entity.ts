@@ -1,4 +1,7 @@
-import { PlaybackTrackerDto } from '@simulacrum/db/common/entities';
+import {
+  PlaybackTrackerDto,
+  PlaybackTrackerState,
+} from '@simulacrum/db/common/entities';
 import {
   Attribute,
   Entity,
@@ -14,6 +17,11 @@ import {
     sortKey: 'PBTRACKER#{{id}}',
   },
   indexes: {
+    GSI1: {
+      partitionKey: 'PBTRACKER#{{id}}',
+      sortKey: 'PBTRACKER#STATE#{{state}}',
+      type: INDEX_TYPE.GSI,
+    },
     LSI1: {
       sortKey: 'PLAYHEAD#UPDATED_AT#{{updatedAt}}',
       type: INDEX_TYPE.LSI,
@@ -26,8 +34,12 @@ export class PlaybackTracker implements PlaybackTrackerDto {
   })
   id: string;
 
-  @Attribute()
+  // TypeDORM seems to be doing something like `if (!default)`, so this needs to be a function to not be falsy
+  @Attribute({ default: () => 0 })
   playheadSeconds: number;
+
+  @Attribute({ isEnum: true, default: 'paused' })
+  state: PlaybackTrackerState;
 
   @AutoGenerateAttribute({
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.EPOCH_DATE,

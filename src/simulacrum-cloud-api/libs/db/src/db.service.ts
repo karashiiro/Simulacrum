@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { DbAccessService } from './common/service';
+import { DbAccessService, PlaybackTrackerDto } from './common';
 import { DynamoDbService } from './dynamodb/dynamodb.service';
-import { PlaybackTrackerDto } from './common/entities';
 
 @Injectable()
 export class DbService implements DbAccessService {
@@ -11,7 +10,14 @@ export class DbService implements DbAccessService {
     return this.ddb.findPlaybackTrackerById(id);
   }
 
-  createPlaybackTracker(playheadSeconds: number): Promise<PlaybackTrackerDto> {
-    return this.ddb.createPlaybackTracker(playheadSeconds);
+  createPlaybackTracker(): Promise<PlaybackTrackerDto> {
+    return this.ddb.createPlaybackTracker();
+  }
+
+  updatePlaybackTracker(
+    id: string,
+    dto: Partial<PlaybackTrackerDto>,
+  ): Promise<PlaybackTrackerDto | undefined> {
+    return this.ddb.updatePlaybackTracker(id, dto);
   }
 }

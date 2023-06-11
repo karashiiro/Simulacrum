@@ -4,8 +4,7 @@ import { DocumentClientV3 } from '@typedorm/document-client';
 import { Injectable } from '@nestjs/common';
 import { PlaybackTracker } from './entity/playback-tracker.entity';
 import { table } from './entity/table';
-import { DbAccessService } from '../common/service';
-import { PlaybackTrackerDto } from '../common/entities';
+import { DbAccessService, PlaybackTrackerDto } from '../common';
 
 const documentClient = new DocumentClientV3(
   new DynamoDBClient({
@@ -29,10 +28,14 @@ export class DynamoDbService implements DbAccessService {
     });
   }
 
-  createPlaybackTracker(playheadSeconds: number): Promise<PlaybackTrackerDto> {
-    const playbackTracker = new PlaybackTracker();
-    playbackTracker.playheadSeconds = playheadSeconds;
+  createPlaybackTracker(): Promise<PlaybackTrackerDto> {
+    return this.entityManager.create(new PlaybackTracker());
+  }
 
-    return this.entityManager.create(playbackTracker);
+  updatePlaybackTracker(
+    id: string,
+    dto: Partial<PlaybackTrackerDto>,
+  ): Promise<PlaybackTrackerDto | undefined> {
+    return this.entityManager.update(PlaybackTracker, { id }, dto);
   }
 }

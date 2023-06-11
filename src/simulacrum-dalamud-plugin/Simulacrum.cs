@@ -104,9 +104,9 @@ public class Simulacrum : IDalamudPlugin
             var hostctlUri = new Uri("ws://localhost:3000");
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             _hostctl = await HostctlClient.FromUri(hostctlUri, cts.Token);
-            _hostctlBag.Add(_hostctl.OnScreenPlay().Subscribe(_ => { _sync?.Play(); }));
-            _hostctlBag.Add(_hostctl.OnScreenPause().Subscribe(_ => { _sync?.Pause(); }));
-            _hostctlBag.Add(_hostctl.OnScreenPan().Subscribe(_ => { _sync?.Pan(0); }));
+            _hostctlBag.Add(_hostctl.OnPlaybackTrackerPlay().Subscribe(_ => { _sync?.Play(); }));
+            _hostctlBag.Add(_hostctl.OnPlaybackTrackerPause().Subscribe(_ => { _sync?.Pause(); }));
+            _hostctlBag.Add(_hostctl.OnPlaybackTrackerPan().Subscribe(_ => { _sync?.Pan(0); }));
         }
 
         _ = Connect();
