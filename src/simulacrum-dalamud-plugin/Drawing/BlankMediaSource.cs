@@ -2,7 +2,7 @@
 
 namespace Simulacrum.Drawing;
 
-public class BlankRenderSource : IRenderSource
+public class BlankMediaSource : IMediaSource
 {
     public void RenderTo(Span<byte> buffer)
     {

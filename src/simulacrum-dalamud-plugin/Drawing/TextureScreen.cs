@@ -9,7 +9,7 @@ public class TextureScreen : IRemoteScreen, IDisposable
     private readonly TextureBootstrap _texture;
     private readonly UiBuilder _ui;
     private byte[]? _buffer;
-    private IRenderSource? _source;
+    private IMediaSource? _source;
 
     public TextureScreen(TextureBootstrap texture, UiBuilder ui)
     {
@@ -54,7 +54,7 @@ public class TextureScreen : IRemoteScreen, IDisposable
         });
     }
 
-    public void Show(IRenderSource source)
+    public void Show(IMediaSource source)
     {
         _source = source;
     }

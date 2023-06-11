@@ -38,7 +38,7 @@ public class Simulacrum : IDalamudPlugin
     private IPlaybackTracker? _sync;
     private Material? _material;
     private TextureScreen? _screen;
-    private VideoReaderRenderSource? _renderSource;
+    private VideoReaderMediaSource? _renderSource;
     private GCHandle? _logFunctionHandle;
     private HostctlClient? _hostctl;
     private IList<IDisposable> _hostctlBag;
@@ -82,9 +82,9 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _sync?.Play()));
         _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _sync?.Pause()));
         _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
-        _commandManager.AddHandler("/simoff", new CommandInfo((_, _) => _screen?.Show(new BlankRenderSource())));
+        _commandManager.AddHandler("/simoff", new CommandInfo((_, _) => _screen?.Show(new BlankMediaSource())));
         _commandManager.AddHandler("/simon",
-            new CommandInfo((_, _) => _screen?.Show((IRenderSource?)_renderSource ?? new BlankRenderSource())));
+            new CommandInfo((_, _) => _screen?.Show((IMediaSource?)_renderSource ?? new BlankMediaSource())));
     }
 
     private const string VideoPath = @"https://dc6xbzf7ukys8.cloudfront.net/rider64_xKQhMNjffD.m3u8";
@@ -123,7 +123,7 @@ public class Simulacrum : IDalamudPlugin
 
         // Initialize the screen
         _sync = new TimePlaybackTracker();
-        _renderSource = new VideoReaderRenderSource(_videoReader, _sync);
+        _renderSource = new VideoReaderMediaSource(_videoReader, _sync);
         _screen = new TextureScreen(_textureBootstrap, _pluginInterface.UiBuilder);
         _screen.Show(_renderSource);
 

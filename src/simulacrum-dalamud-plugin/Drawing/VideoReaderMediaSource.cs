@@ -5,7 +5,7 @@ using Simulacrum.Drawing.Common;
 
 namespace Simulacrum.Drawing;
 
-public class VideoReaderRenderSource : IRenderSource, IDisposable
+public class VideoReaderMediaSource : IMediaSource, IDisposable
 {
     private readonly VideoReader _reader;
 
@@ -17,7 +17,7 @@ public class VideoReaderRenderSource : IRenderSource, IDisposable
     private readonly IDisposable _unsubscribe;
     private double _ptsSeconds;
 
-    public VideoReaderRenderSource(VideoReader reader, IReadOnlyPlaybackTracker sync)
+    public VideoReaderMediaSource(VideoReader reader, IReadOnlyPlaybackTracker sync)
     {
         _reader = reader;
         _sync = sync;

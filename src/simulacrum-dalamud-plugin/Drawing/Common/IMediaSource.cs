@@ -1,6 +1,6 @@
 ﻿namespace Simulacrum.Drawing.Common;
 
-public interface IRenderSource
+public interface IMediaSource
 {
     /// <summary>
     /// Renders data into the provided frame buffer.

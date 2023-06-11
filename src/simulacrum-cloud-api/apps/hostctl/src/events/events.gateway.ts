@@ -51,6 +51,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Connection from client ended');
   }
 
+  // TODO: MEDIA_SOURCE_CREATE (also creates and returns a playback tracker automatically, projected dynamically)
+  // TODO: MEDIA_SOURCE_LIST (called on connect, also returns associated playback trackers, projected dynamically)
+  // TODO: PLAYBACK_TRACKER_SYNC (request/reply, not broadcasted to all clients)
+
   @SubscribeMessage('PLAYBACK_TRACKER_CREATE')
   async create(): Promise<void> {
     const dto = await this.db.createPlaybackTracker();

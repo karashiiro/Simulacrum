@@ -7,5 +7,5 @@ public interface IScreen
     /// the screen implementation to resize any buffers accordingly.
     /// </summary>
     /// <param name="source"></param>
-    void Show(IRenderSource source);
+    void Show(IMediaSource source);
 }
