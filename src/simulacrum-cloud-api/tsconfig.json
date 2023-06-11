@@ -17,6 +17,13 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "paths": {}
+    "paths": {
+      "@simulacrum/db": [
+        "libs/db/src"
+      ],
+      "@simulacrum/db/*": [
+        "libs/db/src/*"
+      ]
+    }
   }
 }

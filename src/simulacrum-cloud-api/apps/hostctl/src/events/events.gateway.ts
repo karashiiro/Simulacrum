@@ -8,6 +8,7 @@ import {
   WebSocketServer,
   WsResponse,
 } from '@nestjs/websockets';
+import { DbService } from '@simulacrum/db';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 
@@ -32,6 +33,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @WebSocketServer()
   private readonly wss: Server;
+
+  constructor(private readonly db: DbService) {}
 
   handleConnection() {
     this.logger.log('Got new connection');
@@ -64,7 +67,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('pan')
-  pan(@MessageBody() ev: ScreenEvent): void {
+  async pan(@MessageBody() ev: ScreenEvent): Promise<void> {
+    await this.db.createPlaybackTracker(0);
+
     broadcast<ScreenEvent>(this.wss, {
       event: 'pan',
       data: {

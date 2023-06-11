@@ -21,11 +21,15 @@
     "test:e2e": "jest --config ./apps/simulacrum-cloud-api/test/jest-e2e.json"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.350.0",
+    "@aws-sdk/lib-dynamodb": "^3.350.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
     "@nestjs/platform-ws": "^9.4.2",
     "@nestjs/websockets": "^9.4.2",
+    "@typedorm/common": "^1.15.4",
+    "@typedorm/core": "^1.15.4",
     "@types/ws": "^8.5.5",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.2.0",
@@ -71,7 +75,11 @@
     "coverageDirectory": "./coverage",
     "testEnvironment": "node",
     "roots": [
-      "<rootDir>/apps/"
-    ]
+      "<rootDir>/apps/",
+      "<rootDir>/libs/"
+    ],
+    "moduleNameMapper": {
+      "^@simulacrum/db(|/.*)$": "<rootDir>/libs/db/src/$1"
+    }
   }
 }
