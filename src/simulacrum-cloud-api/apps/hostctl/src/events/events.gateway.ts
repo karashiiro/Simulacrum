@@ -9,7 +9,7 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
-import { PlaybackTrackerDto } from '@simulacrum/db/common';
+import { MediaSourceDto, PlaybackTrackerDto } from '@simulacrum/db/common';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 
@@ -51,15 +51,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Connection from client ended');
   }
 
-  // TODO: MEDIA_SOURCE_CREATE (also creates and returns a playback tracker automatically, projected dynamically)
-  // TODO: MEDIA_SOURCE_LIST (called on connect, also returns associated playback trackers, projected dynamically)
+  // TODO: MEDIA_SOURCE_LIST (called on connect)
   // TODO: PLAYBACK_TRACKER_SYNC (request/reply, not broadcasted to all clients)
+  // TODO: Merge playback trackers and media sources, it makes more sense for video
 
-  @SubscribeMessage('PLAYBACK_TRACKER_CREATE')
-  async create(): Promise<void> {
-    const dto = await this.db.createPlaybackTracker();
-    broadcast<PlaybackTrackerDto>(this.wss, {
-      event: 'PLAYBACK_TRACKER_CREATE',
+  @SubscribeMessage('MEDIA_SOURCE_CREATE')
+  async createMediaSource(): Promise<void> {
+    const dto = await this.db.createMediaSource();
+    broadcast<MediaSourceDto>(this.wss, {
+      event: 'MEDIA_SOURCE_CREATE',
       data: dto,
     });
   }

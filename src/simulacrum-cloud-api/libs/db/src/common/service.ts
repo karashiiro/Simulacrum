@@ -1,4 +1,4 @@
-import { PlaybackTrackerDto } from './entities';
+import { MediaSourceDto, PlaybackTrackerDto } from './entities';
 
 export interface DbAccessService {
   findPlaybackTrackerById(id: string): Promise<PlaybackTrackerDto | undefined>;
@@ -9,4 +9,6 @@ export interface DbAccessService {
     id: string,
     dto: Partial<PlaybackTrackerDto>,
   ): Promise<PlaybackTrackerDto | undefined>;
+
+  createMediaSource(): Promise<MediaSourceDto>;
 }

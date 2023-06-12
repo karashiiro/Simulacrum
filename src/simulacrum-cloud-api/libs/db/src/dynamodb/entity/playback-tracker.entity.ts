@@ -1,7 +1,7 @@
 import {
   PlaybackTrackerDto,
   PlaybackTrackerState,
-} from '@simulacrum/db/common/entities';
+} from '@simulacrum/db/common';
 import {
   Attribute,
   Entity,
@@ -21,10 +21,6 @@ import {
       partitionKey: 'PBTRACKER#{{id}}',
       sortKey: 'PBTRACKER#STATE#{{state}}',
       type: INDEX_TYPE.GSI,
-    },
-    LSI1: {
-      sortKey: 'PLAYHEAD#UPDATED_AT#{{updatedAt}}',
-      type: INDEX_TYPE.LSI,
     },
   },
 })
