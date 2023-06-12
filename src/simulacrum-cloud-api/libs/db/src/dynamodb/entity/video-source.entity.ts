@@ -1,6 +1,10 @@
 import { VideoSourceDto, PlaybackState } from '@simulacrum/db/common';
-import { Attribute, Entity, INDEX_TYPE } from '@typedorm/common';
-import { MediaSource } from './media-source.entity';
+import {
+  AUTO_GENERATE_ATTRIBUTE_STRATEGY,
+  Attribute,
+  AutoGenerateAttribute,
+  Entity,
+} from '@typedorm/common';
 
 @Entity({
   name: 'videoSource',
@@ -8,15 +12,13 @@ import { MediaSource } from './media-source.entity';
     partitionKey: 'VIDEOSRC#{{id}}',
     sortKey: 'VIDEOSRC#{{id}}',
   },
-  indexes: {
-    GSI1: {
-      partitionKey: 'MEDIASRC#{{id}}',
-      sortKey: 'MEDIASRC#TYPE#{{type}}',
-      type: INDEX_TYPE.GSI,
-    },
-  },
 })
-export class VideoSource extends MediaSource implements VideoSourceDto {
+export class VideoSource implements VideoSourceDto {
+  @AutoGenerateAttribute({
+    strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.UUID4,
+  })
+  id: string;
+
   @Attribute()
   uri: string;
 
@@ -26,4 +28,10 @@ export class VideoSource extends MediaSource implements VideoSourceDto {
 
   @Attribute({ isEnum: true, default: 'paused' })
   state: PlaybackState;
+
+  @AutoGenerateAttribute({
+    strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.EPOCH_DATE,
+    autoUpdate: true,
+  })
+  updatedAt: number;
 }

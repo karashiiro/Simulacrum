@@ -193,8 +193,6 @@ public class HostctlClient : IDisposable
     {
         [JsonPropertyName("id")] public string? Id { get; init; }
 
-        [JsonPropertyName("type")] public string? Type { get; init; }
-
         [JsonPropertyName("uri")] public string? Uri { get; init; }
 
         [JsonPropertyName("playheadSeconds")] public long PlayheadSeconds { get; init; }

@@ -1,6 +1,6 @@
 import { ImageSourceDto } from '@simulacrum/db/common';
 import { Attribute, Entity, INDEX_TYPE } from '@typedorm/common';
-import { MediaSource } from './media-source.entity';
+import { MediaSourceBase } from './media-source.entity';
 
 @Entity({
   name: 'imageSource',
@@ -16,7 +16,7 @@ import { MediaSource } from './media-source.entity';
     },
   },
 })
-export class ImageSource extends MediaSource implements ImageSourceDto {
+export class ImageSource extends MediaSourceBase implements ImageSourceDto {
   @Attribute()
   uri: string;
 }

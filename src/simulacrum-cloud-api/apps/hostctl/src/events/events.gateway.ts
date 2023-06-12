@@ -51,11 +51,19 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Connection from client ended');
   }
 
-  // TODO: MEDIA_SOURCE_LIST (called on connect)
   // TODO: VIDEO_SOURCE_SYNC (request/reply, not broadcasted to all clients)
 
+  @SubscribeMessage('VIDEO_SOURCE_LIST')
+  async listVideoSources(): Promise<WsResponse<VideoSourceDto[]>> {
+    const dtos = await this.db.findAllVideoSources();
+    return {
+      event: 'VIDEO_SOURCE_LIST',
+      data: dtos,
+    };
+  }
+
   @SubscribeMessage('VIDEO_SOURCE_CREATE')
-  async createMediaSource(): Promise<void> {
+  async createVideoSource(): Promise<void> {
     const dto = await this.db.createVideoSource();
     broadcast<VideoSourceDto>(this.wss, {
       event: 'VIDEO_SOURCE_CREATE',
@@ -64,7 +72,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('VIDEO_SOURCE_PLAY')
-  async play(@MessageBody() ev: VideoPlayEvent): Promise<void> {
+  async playVideoSource(@MessageBody() ev: VideoPlayEvent): Promise<void> {
     const dto = await this.db.updateVideoSource(ev.id, {
       state: 'playing',
     });
@@ -80,7 +88,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('VIDEO_SOURCE_PAUSE')
-  async pause(@MessageBody() ev: VideoPauseEvent): Promise<void> {
+  async pauseVideoSource(@MessageBody() ev: VideoPauseEvent): Promise<void> {
     const dto = await this.db.updateVideoSource(ev.id, {
       state: 'paused',
     });
@@ -96,7 +104,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('VIDEO_SOURCE_PAN')
-  async pan(@MessageBody() ev: VideoPanEvent): Promise<void> {
+  async panVideoSource(@MessageBody() ev: VideoPanEvent): Promise<void> {
     const dto = await this.db.updateVideoSource(ev.id, {
       playheadSeconds: ev.playheadSeconds,
     });

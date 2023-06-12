@@ -4,17 +4,17 @@ namespace Simulacrum;
 
 public class HostctlEvent
 {
-    public class Play : HostctlEvent
+    public class VideoPlay : HostctlEvent
     {
         [JsonPropertyName("id")] public string? Id { get; init; }
     }
 
-    public class Pause : HostctlEvent
+    public class VideoPause : HostctlEvent
     {
         [JsonPropertyName("id")] public string? Id { get; init; }
     }
 
-    public class Pan : HostctlEvent
+    public class VideoPan : HostctlEvent
     {
         [JsonPropertyName("id")] public string? Id { get; init; }
 
