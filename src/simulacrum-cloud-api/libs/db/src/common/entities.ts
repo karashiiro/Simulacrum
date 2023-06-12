@@ -1,18 +1,19 @@
-export type PlaybackTrackerState = 'playing' | 'paused';
+export type PlaybackState = 'playing' | 'paused';
 
-export interface PlaybackTrackerDto {
-  id: string;
-  playheadSeconds: number;
-  state: PlaybackTrackerState;
-  updatedAt: number;
-}
-
-export type MediaSourceType = 'video';
+export type MediaSourceType = 'image' | 'video';
 
 export interface MediaSourceDto {
   id: string;
-  playbackTrackerId?: string;
   type: MediaSourceType;
-  uri?: string;
   updatedAt: number;
+}
+
+export interface ImageSourceDto extends MediaSourceDto {
+  uri: string;
+}
+
+export interface VideoSourceDto extends MediaSourceDto {
+  uri: string;
+  playheadSeconds: number;
+  state: PlaybackState;
 }

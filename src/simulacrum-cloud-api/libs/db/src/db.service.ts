@@ -1,27 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { DbAccessService, MediaSourceDto, PlaybackTrackerDto } from './common';
+import { DbAccessService, VideoSourceDto } from './common';
 import { DynamoDbService } from './dynamodb/dynamodb.service';
 
 @Injectable()
 export class DbService implements DbAccessService {
   constructor(private readonly ddb: DynamoDbService) {}
 
-  findPlaybackTrackerById(id: string): Promise<PlaybackTrackerDto | undefined> {
-    return this.ddb.findPlaybackTrackerById(id);
+  createVideoSource(): Promise<VideoSourceDto> {
+    return this.ddb.createVideoSource();
   }
 
-  createPlaybackTracker(): Promise<PlaybackTrackerDto> {
-    return this.ddb.createPlaybackTracker();
-  }
-
-  updatePlaybackTracker(
+  updateVideoSource(
     id: string,
-    dto: Partial<PlaybackTrackerDto>,
-  ): Promise<PlaybackTrackerDto | undefined> {
-    return this.ddb.updatePlaybackTracker(id, dto);
-  }
-
-  createMediaSource(): Promise<MediaSourceDto> {
-    return this.ddb.createMediaSource();
+    dto: Partial<VideoSourceDto>,
+  ): Promise<VideoSourceDto | undefined> {
+    return this.ddb.updateVideoSource(id, dto);
   }
 }

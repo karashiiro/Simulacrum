@@ -9,19 +9,19 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
-import { MediaSourceDto, PlaybackTrackerDto } from '@simulacrum/db/common';
+import { VideoSourceDto } from '@simulacrum/db/common';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 
-interface PlayEvent {
+interface VideoPlayEvent {
   id: string;
 }
 
-interface PauseEvent {
+interface VideoPauseEvent {
   id: string;
 }
 
-interface PanEvent {
+interface VideoPanEvent {
   id: string;
   playheadSeconds: number;
 }
@@ -52,21 +52,20 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // TODO: MEDIA_SOURCE_LIST (called on connect)
-  // TODO: PLAYBACK_TRACKER_SYNC (request/reply, not broadcasted to all clients)
-  // TODO: Merge playback trackers and media sources, it makes more sense for video
+  // TODO: VIDEO_SOURCE_SYNC (request/reply, not broadcasted to all clients)
 
-  @SubscribeMessage('MEDIA_SOURCE_CREATE')
+  @SubscribeMessage('VIDEO_SOURCE_CREATE')
   async createMediaSource(): Promise<void> {
-    const dto = await this.db.createMediaSource();
-    broadcast<MediaSourceDto>(this.wss, {
-      event: 'MEDIA_SOURCE_CREATE',
+    const dto = await this.db.createVideoSource();
+    broadcast<VideoSourceDto>(this.wss, {
+      event: 'VIDEO_SOURCE_CREATE',
       data: dto,
     });
   }
 
-  @SubscribeMessage('PLAYBACK_TRACKER_PLAY')
-  async play(@MessageBody() ev: PlayEvent): Promise<void> {
-    const dto = await this.db.updatePlaybackTracker(ev.id, {
+  @SubscribeMessage('VIDEO_SOURCE_PLAY')
+  async play(@MessageBody() ev: VideoPlayEvent): Promise<void> {
+    const dto = await this.db.updateVideoSource(ev.id, {
       state: 'playing',
     });
     if (!dto) {
@@ -74,15 +73,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    broadcast<PlaybackTrackerDto>(this.wss, {
-      event: 'PLAYBACK_TRACKER_PLAY',
+    broadcast<VideoSourceDto>(this.wss, {
+      event: 'VIDEO_SOURCE_PLAY',
       data: dto,
     });
   }
 
-  @SubscribeMessage('PLAYBACK_TRACKER_PAUSE')
-  async pause(@MessageBody() ev: PauseEvent): Promise<void> {
-    const dto = await this.db.updatePlaybackTracker(ev.id, {
+  @SubscribeMessage('VIDEO_SOURCE_PAUSE')
+  async pause(@MessageBody() ev: VideoPauseEvent): Promise<void> {
+    const dto = await this.db.updateVideoSource(ev.id, {
       state: 'paused',
     });
     if (!dto) {
@@ -90,15 +89,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    broadcast<PlaybackTrackerDto>(this.wss, {
-      event: 'PLAYBACK_TRACKER_PAUSE',
+    broadcast<VideoSourceDto>(this.wss, {
+      event: 'VIDEO_SOURCE_PAUSE',
       data: dto,
     });
   }
 
-  @SubscribeMessage('PLAYBACK_TRACKER_PAN')
-  async pan(@MessageBody() ev: PanEvent): Promise<void> {
-    const dto = await this.db.updatePlaybackTracker(ev.id, {
+  @SubscribeMessage('VIDEO_SOURCE_PAN')
+  async pan(@MessageBody() ev: VideoPanEvent): Promise<void> {
+    const dto = await this.db.updateVideoSource(ev.id, {
       playheadSeconds: ev.playheadSeconds,
     });
     if (!dto) {
@@ -106,8 +105,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    broadcast<PlaybackTrackerDto>(this.wss, {
-      event: 'PLAYBACK_TRACKER_PAN',
+    broadcast<VideoSourceDto>(this.wss, {
+      event: 'VIDEO_SOURCE_PAN',
       data: dto,
     });
   }

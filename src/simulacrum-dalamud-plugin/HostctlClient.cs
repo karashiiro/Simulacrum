@@ -12,7 +12,7 @@ public class HostctlClient : IDisposable
     private readonly CancellationTokenSource _cts;
     private readonly SocketsHttpHandler _handler;
     private readonly SemaphoreSlim _sendLock;
-    private readonly Subject<EventWrapper> _playbackTrackerEvents;
+    private readonly Subject<EventWrapper> _events;
     private readonly Uri _uri;
 
     private ClientWebSocket? _ws;
@@ -22,35 +22,35 @@ public class HostctlClient : IDisposable
         _cts = new CancellationTokenSource();
         _handler = new SocketsHttpHandler();
         _sendLock = new SemaphoreSlim(0, 1);
-        _playbackTrackerEvents = new Subject<EventWrapper>();
+        _events = new Subject<EventWrapper>();
         _uri = uri;
 
         RebuildClient();
     }
 
-    public IObservable<PlaybackTrackerDto> OnPlaybackTrackerPlay()
+    public IObservable<VideoSourceDto> OnPlaybackTrackerPlay()
     {
-        return _playbackTrackerEvents
-            .Where(ev => ev is { Event: "PLAYBACK_TRACKER_PLAY" })
-            .Select(ev => ev.Data.Deserialize<PlaybackTrackerDto>())
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_PLAY" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<PlaybackTrackerDto> OnPlaybackTrackerPause()
+    public IObservable<VideoSourceDto> OnPlaybackTrackerPause()
     {
-        return _playbackTrackerEvents
-            .Where(ev => ev is { Event: "PLAYBACK_TRACKER_PAUSE" })
-            .Select(ev => ev.Data.Deserialize<PlaybackTrackerDto>())
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_PAUSE" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<PlaybackTrackerDto> OnPlaybackTrackerPan()
+    public IObservable<VideoSourceDto> OnPlaybackTrackerPan()
     {
-        return _playbackTrackerEvents
-            .Where(ev => ev is { Event: "PLAYBACK_TRACKER_PAN" })
-            .Select(ev => ev.Data.Deserialize<PlaybackTrackerDto>())
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_PAN" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
@@ -126,7 +126,7 @@ public class HostctlClient : IDisposable
             throw new InvalidOperationException("The event was null.");
         }
 
-        _playbackTrackerEvents.OnNext(@event);
+        _events.OnNext(@event);
     }
 
     private async Task Connect(CancellationToken cancellationToken)
@@ -174,7 +174,7 @@ public class HostctlClient : IDisposable
         Disconnect().GetAwaiter().GetResult();
         _cts.Dispose();
 
-        _playbackTrackerEvents.Dispose();
+        _events.Dispose();
         _sendLock.Dispose();
         _ws?.Dispose();
         _handler.Dispose();
@@ -189,9 +189,13 @@ public class HostctlClient : IDisposable
         [JsonPropertyName("data")] public JsonElement Data { get; init; }
     }
 
-    public class PlaybackTrackerDto
+    public class VideoSourceDto
     {
         [JsonPropertyName("id")] public string? Id { get; init; }
+
+        [JsonPropertyName("type")] public string? Type { get; init; }
+
+        [JsonPropertyName("uri")] public string? Uri { get; init; }
 
         [JsonPropertyName("playheadSeconds")] public long PlayheadSeconds { get; init; }
 
