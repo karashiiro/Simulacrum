@@ -6,6 +6,10 @@ import { DynamoDbService } from './dynamodb/dynamodb.service';
 export class DbService implements DbAccessService {
   constructor(private readonly ddb: DynamoDbService) {}
 
+  findVideoSource(id: string): Promise<VideoSourceDto | undefined> {
+    return this.ddb.findVideoSource(id);
+  }
+
   findAllVideoSources(): Promise<VideoSourceDto[]> {
     return this.ddb.findAllVideoSources();
   }

@@ -1,6 +1,8 @@
 import { VideoSourceDto } from './entities';
 
 export interface DbAccessService {
+  findVideoSource(id: string): Promise<VideoSourceDto | undefined>;
+
   findAllVideoSources(): Promise<VideoSourceDto[]>;
 
   createVideoSource(): Promise<VideoSourceDto>;

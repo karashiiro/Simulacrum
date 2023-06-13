@@ -28,33 +28,6 @@ public class HostctlClient : IDisposable
         RebuildClient();
     }
 
-    public IObservable<VideoSourceDto> OnPlaybackTrackerPlay()
-    {
-        return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_PLAY" })
-            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
-    }
-
-    public IObservable<VideoSourceDto> OnPlaybackTrackerPause()
-    {
-        return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_PAUSE" })
-            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
-    }
-
-    public IObservable<VideoSourceDto> OnPlaybackTrackerPan()
-    {
-        return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_PAN" })
-            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
-    }
-
     public async Task SendEvent(HostctlEvent @event, CancellationToken cancellationToken = default)
     {
         if (_ws?.State != WebSocketState.Open)
@@ -182,6 +155,60 @@ public class HostctlClient : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    public IObservable<VideoSourceDtoBasic> OnVideoSourceSync()
+    {
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_SYNC" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDtoBasic>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
+    public IObservable<VideoSourceDto[]> OnVideoSourceList()
+    {
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_LIST" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDto[]>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
+    public IObservable<VideoSourceDto> OnVideoSourceCreate()
+    {
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_CREATE" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
+    public IObservable<VideoSourceDto> OnVideoSourcePlay()
+    {
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_PLAY" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
+    public IObservable<VideoSourceDto> OnVideoSourcePause()
+    {
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_PAUSE" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
+    public IObservable<VideoSourceDto> OnVideoSourcePan()
+    {
+        return _events
+            .Where(ev => ev is { Event: "VIDEO_SOURCE_PAN" })
+            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
     private class EventWrapper
     {
         [JsonPropertyName("event")] public string? Event { get; init; }
@@ -189,16 +216,19 @@ public class HostctlClient : IDisposable
         [JsonPropertyName("data")] public JsonElement Data { get; init; }
     }
 
-    public class VideoSourceDto
+    public class VideoSourceDtoBasic
     {
         [JsonPropertyName("id")] public string? Id { get; init; }
 
-        [JsonPropertyName("uri")] public string? Uri { get; init; }
-
         [JsonPropertyName("playheadSeconds")] public long PlayheadSeconds { get; init; }
 
-        [JsonPropertyName("state")] public string? State { get; init; }
-
         [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
+    }
+
+    public class VideoSourceDto : VideoSourceDtoBasic
+    {
+        [JsonPropertyName("uri")] public string? Uri { get; init; }
+
+        [JsonPropertyName("state")] public string? State { get; init; }
     }
 }

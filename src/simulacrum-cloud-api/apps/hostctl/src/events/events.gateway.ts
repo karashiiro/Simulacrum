@@ -6,12 +6,18 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
 import { VideoSourceDto } from '@simulacrum/db/common';
+import { Observable, bufferCount, from, map } from 'rxjs';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
+
+interface VideoSyncEvent {
+  id: string;
+}
 
 interface VideoPlayEvent {
   id: string;
@@ -51,15 +57,37 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Connection from client ended');
   }
 
-  // TODO: VIDEO_SOURCE_SYNC (request/reply, not broadcasted to all clients)
+  @SubscribeMessage('VIDEO_SOURCE_SYNC')
+  async syncVideoSource(
+    @MessageBody() ev: VideoSyncEvent,
+  ): Promise<
+    WsResponse<Pick<VideoSourceDto, 'id' | 'playheadSeconds' | 'updatedAt'>>
+  > {
+    const dto = await this.db.findVideoSource(ev.id);
+    if (!dto) {
+      throw new WsException('Could not find video source.');
+    }
+
+    return {
+      event: 'VIDEO_SOURCE_SYNC',
+      data: {
+        id: dto.id,
+        playheadSeconds: dto.playheadSeconds,
+        updatedAt: dto.updatedAt,
+      },
+    };
+  }
 
   @SubscribeMessage('VIDEO_SOURCE_LIST')
-  async listVideoSources(): Promise<WsResponse<VideoSourceDto[]>> {
+  async listVideoSources(): Promise<Observable<WsResponse<VideoSourceDto[]>>> {
     const dtos = await this.db.findAllVideoSources();
-    return {
-      event: 'VIDEO_SOURCE_LIST',
-      data: dtos,
-    };
+    return from(dtos).pipe(
+      bufferCount(10),
+      map((dtos) => ({
+        event: 'VIDEO_SOURCE_LIST',
+        data: dtos,
+      })),
+    );
   }
 
   @SubscribeMessage('VIDEO_SOURCE_CREATE')
@@ -77,8 +105,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       state: 'playing',
     });
     if (!dto) {
-      // TODO: return result type
-      return;
+      throw new WsException('Could not find video source.');
     }
 
     broadcast<VideoSourceDto>(this.wss, {
@@ -93,8 +120,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       state: 'paused',
     });
     if (!dto) {
-      // TODO: return result type
-      return;
+      throw new WsException('Could not find video source.');
     }
 
     broadcast<VideoSourceDto>(this.wss, {
@@ -109,8 +135,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       playheadSeconds: ev.playheadSeconds,
     });
     if (!dto) {
-      // TODO: return result type
-      return;
+      throw new WsException('Could not find video source.');
     }
 
     broadcast<VideoSourceDto>(this.wss, {

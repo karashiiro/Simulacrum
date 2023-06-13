@@ -22,6 +22,10 @@ createConnection({
 export class DynamoDbService implements DbAccessService {
   private readonly entityManager = getEntityManager();
 
+  findVideoSource(id: string): Promise<VideoSourceDto | undefined> {
+    return this.entityManager.findOne(VideoSource, { id });
+  }
+
   async findAllVideoSources(): Promise<VideoSourceDto[]> {
     const results = await this.entityManager.find(VideoSource, {});
     return results.items;
