@@ -1,25 +1,14 @@
-import { ImageSourceDto, VideoSourceDto } from './entities';
+import { MediaSourceDto } from './entities';
 
 export interface DbAccessService {
-  findVideoSource(id: string): Promise<VideoSourceDto | undefined>;
+  findMediaSource(id: string): Promise<MediaSourceDto | undefined>;
 
-  findAllVideoSources(): Promise<VideoSourceDto[]>;
+  findAllMediaSources(): Promise<MediaSourceDto[]>;
 
-  createVideoSource(): Promise<VideoSourceDto>;
+  createMediaSource(): Promise<MediaSourceDto>;
 
-  updateVideoSource(
+  updateMediaSource(
     id: string,
-    dto: Partial<VideoSourceDto>,
-  ): Promise<VideoSourceDto | undefined>;
-
-  findImageSource(id: string): Promise<ImageSourceDto | undefined>;
-
-  findAllImageSources(): Promise<ImageSourceDto[]>;
-
-  createImageSource(): Promise<ImageSourceDto>;
-
-  updateImageSource(
-    id: string,
-    dto: Partial<ImageSourceDto>,
-  ): Promise<ImageSourceDto | undefined>;
+    dto: Partial<MediaSourceDto>,
+  ): Promise<MediaSourceDto | undefined>;
 }

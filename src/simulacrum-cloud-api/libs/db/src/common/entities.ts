@@ -1,15 +1,21 @@
-export interface ImageSourceDto {
-  id: string;
+export interface ImageMetadata {
   uri: string;
-  updatedAt: number;
 }
 
 export type PlaybackState = 'playing' | 'paused';
 
-export interface VideoSourceDto {
-  id: string;
+export interface VideoMetadata {
   uri: string;
   playheadSeconds: number;
   state: PlaybackState;
+}
+
+export type MediaMetadata =
+  | ({ type: 'image' } & Partial<ImageMetadata>)
+  | ({ type: 'video' } & Partial<VideoMetadata>);
+
+export interface MediaSourceDto {
+  id: string;
+  meta: MediaMetadata;
   updatedAt: number;
 }

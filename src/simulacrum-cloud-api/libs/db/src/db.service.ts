@@ -1,46 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { DbAccessService, ImageSourceDto, VideoSourceDto } from './common';
+import { DbAccessService, MediaSourceDto } from './common';
 import { DynamoDbService } from './dynamodb/dynamodb.service';
 
 @Injectable()
 export class DbService implements DbAccessService {
   constructor(private readonly ddb: DynamoDbService) {}
 
-  findVideoSource(id: string): Promise<VideoSourceDto | undefined> {
-    return this.ddb.findVideoSource(id);
+  findMediaSource(id: string): Promise<MediaSourceDto | undefined> {
+    return this.ddb.findMediaSource(id);
   }
 
-  findAllVideoSources(): Promise<VideoSourceDto[]> {
-    return this.ddb.findAllVideoSources();
+  findAllMediaSources(): Promise<MediaSourceDto[]> {
+    return this.ddb.findAllMediaSources();
   }
 
-  createVideoSource(): Promise<VideoSourceDto> {
-    return this.ddb.createVideoSource();
+  createMediaSource(): Promise<MediaSourceDto> {
+    return this.ddb.createMediaSource();
   }
 
-  updateVideoSource(
+  updateMediaSource(
     id: string,
-    dto: Partial<VideoSourceDto>,
-  ): Promise<VideoSourceDto | undefined> {
-    return this.ddb.updateVideoSource(id, dto);
-  }
-
-  findImageSource(id: string): Promise<ImageSourceDto | undefined> {
-    return this.ddb.findImageSource(id);
-  }
-
-  findAllImageSources(): Promise<ImageSourceDto[]> {
-    return this.ddb.findAllImageSources();
-  }
-
-  createImageSource(): Promise<ImageSourceDto> {
-    return this.ddb.createImageSource();
-  }
-
-  updateImageSource(
-    id: string,
-    dto: Partial<ImageSourceDto>,
-  ): Promise<ImageSourceDto | undefined> {
-    return this.ddb.updateImageSource(id, dto);
+    dto: Partial<MediaSourceDto>,
+  ): Promise<MediaSourceDto | undefined> {
+    return this.ddb.updateMediaSource(id, dto);
   }
 }

@@ -4,29 +4,19 @@ namespace Simulacrum;
 
 public abstract class HostctlEvent
 {
-    public class ImageSourceList : HostctlEvent
+    public class MediaSourceList : HostctlEvent
     {
-        [JsonPropertyName("event")] public static string Event => "IMAGE_SOURCE_LIST";
+        [JsonPropertyName("event")] public static string Event => "MEDIA_SOURCE_LIST";
     }
 
-    public class ImageSourceCreate : HostctlEvent
+    public class MediaSourceCreate : HostctlEvent
     {
-        [JsonPropertyName("event")] public static string Event => "IMAGE_SOURCE_CREATE";
+        [JsonPropertyName("event")] public static string Event => "MEDIA_SOURCE_CREATE";
     }
 
     public class VideoSourceSync : HostctlEvent
     {
         [JsonPropertyName("event")] public static string Event => "VIDEO_SOURCE_SYNC";
-    }
-
-    public class VideoSourceList : HostctlEvent
-    {
-        [JsonPropertyName("event")] public static string Event => "VIDEO_SOURCE_LIST";
-    }
-
-    public class VideoSourceCreate : HostctlEvent
-    {
-        [JsonPropertyName("event")] public static string Event => "VIDEO_SOURCE_CREATE";
     }
 
     public class VideoSourcePlay : HostctlEvent

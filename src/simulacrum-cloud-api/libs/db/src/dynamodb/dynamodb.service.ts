@@ -3,9 +3,8 @@ import { createConnection, getEntityManager } from '@typedorm/core';
 import { DocumentClientV3 } from '@typedorm/document-client';
 import { Injectable } from '@nestjs/common';
 import { table } from './entity/table';
-import { DbAccessService, ImageSourceDto, VideoSourceDto } from '../common';
-import { VideoSource } from './entity/video-source.entity';
-import { ImageSource } from './entity/image-source.entity';
+import { DbAccessService, MediaSourceDto } from '../common';
+import { MediaSource } from './entity/media-source.entity';
 
 const documentClient = new DocumentClientV3(
   new DynamoDBClient({
@@ -15,7 +14,7 @@ const documentClient = new DocumentClientV3(
 
 createConnection({
   table: table,
-  entities: [VideoSource, ImageSource],
+  entities: [MediaSource],
   documentClient,
 });
 
@@ -23,43 +22,23 @@ createConnection({
 export class DynamoDbService implements DbAccessService {
   private readonly entityManager = getEntityManager();
 
-  findVideoSource(id: string): Promise<VideoSourceDto | undefined> {
-    return this.entityManager.findOne(VideoSource, { id });
+  findMediaSource(id: string): Promise<MediaSourceDto | undefined> {
+    return this.entityManager.findOne(MediaSource, { id });
   }
 
-  async findAllVideoSources(): Promise<VideoSourceDto[]> {
-    const results = await this.entityManager.find(VideoSource, {});
+  async findAllMediaSources(): Promise<MediaSourceDto[]> {
+    const results = await this.entityManager.find(MediaSource, {});
     return results.items;
   }
 
-  createVideoSource(): Promise<VideoSourceDto> {
-    return this.entityManager.create(new VideoSource());
+  createMediaSource(): Promise<MediaSourceDto> {
+    return this.entityManager.create(new MediaSource());
   }
 
-  updateVideoSource(
+  updateMediaSource(
     id: string,
-    dto: Partial<VideoSourceDto>,
-  ): Promise<VideoSourceDto | undefined> {
-    return this.entityManager.update(VideoSource, { id }, dto);
-  }
-
-  findImageSource(id: string): Promise<ImageSourceDto | undefined> {
-    return this.entityManager.findOne(ImageSource, { id });
-  }
-
-  async findAllImageSources(): Promise<ImageSourceDto[]> {
-    const results = await this.entityManager.find(ImageSource, {});
-    return results.items;
-  }
-
-  createImageSource(): Promise<ImageSourceDto> {
-    return this.entityManager.create(new ImageSource());
-  }
-
-  updateImageSource(
-    id: string,
-    dto: Partial<ImageSourceDto>,
-  ): Promise<ImageSourceDto | undefined> {
-    return this.entityManager.update(ImageSource, { id }, dto);
+    dto: Partial<MediaSourceDto>,
+  ): Promise<MediaSourceDto | undefined> {
+    return this.entityManager.update(MediaSource, { id }, dto);
   }
 }

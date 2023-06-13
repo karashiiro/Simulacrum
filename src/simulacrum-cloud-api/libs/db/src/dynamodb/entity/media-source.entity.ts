@@ -1,4 +1,4 @@
-import { ImageSourceDto } from '@simulacrum/db/common';
+import { MediaMetadata, MediaSourceDto } from '@simulacrum/db/common';
 import {
   AUTO_GENERATE_ATTRIBUTE_STRATEGY,
   Attribute,
@@ -7,20 +7,20 @@ import {
 } from '@typedorm/common';
 
 @Entity({
-  name: 'imageSource',
+  name: 'mediaSource',
   primaryKey: {
-    partitionKey: 'IMAGESRC#{{id}}',
-    sortKey: 'IMAGESRC#{{id}}',
+    partitionKey: 'MEDIASRC#{{id}}',
+    sortKey: 'MEDIASRC#{{id}}',
   },
 })
-export class ImageSource implements ImageSourceDto {
+export class MediaSource implements MediaSourceDto {
   @AutoGenerateAttribute({
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.UUID4,
   })
   id: string;
 
   @Attribute()
-  uri: string;
+  meta: MediaMetadata;
 
   @AutoGenerateAttribute({
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.EPOCH_DATE,

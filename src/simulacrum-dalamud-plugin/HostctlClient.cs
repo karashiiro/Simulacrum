@@ -155,74 +155,56 @@ public class HostctlClient : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public IObservable<ImageSourceDto[]> OnImageSourceList()
+    public IObservable<MediaSourceDto[]> OnMediaSourceList()
     {
         return _events
-            .Where(ev => ev.Event == HostctlEvent.ImageSourceList.Event)
-            .Select(ev => ev.Data.Deserialize<ImageSourceDto[]>())
+            .Where(ev => ev.Event == HostctlEvent.MediaSourceList.Event)
+            .Select(ev => ev.Data.Deserialize<MediaSourceDto[]>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<ImageSourceDto> OnImageSourceCreate()
+    public IObservable<MediaSourceDto> OnMediaSourceCreate()
     {
         return _events
-            .Where(ev => ev.Event == HostctlEvent.ImageSourceCreate.Event)
-            .Select(ev => ev.Data.Deserialize<ImageSourceDto>())
+            .Where(ev => ev.Event == HostctlEvent.MediaSourceCreate.Event)
+            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<VideoSourceDtoBasic> OnVideoSourceSync()
+    public IObservable<MediaSourceDto> OnVideoSourceSync()
     {
         return _events
             .Where(ev => ev.Event == HostctlEvent.VideoSourceSync.Event)
-            .Select(ev => ev.Data.Deserialize<VideoSourceDtoBasic>())
+            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<VideoSourceDto[]> OnVideoSourceList()
-    {
-        return _events
-            .Where(ev => ev.Event == HostctlEvent.VideoSourceList.Event)
-            .Select(ev => ev.Data.Deserialize<VideoSourceDto[]>())
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
-    }
-
-    public IObservable<VideoSourceDto> OnVideoSourceCreate()
-    {
-        return _events
-            .Where(ev => ev.Event == HostctlEvent.VideoSourceCreate.Event)
-            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
-    }
-
-    public IObservable<VideoSourceDto> OnVideoSourcePlay()
+    public IObservable<MediaSourceDto> OnVideoSourcePlay()
     {
         return _events
             .Where(ev => ev.Event == HostctlEvent.VideoSourcePlay.Event)
-            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
+            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<VideoSourceDto> OnVideoSourcePause()
+    public IObservable<MediaSourceDto> OnVideoSourcePause()
     {
         return _events
             .Where(ev => ev.Event == HostctlEvent.VideoSourcePause.Event)
-            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
+            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<VideoSourceDto> OnVideoSourcePan()
+    public IObservable<MediaSourceDto> OnVideoSourcePan()
     {
         return _events
             .Where(ev => ev.Event == HostctlEvent.VideoSourcePan.Event)
-            .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
+            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
@@ -234,28 +216,43 @@ public class HostctlClient : IDisposable
         [JsonPropertyName("data")] public JsonElement Data { get; init; }
     }
 
-    public class ImageSourceDto
+    public abstract class MediaMetadata
     {
-        [JsonPropertyName("id")] public string? Id { get; init; }
-
-        [JsonPropertyName("uri")] public string? Uri { get; init; }
-
-        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
+        [JsonPropertyName("type")] public string? Type { get; init; }
     }
 
-    public class VideoSourceDtoBasic
+    public class ImageMetadata : MediaMetadata
     {
-        [JsonPropertyName("id")] public string? Id { get; init; }
+        [JsonPropertyName("uri")] public string? Uri { get; init; }
+    }
+
+    public class VideoMetadata : MediaMetadata
+    {
+        [JsonPropertyName("uri")] public string? Uri { get; init; }
 
         [JsonPropertyName("playheadSeconds")] public long PlayheadSeconds { get; init; }
 
-        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
+        [JsonPropertyName("state")] public string? State { get; init; }
     }
 
-    public class VideoSourceDto : VideoSourceDtoBasic
+    public class MediaSourceDto
     {
-        [JsonPropertyName("uri")] public string? Uri { get; init; }
+        [JsonPropertyName("meta")] private JsonElement _meta;
 
-        [JsonPropertyName("state")] public string? State { get; init; }
+        [JsonPropertyName("id")] public string? Id { get; init; }
+
+        [JsonIgnore] public MediaMetadata? Meta => DeserializeMeta();
+
+        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
+
+        private MediaMetadata? DeserializeMeta()
+        {
+            return _meta.GetProperty("type").GetString() switch
+            {
+                "image" => _meta.Deserialize<ImageMetadata>(),
+                "video" => _meta.Deserialize<VideoMetadata>(),
+                _ => throw new ArgumentOutOfRangeException(nameof(_meta)),
+            };
+        }
     }
 }

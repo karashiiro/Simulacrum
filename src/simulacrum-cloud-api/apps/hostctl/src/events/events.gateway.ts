@@ -10,24 +10,24 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
-import { ImageSourceDto, VideoSourceDto } from '@simulacrum/db/common';
+import { MediaSourceDto } from '@simulacrum/db/common';
 import { Observable, bufferCount, from, map } from 'rxjs';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 
-interface VideoSyncEvent {
+interface MediaSyncEvent {
   id: string;
 }
 
-interface VideoPlayEvent {
+interface MediaPlayEvent {
   id: string;
 }
 
-interface VideoPauseEvent {
+interface MediaPauseEvent {
   id: string;
 }
 
-interface VideoPanEvent {
+interface MediaPanEvent {
   id: string;
   playheadSeconds: number;
 }
@@ -57,109 +57,91 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Connection from client ended');
   }
 
-  @SubscribeMessage('IMAGE_SOURCE_LIST')
-  async listImageSources(): Promise<Observable<WsResponse<ImageSourceDto[]>>> {
-    const dtos = await this.db.findAllImageSources();
+  @SubscribeMessage('MEDIA_SOURCE_LIST')
+  async listMediaSources(): Promise<Observable<WsResponse<MediaSourceDto[]>>> {
+    const dtos = await this.db.findAllMediaSources();
     return from(dtos).pipe(
       bufferCount(10),
       map((dtos) => ({
-        event: 'IMAGE_SOURCE_LIST',
+        event: 'MEDIA_SOURCE_LIST',
         data: dtos,
       })),
     );
   }
 
-  @SubscribeMessage('IMAGE_SOURCE_CREATE')
-  async createImageSource(): Promise<void> {
-    const dto = await this.db.createImageSource();
-    broadcast<ImageSourceDto>(this.wss, {
-      event: 'IMAGE_SOURCE_CREATE',
+  @SubscribeMessage('MEDIA_SOURCE_CREATE')
+  async createMediaSource(): Promise<void> {
+    const dto = await this.db.createMediaSource();
+    broadcast<MediaSourceDto>(this.wss, {
+      event: 'MEDIA_SOURCE_CREATE',
       data: dto,
     });
   }
 
   @SubscribeMessage('VIDEO_SOURCE_SYNC')
   async syncVideoSource(
-    @MessageBody() ev: VideoSyncEvent,
-  ): Promise<
-    WsResponse<Pick<VideoSourceDto, 'id' | 'playheadSeconds' | 'updatedAt'>>
-  > {
-    const dto = await this.db.findVideoSource(ev.id);
+    @MessageBody() ev: MediaSyncEvent,
+  ): Promise<WsResponse<MediaSourceDto>> {
+    const dto = await this.db.findMediaSource(ev.id);
     if (!dto) {
-      throw new WsException('Could not find video source.');
+      throw new WsException('Could not find media source.');
     }
 
     return {
       event: 'VIDEO_SOURCE_SYNC',
-      data: {
-        id: dto.id,
-        playheadSeconds: dto.playheadSeconds,
-        updatedAt: dto.updatedAt,
-      },
+      data: dto,
     };
   }
 
-  @SubscribeMessage('VIDEO_SOURCE_LIST')
-  async listVideoSources(): Promise<Observable<WsResponse<VideoSourceDto[]>>> {
-    const dtos = await this.db.findAllVideoSources();
-    return from(dtos).pipe(
-      bufferCount(10),
-      map((dtos) => ({
-        event: 'VIDEO_SOURCE_LIST',
-        data: dtos,
-      })),
-    );
-  }
-
-  @SubscribeMessage('VIDEO_SOURCE_CREATE')
-  async createVideoSource(): Promise<void> {
-    const dto = await this.db.createVideoSource();
-    broadcast<VideoSourceDto>(this.wss, {
-      event: 'VIDEO_SOURCE_CREATE',
-      data: dto,
-    });
-  }
-
   @SubscribeMessage('VIDEO_SOURCE_PLAY')
-  async playVideoSource(@MessageBody() ev: VideoPlayEvent): Promise<void> {
-    const dto = await this.db.updateVideoSource(ev.id, {
-      state: 'playing',
+  async playMediaSource(@MessageBody() ev: MediaPlayEvent): Promise<void> {
+    const dto = await this.db.updateMediaSource(ev.id, {
+      meta: {
+        type: 'video',
+        state: 'playing',
+      },
     });
     if (!dto) {
-      throw new WsException('Could not find video source.');
+      throw new WsException('Could not find media source.');
     }
 
-    broadcast<VideoSourceDto>(this.wss, {
+    broadcast<MediaSourceDto>(this.wss, {
       event: 'VIDEO_SOURCE_PLAY',
       data: dto,
     });
   }
 
   @SubscribeMessage('VIDEO_SOURCE_PAUSE')
-  async pauseVideoSource(@MessageBody() ev: VideoPauseEvent): Promise<void> {
-    const dto = await this.db.updateVideoSource(ev.id, {
-      state: 'paused',
+  async pauseMediaSource(@MessageBody() ev: MediaPauseEvent): Promise<void> {
+    const dto = await this.db.updateMediaSource(ev.id, {
+      meta: {
+        type: 'video',
+        state: 'paused',
+      },
     });
     if (!dto) {
-      throw new WsException('Could not find video source.');
+      throw new WsException('Could not find media source.');
     }
 
-    broadcast<VideoSourceDto>(this.wss, {
+    broadcast<MediaSourceDto>(this.wss, {
       event: 'VIDEO_SOURCE_PAUSE',
       data: dto,
     });
   }
 
   @SubscribeMessage('VIDEO_SOURCE_PAN')
-  async panVideoSource(@MessageBody() ev: VideoPanEvent): Promise<void> {
-    const dto = await this.db.updateVideoSource(ev.id, {
-      playheadSeconds: ev.playheadSeconds,
+  async panMediaSource(@MessageBody() ev: MediaPanEvent): Promise<void> {
+    const dto = await this.db.updateMediaSource(ev.id, {
+      meta: {
+        type: 'video',
+        playheadSeconds: ev.playheadSeconds,
+      },
     });
     if (!dto) {
-      throw new WsException('Could not find video source.');
+      throw new WsException('Could not find media source.');
     }
 
-    broadcast<VideoSourceDto>(this.wss, {
+    broadcast<MediaSourceDto>(this.wss, {
       event: 'VIDEO_SOURCE_PAN',
       data: dto,
     });
