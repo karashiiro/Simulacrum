@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DbAccessService, MediaSourceDto } from './common';
+import { DbAccessService, MediaMetadata, MediaSourceDto } from './common';
 import { DynamoDbService } from './dynamodb/dynamodb.service';
 
 @Injectable()
@@ -14,8 +14,8 @@ export class DbService implements DbAccessService {
     return this.ddb.findAllMediaSources();
   }
 
-  createMediaSource(): Promise<MediaSourceDto> {
-    return this.ddb.createMediaSource();
+  createMediaSource(meta: MediaMetadata): Promise<MediaSourceDto> {
+    return this.ddb.createMediaSource(meta);
   }
 
   updateMediaSource(

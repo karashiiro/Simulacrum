@@ -11,6 +11,7 @@ export interface VideoMetadata {
 }
 
 export type MediaMetadata =
+  | { type: 'blank' }
   | ({ type: 'image' } & Partial<ImageMetadata>)
   | ({ type: 'video' } & Partial<VideoMetadata>);
 

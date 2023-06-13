@@ -3,7 +3,7 @@ import { createConnection, getEntityManager } from '@typedorm/core';
 import { DocumentClientV3 } from '@typedorm/document-client';
 import { Injectable } from '@nestjs/common';
 import { table } from './entity/table';
-import { DbAccessService, MediaSourceDto } from '../common';
+import { DbAccessService, MediaMetadata, MediaSourceDto } from '../common';
 import { MediaSource } from './entity/media-source.entity';
 
 const documentClient = new DocumentClientV3(
@@ -31,8 +31,10 @@ export class DynamoDbService implements DbAccessService {
     return results.items;
   }
 
-  createMediaSource(): Promise<MediaSourceDto> {
-    return this.entityManager.create(new MediaSource());
+  createMediaSource(meta: MediaMetadata): Promise<MediaSourceDto> {
+    const ms = new MediaSource();
+    ms.meta = meta;
+    return this.entityManager.create(ms);
   }
 
   updateMediaSource(

@@ -10,10 +10,12 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
-import { MediaSourceDto } from '@simulacrum/db/common';
+import { MediaMetadata, MediaSourceDto } from '@simulacrum/db/common';
 import { Observable, bufferCount, from, map } from 'rxjs';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
+
+type MediaCreateEvent = MediaMetadata;
 
 interface MediaSyncEvent {
   id: string;
@@ -70,8 +72,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('MEDIA_SOURCE_CREATE')
-  async createMediaSource(): Promise<void> {
-    const dto = await this.db.createMediaSource();
+  async createMediaSource(@MessageBody() ev: MediaCreateEvent): Promise<void> {
+    const dto = await this.db.createMediaSource({ ...ev });
     broadcast<MediaSourceDto>(this.wss, {
       event: 'MEDIA_SOURCE_CREATE',
       data: dto,

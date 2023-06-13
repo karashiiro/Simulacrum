@@ -221,6 +221,10 @@ public class HostctlClient : IDisposable
         [JsonPropertyName("type")] public string? Type { get; init; }
     }
 
+    public class BlankMetadata : MediaMetadata
+    {
+    }
+
     public class ImageMetadata : MediaMetadata
     {
         [JsonPropertyName("uri")] public string? Uri { get; init; }
@@ -249,6 +253,7 @@ public class HostctlClient : IDisposable
         {
             return _meta.GetProperty("type").GetString() switch
             {
+                "blank" => _meta.Deserialize<BlankMetadata>(),
                 "image" => _meta.Deserialize<ImageMetadata>(),
                 "video" => _meta.Deserialize<VideoMetadata>(),
                 _ => throw new ArgumentOutOfRangeException(nameof(_meta)),
