@@ -1,6 +1,10 @@
 import { ImageSourceDto } from '@simulacrum/db/common';
-import { Attribute, Entity, INDEX_TYPE } from '@typedorm/common';
-import { MediaSourceBase } from './media-source.entity';
+import {
+  AUTO_GENERATE_ATTRIBUTE_STRATEGY,
+  Attribute,
+  AutoGenerateAttribute,
+  Entity,
+} from '@typedorm/common';
 
 @Entity({
   name: 'imageSource',
@@ -8,15 +12,19 @@ import { MediaSourceBase } from './media-source.entity';
     partitionKey: 'IMAGESRC#{{id}}',
     sortKey: 'IMAGESRC#{{id}}',
   },
-  indexes: {
-    GSI1: {
-      partitionKey: 'MEDIASRC#{{id}}',
-      sortKey: 'MEDIASRC#TYPE#{{type}}',
-      type: INDEX_TYPE.GSI,
-    },
-  },
 })
-export class ImageSource extends MediaSourceBase implements ImageSourceDto {
+export class ImageSource implements ImageSourceDto {
+  @AutoGenerateAttribute({
+    strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.UUID4,
+  })
+  id: string;
+
   @Attribute()
   uri: string;
+
+  @AutoGenerateAttribute({
+    strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.EPOCH_DATE,
+    autoUpdate: true,
+  })
+  updatedAt: number;
 }

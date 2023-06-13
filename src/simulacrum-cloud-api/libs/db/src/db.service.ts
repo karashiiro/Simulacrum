@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DbAccessService, VideoSourceDto } from './common';
+import { DbAccessService, ImageSourceDto, VideoSourceDto } from './common';
 import { DynamoDbService } from './dynamodb/dynamodb.service';
 
 @Injectable()
@@ -23,5 +23,24 @@ export class DbService implements DbAccessService {
     dto: Partial<VideoSourceDto>,
   ): Promise<VideoSourceDto | undefined> {
     return this.ddb.updateVideoSource(id, dto);
+  }
+
+  findImageSource(id: string): Promise<ImageSourceDto | undefined> {
+    return this.ddb.findImageSource(id);
+  }
+
+  findAllImageSources(): Promise<ImageSourceDto[]> {
+    return this.ddb.findAllImageSources();
+  }
+
+  createImageSource(): Promise<ImageSourceDto> {
+    return this.ddb.createImageSource();
+  }
+
+  updateImageSource(
+    id: string,
+    dto: Partial<ImageSourceDto>,
+  ): Promise<ImageSourceDto | undefined> {
+    return this.ddb.updateImageSource(id, dto);
   }
 }

@@ -155,10 +155,28 @@ public class HostctlClient : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    public IObservable<ImageSourceDto[]> OnImageSourceList()
+    {
+        return _events
+            .Where(ev => ev.Event == HostctlEvent.ImageSourceList.Event)
+            .Select(ev => ev.Data.Deserialize<ImageSourceDto[]>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
+    public IObservable<ImageSourceDto> OnImageSourceCreate()
+    {
+        return _events
+            .Where(ev => ev.Event == HostctlEvent.ImageSourceCreate.Event)
+            .Select(ev => ev.Data.Deserialize<ImageSourceDto>())
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
     public IObservable<VideoSourceDtoBasic> OnVideoSourceSync()
     {
         return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_SYNC" })
+            .Where(ev => ev.Event == HostctlEvent.VideoSourceSync.Event)
             .Select(ev => ev.Data.Deserialize<VideoSourceDtoBasic>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
@@ -167,7 +185,7 @@ public class HostctlClient : IDisposable
     public IObservable<VideoSourceDto[]> OnVideoSourceList()
     {
         return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_LIST" })
+            .Where(ev => ev.Event == HostctlEvent.VideoSourceList.Event)
             .Select(ev => ev.Data.Deserialize<VideoSourceDto[]>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
@@ -176,7 +194,7 @@ public class HostctlClient : IDisposable
     public IObservable<VideoSourceDto> OnVideoSourceCreate()
     {
         return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_CREATE" })
+            .Where(ev => ev.Event == HostctlEvent.VideoSourceCreate.Event)
             .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
@@ -185,7 +203,7 @@ public class HostctlClient : IDisposable
     public IObservable<VideoSourceDto> OnVideoSourcePlay()
     {
         return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_PLAY" })
+            .Where(ev => ev.Event == HostctlEvent.VideoSourcePlay.Event)
             .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
@@ -194,7 +212,7 @@ public class HostctlClient : IDisposable
     public IObservable<VideoSourceDto> OnVideoSourcePause()
     {
         return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_PAUSE" })
+            .Where(ev => ev.Event == HostctlEvent.VideoSourcePause.Event)
             .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
@@ -203,7 +221,7 @@ public class HostctlClient : IDisposable
     public IObservable<VideoSourceDto> OnVideoSourcePan()
     {
         return _events
-            .Where(ev => ev is { Event: "VIDEO_SOURCE_PAN" })
+            .Where(ev => ev.Event == HostctlEvent.VideoSourcePan.Event)
             .Select(ev => ev.Data.Deserialize<VideoSourceDto>())
             .Where(dto => dto is not null)
             .Select(dto => dto!);
@@ -214,6 +232,15 @@ public class HostctlClient : IDisposable
         [JsonPropertyName("event")] public string? Event { get; init; }
 
         [JsonPropertyName("data")] public JsonElement Data { get; init; }
+    }
+
+    public class ImageSourceDto
+    {
+        [JsonPropertyName("id")] public string? Id { get; init; }
+
+        [JsonPropertyName("uri")] public string? Uri { get; init; }
+
+        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
     }
 
     public class VideoSourceDtoBasic

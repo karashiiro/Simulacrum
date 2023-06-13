@@ -10,7 +10,7 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
-import { VideoSourceDto } from '@simulacrum/db/common';
+import { ImageSourceDto, VideoSourceDto } from '@simulacrum/db/common';
 import { Observable, bufferCount, from, map } from 'rxjs';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
@@ -55,6 +55,27 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect() {
     this.logger.log('Connection from client ended');
+  }
+
+  @SubscribeMessage('IMAGE_SOURCE_LIST')
+  async listImageSources(): Promise<Observable<WsResponse<ImageSourceDto[]>>> {
+    const dtos = await this.db.findAllImageSources();
+    return from(dtos).pipe(
+      bufferCount(10),
+      map((dtos) => ({
+        event: 'IMAGE_SOURCE_LIST',
+        data: dtos,
+      })),
+    );
+  }
+
+  @SubscribeMessage('IMAGE_SOURCE_CREATE')
+  async createImageSource(): Promise<void> {
+    const dto = await this.db.createImageSource();
+    broadcast<ImageSourceDto>(this.wss, {
+      event: 'IMAGE_SOURCE_CREATE',
+      data: dto,
+    });
   }
 
   @SubscribeMessage('VIDEO_SOURCE_SYNC')
