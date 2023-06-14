@@ -3,7 +3,6 @@ using System.Net.WebSockets;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Simulacrum;
 
@@ -12,7 +11,7 @@ public class HostctlClient : IDisposable
     private readonly CancellationTokenSource _cts;
     private readonly SocketsHttpHandler _handler;
     private readonly SemaphoreSlim _sendLock;
-    private readonly Subject<EventWrapper> _events;
+    private readonly Subject<HostctlEvent> _events;
     private readonly Uri _uri;
 
     private ClientWebSocket? _ws;
@@ -22,7 +21,7 @@ public class HostctlClient : IDisposable
         _cts = new CancellationTokenSource();
         _handler = new SocketsHttpHandler();
         _sendLock = new SemaphoreSlim(0, 1);
-        _events = new Subject<EventWrapper>();
+        _events = new Subject<HostctlEvent>();
         _uri = uri;
 
         RebuildClient();
@@ -42,7 +41,8 @@ public class HostctlClient : IDisposable
 
         try
         {
-            var buffer = JsonSerializer.SerializeToUtf8Bytes(@event);
+            var eventWrapper = HostctlEventWrapper.Wrap(@event);
+            var buffer = JsonSerializer.SerializeToUtf8Bytes(eventWrapper);
             await _ws.SendAsync(buffer, WebSocketMessageType.Text, WebSocketMessageFlags.EndOfMessage,
                 cancellationToken);
         }
@@ -93,7 +93,13 @@ public class HostctlClient : IDisposable
 
     private void ReceiveEvent(Span<byte> buf)
     {
-        var @event = JsonSerializer.Deserialize<EventWrapper>(buf);
+        var eventWrapper = JsonSerializer.Deserialize<HostctlEventWrapper>(buf);
+        if (eventWrapper is null)
+        {
+            throw new InvalidOperationException("The event was null.");
+        }
+
+        var @event = HostctlEventWrapper.Unwrap(eventWrapper);
         if (@event is null)
         {
             throw new InvalidOperationException("The event was null.");
@@ -155,109 +161,51 @@ public class HostctlClient : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public IObservable<MediaSourceDto[]> OnMediaSourceList()
+    public IObservable<HostctlEvent.MediaSourceListResponse> OnMediaSourceList()
     {
         return _events
-            .Where(ev => ev.Event == HostctlEvent.MediaSourceList.Event)
-            .Select(ev => ev.Data.Deserialize<MediaSourceDto[]>())
+            .Select(ev => ev as HostctlEvent.MediaSourceListResponse)
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<MediaSourceDto> OnMediaSourceCreate()
+    public IObservable<HostctlEvent.MediaSourceCreateBroadcast> OnMediaSourceCreate()
     {
         return _events
-            .Where(ev => ev.Event == HostctlEvent.MediaSourceCreate.Event)
-            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
+            .Select(ev => ev as HostctlEvent.MediaSourceCreateBroadcast)
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<MediaSourceDto> OnVideoSourceSync()
+    public IObservable<HostctlEvent.VideoSourceSyncResponse> OnVideoSourceSync()
     {
         return _events
-            .Where(ev => ev.Event == HostctlEvent.VideoSourceSync.Event)
-            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
+            .Select(ev => ev as HostctlEvent.VideoSourceSyncResponse)
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<MediaSourceDto> OnVideoSourcePlay()
+    public IObservable<HostctlEvent.VideoSourcePlayBroadcast> OnVideoSourcePlay()
     {
         return _events
-            .Where(ev => ev.Event == HostctlEvent.VideoSourcePlay.Event)
-            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
+            .Select(ev => ev as HostctlEvent.VideoSourcePlayBroadcast)
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<MediaSourceDto> OnVideoSourcePause()
+    public IObservable<HostctlEvent.VideoSourcePauseBroadcast> OnVideoSourcePause()
     {
         return _events
-            .Where(ev => ev.Event == HostctlEvent.VideoSourcePause.Event)
-            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
+            .Select(ev => ev as HostctlEvent.VideoSourcePauseBroadcast)
             .Where(dto => dto is not null)
             .Select(dto => dto!);
     }
 
-    public IObservable<MediaSourceDto> OnVideoSourcePan()
+    public IObservable<HostctlEvent.VideoSourcePanBroadcast> OnVideoSourcePan()
     {
         return _events
-            .Where(ev => ev.Event == HostctlEvent.VideoSourcePan.Event)
-            .Select(ev => ev.Data.Deserialize<MediaSourceDto>())
+            .Select(ev => ev as HostctlEvent.VideoSourcePanBroadcast)
             .Where(dto => dto is not null)
             .Select(dto => dto!);
-    }
-
-    private class EventWrapper
-    {
-        [JsonPropertyName("event")] public string? Event { get; init; }
-
-        [JsonPropertyName("data")] public JsonElement Data { get; init; }
-    }
-
-    public abstract class MediaMetadata
-    {
-        [JsonPropertyName("type")] public string? Type { get; init; }
-    }
-
-    public class BlankMetadata : MediaMetadata
-    {
-    }
-
-    public class ImageMetadata : MediaMetadata
-    {
-        [JsonPropertyName("uri")] public string? Uri { get; init; }
-    }
-
-    public class VideoMetadata : MediaMetadata
-    {
-        [JsonPropertyName("uri")] public string? Uri { get; init; }
-
-        [JsonPropertyName("playheadSeconds")] public long PlayheadSeconds { get; init; }
-
-        [JsonPropertyName("state")] public string? State { get; init; }
-    }
-
-    public class MediaSourceDto
-    {
-        [JsonPropertyName("meta")] private JsonElement _meta;
-
-        [JsonPropertyName("id")] public string? Id { get; init; }
-
-        [JsonIgnore] public MediaMetadata? Meta => DeserializeMeta();
-
-        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
-
-        private MediaMetadata? DeserializeMeta()
-        {
-            return _meta.GetProperty("type").GetString() switch
-            {
-                "blank" => _meta.Deserialize<BlankMetadata>(),
-                "image" => _meta.Deserialize<ImageMetadata>(),
-                "video" => _meta.Deserialize<VideoMetadata>(),
-                _ => throw new ArgumentOutOfRangeException(nameof(_meta)),
-            };
-        }
     }
 }

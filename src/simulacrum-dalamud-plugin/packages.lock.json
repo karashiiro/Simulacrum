@@ -24,6 +24,15 @@
         "resolved": "6.0.0",
         "contentHash": "31kfaW4ZupZzPsI5PVe77VhnvFF55qgma7KZr/E0iFTs6fmdhhG8j0mgEx620iLTey1EynOkEfnyTjtNEpJzGw=="
       },
+      "Thinktecture.Runtime.Extensions": {
+        "type": "Direct",
+        "requested": "[6.2.0, )",
+        "resolved": "6.2.0",
+        "contentHash": "KWgN9/BUlDEwMaJM+pP4qhKiVvRcRRSebInWRxjoIul6oM1gawC8o3R0eGyINPfzN6cIqmCcV/I1lIoXGd1RNQ==",
+        "dependencies": {
+          "Thinktecture.Runtime.Extensions.SourceGenerator": "6.2.0"
+        }
+      },
       "Microsoft.CSharp": {
         "type": "Transitive",
         "resolved": "4.7.0",
@@ -97,6 +106,11 @@
         "dependencies": {
           "System.Text.Encodings.Web": "7.0.0"
         }
+      },
+      "Thinktecture.Runtime.Extensions.SourceGenerator": {
+        "type": "Transitive",
+        "resolved": "6.2.0",
+        "contentHash": "fDkyTC4x13V5GX0HilD7ime3K/oA9edbc9+kL0zUfCt9ER3BPJevsJad6t3S1NcHG9lErrPVPsQaRWm9HJTbZQ=="
       },
       "simulacrum.av": {
         "type": "Project"
