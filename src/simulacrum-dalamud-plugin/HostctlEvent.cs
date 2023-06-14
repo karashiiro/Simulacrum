@@ -16,6 +16,7 @@ public abstract class HostctlEvent
 
     public class MediaSourceCreateRequest : HostctlEvent
     {
+        [JsonPropertyName("mediaSource")] public MediaSourceDto? Data { get; init; }
     }
 
     public class MediaSourceCreateBroadcast : HostctlEvent

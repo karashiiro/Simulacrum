@@ -15,7 +15,9 @@ import { Observable, bufferCount, from, map } from 'rxjs';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 
-type MediaCreateEvent = MediaMetadata;
+interface MediaCreateEvent {
+  mediaSource: Omit<MediaMetadata, 'id' | 'updatedAt'>;
+}
 
 interface VideoSourceSyncRequest {
   id: string;
@@ -101,7 +103,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('MEDIA_SOURCE_CREATE')
   async createMediaSource(@MessageBody() ev: MediaCreateEvent): Promise<void> {
-    const dto = await this.db.createMediaSource({ ...ev });
+    const dto = await this.db.createMediaSource(ev.mediaSource);
     broadcast<MediaSourceCreateBroadcast>(this.wss, {
       event: 'MEDIA_SOURCE_CREATE',
       data: {

@@ -7,6 +7,7 @@ export type PlaybackState = 'playing' | 'paused';
 export interface VideoMetadata {
   uri: string;
   playheadSeconds: number;
+  playheadUpdatedAt: number;
   state: PlaybackState;
 }
 
