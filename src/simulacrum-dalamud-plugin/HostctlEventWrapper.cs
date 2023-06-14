@@ -17,22 +17,16 @@ public class HostctlEventWrapper
 
     [JsonPropertyName("data")] public JsonElement Data { get; init; }
 
-    public static HostctlEventWrapper Wrap(HEvent @event)
+    public static HostctlEventWrapper WrapRequest(HEvent @event)
     {
         var eventType = @event switch
         {
-            HEvent.MediaSourceListRequest => HType.MediaSourceListRequest,
-            HEvent.MediaSourceCreateRequest => HType.MediaSourceCreateRequest,
-            HEvent.VideoSourceSyncRequest => HType.VideoSourceSyncRequest,
-            HEvent.VideoSourcePlayRequest => HType.VideoSourcePlayRequest,
-            HEvent.VideoSourcePauseRequest => HType.VideoSourcePauseRequest,
-            HEvent.VideoSourcePanRequest => HType.VideoSourcePanRequest,
-            HEvent.MediaSourceListResponse => HType.MediaSourceListResponse,
-            HEvent.MediaSourceCreateBroadcast => HType.MediaSourceCreateBroadcast,
-            HEvent.VideoSourceSyncResponse => HType.VideoSourceSyncResponse,
-            HEvent.VideoSourcePlayBroadcast => HType.VideoSourcePlayBroadcast,
-            HEvent.VideoSourcePauseBroadcast => HType.VideoSourcePauseBroadcast,
-            HEvent.VideoSourcePanBroadcast => HType.VideoSourcePanBroadcast,
+            HEvent.MediaSourceListRequest => HType.MediaSourceList,
+            HEvent.MediaSourceCreateRequest => HType.MediaSourceCreate,
+            HEvent.VideoSourceSyncRequest => HType.VideoSourceSync,
+            HEvent.VideoSourcePlayRequest => HType.VideoSourcePlay,
+            HEvent.VideoSourcePauseRequest => HType.VideoSourcePause,
+            HEvent.VideoSourcePanRequest => HType.VideoSourcePan,
             _ => throw new ArgumentOutOfRangeException(nameof(@event)),
         };
 
@@ -44,20 +38,14 @@ public class HostctlEventWrapper
         };
     }
 
-    public static HEvent? Unwrap(HostctlEventWrapper eventWrapper)
+    public static HEvent? UnwrapResponse(HostctlEventWrapper eventWrapper)
     {
         return eventWrapper.Event.Switch<HostctlEventWrapper, HEvent?>(eventWrapper,
-            HType.MediaSourceListRequest, static w => w.Data.Deserialize<HEvent.MediaSourceListRequest>(),
-            HType.MediaSourceCreateRequest, static w => w.Data.Deserialize<HEvent.MediaSourceCreateRequest>(),
-            HType.VideoSourceSyncRequest, static w => w.Data.Deserialize<HEvent.VideoSourceSyncRequest>(),
-            HType.VideoSourcePlayRequest, static w => w.Data.Deserialize<HEvent.VideoSourcePlayRequest>(),
-            HType.VideoSourcePauseRequest, static w => w.Data.Deserialize<HEvent.VideoSourcePauseRequest>(),
-            HType.VideoSourcePanRequest, static w => w.Data.Deserialize<HEvent.VideoSourcePanRequest>(),
-            HType.MediaSourceListResponse, static w => w.Data.Deserialize<HEvent.MediaSourceListResponse>(),
-            HType.MediaSourceCreateBroadcast, static w => w.Data.Deserialize<HEvent.MediaSourceCreateBroadcast>(),
-            HType.VideoSourceSyncResponse, static w => w.Data.Deserialize<HEvent.VideoSourceSyncResponse>(),
-            HType.VideoSourcePlayBroadcast, static w => w.Data.Deserialize<HEvent.VideoSourcePlayBroadcast>(),
-            HType.VideoSourcePauseBroadcast, static w => w.Data.Deserialize<HEvent.VideoSourcePauseBroadcast>(),
-            HType.VideoSourcePanBroadcast, static w => w.Data.Deserialize<HEvent.VideoSourcePanBroadcast>());
+            HType.MediaSourceList, static w => w.Data.Deserialize<HEvent.MediaSourceListResponse>(),
+            HType.MediaSourceCreate, static w => w.Data.Deserialize<HEvent.MediaSourceCreateBroadcast>(),
+            HType.VideoSourceSync, static w => w.Data.Deserialize<HEvent.VideoSourceSyncResponse>(),
+            HType.VideoSourcePlay, static w => w.Data.Deserialize<HEvent.VideoSourcePlayBroadcast>(),
+            HType.VideoSourcePause, static w => w.Data.Deserialize<HEvent.VideoSourcePauseBroadcast>(),
+            HType.VideoSourcePan, static w => w.Data.Deserialize<HEvent.VideoSourcePanBroadcast>());
     }
 }

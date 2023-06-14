@@ -83,7 +83,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Connection from client ended');
   }
 
-  @SubscribeMessage('REQ_MEDIA_SOURCE_LIST')
+  @SubscribeMessage('MEDIA_SOURCE_LIST')
   async listMediaSources(): Promise<
     Observable<WsResponse<MediaSourceListResponse>>
   > {
@@ -91,7 +91,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return from(dtos).pipe(
       bufferCount(10),
       map((dtos) => ({
-        event: 'RES_MEDIA_SOURCE_LIST',
+        event: 'MEDIA_SOURCE_LIST',
         data: {
           mediaSources: dtos,
         },
@@ -99,18 +99,18 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
   }
 
-  @SubscribeMessage('REQ_MEDIA_SOURCE_CREATE')
+  @SubscribeMessage('MEDIA_SOURCE_CREATE')
   async createMediaSource(@MessageBody() ev: MediaCreateEvent): Promise<void> {
     const dto = await this.db.createMediaSource({ ...ev });
     broadcast<MediaSourceCreateBroadcast>(this.wss, {
-      event: 'BROADCAST_MEDIA_SOURCE_CREATE',
+      event: 'MEDIA_SOURCE_CREATE',
       data: {
         mediaSource: dto,
       },
     });
   }
 
-  @SubscribeMessage('REQ_VIDEO_SOURCE_SYNC')
+  @SubscribeMessage('VIDEO_SOURCE_SYNC')
   async syncVideoSource(
     @MessageBody() ev: VideoSourceSyncRequest,
   ): Promise<WsResponse<VideoSourceSyncResponse>> {
@@ -120,14 +120,14 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     return {
-      event: 'RES_VIDEO_SOURCE_SYNC',
+      event: 'VIDEO_SOURCE_SYNC',
       data: {
         mediaSource: dto,
       },
     };
   }
 
-  @SubscribeMessage('REQ_VIDEO_SOURCE_PLAY')
+  @SubscribeMessage('VIDEO_SOURCE_PLAY')
   async playMediaSource(
     @MessageBody() ev: VideoSourcePlayRequest,
   ): Promise<void> {
@@ -142,14 +142,14 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     broadcast<VideoSourcePlayBroadcast>(this.wss, {
-      event: 'BROADCAST_VIDEO_SOURCE_PLAY',
+      event: 'VIDEO_SOURCE_PLAY',
       data: {
         mediaSource: dto,
       },
     });
   }
 
-  @SubscribeMessage('REQ_VIDEO_SOURCE_PAUSE')
+  @SubscribeMessage('VIDEO_SOURCE_PAUSE')
   async pauseMediaSource(
     @MessageBody() ev: VideoSourcePauseRequest,
   ): Promise<void> {
@@ -164,14 +164,14 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     broadcast<VideoSourcePauseBroadcast>(this.wss, {
-      event: 'BROADCAST_VIDEO_SOURCE_PAUSE',
+      event: 'VIDEO_SOURCE_PAUSE',
       data: {
         mediaSource: dto,
       },
     });
   }
 
-  @SubscribeMessage('REQ_VIDEO_SOURCE_PAN')
+  @SubscribeMessage('VIDEO_SOURCE_PAN')
   async panMediaSource(
     @MessageBody() ev: VideoSourcePanRequest,
   ): Promise<void> {
@@ -186,7 +186,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     broadcast<VideoSourcePanBroadcast>(this.wss, {
-      event: 'BROADCAST_VIDEO_SOURCE_PAN',
+      event: 'VIDEO_SOURCE_PAN',
       data: {
         mediaSource: dto,
       },

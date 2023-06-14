@@ -41,7 +41,7 @@ public class HostctlClient : IDisposable
 
         try
         {
-            var eventWrapper = HostctlEventWrapper.Wrap(@event);
+            var eventWrapper = HostctlEventWrapper.WrapRequest(@event);
             var buffer = JsonSerializer.SerializeToUtf8Bytes(eventWrapper);
             await _ws.SendAsync(buffer, WebSocketMessageType.Text, WebSocketMessageFlags.EndOfMessage,
                 cancellationToken);
@@ -99,7 +99,7 @@ public class HostctlClient : IDisposable
             throw new InvalidOperationException("The event was null.");
         }
 
-        var @event = HostctlEventWrapper.Unwrap(eventWrapper);
+        var @event = HostctlEventWrapper.UnwrapResponse(eventWrapper);
         if (@event is null)
         {
             throw new InvalidOperationException("The event was null.");
