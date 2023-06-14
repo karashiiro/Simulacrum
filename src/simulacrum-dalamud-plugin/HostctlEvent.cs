@@ -83,16 +83,20 @@ public abstract class HostctlEvent
     {
         [JsonPropertyName("uri")] public string? Uri { get; init; }
 
-        [JsonPropertyName("playheadSeconds")] public long PlayheadSeconds { get; init; }
+        [JsonPropertyName("playheadSeconds")] public double PlayheadSeconds { get; init; }
+
+        [JsonPropertyName("playheadUpdatedAt")]
+        private long _playheadUpdatedAt;
+
+        [JsonIgnore]
+        public DateTimeOffset PlayheadUpdatedAt => DateTimeOffset.FromUnixTimeMilliseconds(_playheadUpdatedAt);
 
         [JsonPropertyName("state")] public string? State { get; init; }
     }
 
     public class MediaSourceDto
     {
-#pragma warning disable CS0649
         [JsonPropertyName("meta")] private JsonElement _meta;
-#pragma warning restore CS0649
 
         [JsonPropertyName("id")] public string? Id { get; init; }
 

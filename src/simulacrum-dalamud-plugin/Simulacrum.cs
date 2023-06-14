@@ -107,6 +107,13 @@ public class Simulacrum : IDalamudPlugin
             _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(_ => { _sync?.Play(); }));
             _hostctlBag.Add(_hostctl.OnVideoSourcePause().Subscribe(_ => { _sync?.Pause(); }));
             _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(_ => { _sync?.Pan(0); }));
+            _hostctlBag.Add(_hostctl.OnVideoSourceSync().Subscribe(ev =>
+            {
+                if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
+                var diff = DateTimeOffset.UtcNow - videoMetadata.PlayheadUpdatedAt;
+                var playheadCurrent = videoMetadata.PlayheadSeconds + diff.TotalSeconds;
+                _sync?.Pan(playheadCurrent);
+            }));
         }
 
         _ = Connect();
