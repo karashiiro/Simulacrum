@@ -1,5 +1,9 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { createConnection, getEntityManager } from '@typedorm/core';
+import {
+  createConnection,
+  getEntityManager,
+  getScanManager,
+} from '@typedorm/core';
 import { DocumentClientV3 } from '@typedorm/document-client';
 import { Injectable } from '@nestjs/common';
 import { table } from './entity/table';
@@ -21,14 +25,15 @@ createConnection({
 @Injectable()
 export class DynamoDbService implements DbAccessService {
   private readonly entityManager = getEntityManager();
+  private readonly scanManager = getScanManager();
 
   findMediaSource(id: string): Promise<MediaSourceDto | undefined> {
     return this.entityManager.findOne(MediaSource, { id });
   }
 
   async findAllMediaSources(): Promise<MediaSourceDto[]> {
-    const results = await this.entityManager.find(MediaSource, {});
-    return results.items;
+    const results = await this.scanManager.find(MediaSource);
+    return results.items ?? [];
   }
 
   createMediaSource(meta: MediaMetadata): Promise<MediaSourceDto> {
