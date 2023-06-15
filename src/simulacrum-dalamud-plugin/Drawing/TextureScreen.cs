@@ -4,7 +4,7 @@ using Simulacrum.Game;
 
 namespace Simulacrum.Drawing;
 
-public class TextureScreen : IRemoteScreen, IDisposable
+public class TextureScreen : IScreen, IDisposable
 {
     private readonly TextureBootstrap _texture;
     private readonly UiBuilder _ui;
@@ -18,11 +18,6 @@ public class TextureScreen : IRemoteScreen, IDisposable
 
         // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui
         _ui.Draw += Draw;
-    }
-
-    public string GetId()
-    {
-        return "0";
     }
 
     private void Draw()
