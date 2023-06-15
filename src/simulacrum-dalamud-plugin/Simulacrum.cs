@@ -42,6 +42,7 @@ public class Simulacrum : IDalamudPlugin
     private GCHandle? _logFunctionHandle;
     private HostctlClient? _hostctl;
     private IList<IDisposable> _hostctlBag;
+    private IDictionary<string, HostctlEvent.MediaSourceDto> _mediaSources;
 
     private bool _initialized;
 
@@ -79,6 +80,8 @@ public class Simulacrum : IDalamudPlugin
 
         _hostctlBag = new List<IDisposable>();
 
+        _mediaSources = new Dictionary<string, HostctlEvent.MediaSourceDto>();
+
         _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _sync?.Play()));
         _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _sync?.Pause()));
         _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
@@ -102,8 +105,22 @@ public class Simulacrum : IDalamudPlugin
         async Task Connect()
         {
             var hostctlUri = new Uri("ws://localhost:3000");
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             _hostctl = await HostctlClient.FromUri(hostctlUri, cts.Token);
+            _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev =>
+            {
+                if (ev.Data?.Id is null) return;
+                _mediaSources[ev.Data.Id] = ev.Data;
+            }));
+            _hostctlBag.Add(_hostctl.OnMediaSourceList().Subscribe(ev =>
+            {
+                if (ev.Data is null) return;
+                foreach (var mediaSource in ev.Data)
+                {
+                    if (mediaSource.Id is null) continue;
+                    _mediaSources[mediaSource.Id] = mediaSource;
+                }
+            }));
             _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(_ => { _sync?.Play(); }));
             _hostctlBag.Add(_hostctl.OnVideoSourcePause().Subscribe(_ => { _sync?.Pause(); }));
             _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(_ => { _sync?.Pan(0); }));
