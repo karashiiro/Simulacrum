@@ -117,7 +117,7 @@ public class HostctlClient : IDisposable
 
         // The parameter is used to control timeouts from the caller, and
         // the field is used to handle disposal.
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
         await _ws!.ConnectAsync(_uri, new HttpMessageInvoker(_handler), cts.Token);
         cts.Token.ThrowIfCancellationRequested();
         _ = InboundLoop(_cts.Token);
