@@ -33,6 +33,16 @@
           "Thinktecture.Runtime.Extensions.SourceGenerator": "6.2.0"
         }
       },
+      "Thinktecture.Runtime.Extensions.Json": {
+        "type": "Direct",
+        "requested": "[6.2.0, )",
+        "resolved": "6.2.0",
+        "contentHash": "70u2anJGbSZZ519FB4ytXnIearANB1BqGBbByUyX2QjEKjR89RaiOK5PvUv9ULQWsDvmfOFJPRxX/L6cdixvFg==",
+        "dependencies": {
+          "System.Text.Json": "7.0.2",
+          "Thinktecture.Runtime.Extensions": "6.2.0"
+        }
+      },
       "Microsoft.CSharp": {
         "type": "Transitive",
         "resolved": "4.7.0",
@@ -101,8 +111,8 @@
       },
       "System.Text.Json": {
         "type": "Transitive",
-        "resolved": "7.0.0",
-        "contentHash": "DaGSsVqKsn/ia6RG8frjwmJonfos0srquhw09TlT8KRw5I43E+4gs+/bZj4K0vShJ5H9imCuXupb4RmS+dBy3w==",
+        "resolved": "7.0.2",
+        "contentHash": "/LZf/JrGyilojqwpaywb+sSz8Tew7ij4K/Sk+UW8AKfAK7KRhR6mKpKtTm06cYA7bCpGTWfYksIW+mVsdxPegQ==",
         "dependencies": {
           "System.Text.Encodings.Web": "7.0.0"
         }
