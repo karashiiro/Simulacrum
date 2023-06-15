@@ -10,17 +10,17 @@ using Simulacrum.Game.Structures;
 
 namespace Simulacrum.Game;
 
-public unsafe class TextureBootstrap : IDisposable
+public class TextureBootstrap : IDisposable
 {
     private readonly SigScanner _sigScanner;
 
-    private ApricotTexture* _apricotTexture;
+    private unsafe ApricotTexture* _apricotTexture;
 
-    public Texture Texture => _apricotTexture != null
+    public unsafe Texture Texture => _apricotTexture != null
         ? Marshal.PtrToStructure<Texture>((nint)_apricotTexture->Texture)
         : default;
 
-    public nint TexturePointer => _apricotTexture != null
+    public unsafe nint TexturePointer => _apricotTexture != null
         ? (nint)_apricotTexture->Texture
         : nint.Zero;
 
@@ -29,7 +29,7 @@ public unsafe class TextureBootstrap : IDisposable
         _sigScanner = sigScanner;
     }
 
-    public void Mutate(Action<MappedSubresource, Texture2DDesc> mutate)
+    public unsafe void Mutate(Action<MappedSubresource, Texture2DDesc> mutate)
     {
         var dxContext = (ID3D11DeviceContext*)Device.Instance()->D3D11DeviceContext;
         var dxTexture = (ID3D11Texture2D*)_apricotTexture->Texture->D3D11Texture2D;
@@ -50,7 +50,7 @@ public unsafe class TextureBootstrap : IDisposable
         dxContext->Unmap(dxResource, 0);
     }
 
-    public void Initialize(int width, int height)
+    public async ValueTask Initialize(int width, int height, CancellationToken cancellationToken)
     {
         // TODO: Clean up this signature
         var addr = _sigScanner.ScanText(
@@ -58,23 +58,32 @@ public unsafe class TextureBootstrap : IDisposable
         var easyCreate = Marshal.GetDelegateForFunctionPointer<CreateApricotTextureFromTex>(addr);
         PluginLog.Log($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr - _sigScanner.Module.BaseAddress:X}");
 
-        using var texFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.test.tex") ??
-                            throw new InvalidOperationException("Could not find embedded file.");
-        var tex = new byte[texFile.Length];
+        await using var texFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.test.tex") ??
+                                  throw new InvalidOperationException("Could not find embedded file.");
+
+        // Allocate a pinned array and get a stable pointer to it in a safe context so
+        // we can await the graphics subsystem initialization later (can't use async in
+        // an unsafe context).
+        var tex = GC.AllocateArray<byte>(Convert.ToInt32(texFile.Length), pinned: true);
+        nint texPtr;
+        unsafe
+        {
+            fixed (byte* texFixed = tex)
+            {
+                texPtr = (nint)texFixed;
+            }
+        }
+
         var read = texFile.Read(tex);
         if (read != texFile.Length)
         {
             throw new InvalidOperationException("Failed to read stream data.");
         }
 
-        fixed (byte* texPtr = tex)
+        var apricotTexture = await CreateTexture(easyCreate, texPtr, tex.Length, cancellationToken);
+        unsafe
         {
-            // TODO: This can return null if it's called early enough, defer it somehow to avoid needing to catch this exception
-            _apricotTexture = (ApricotTexture*)easyCreate(nint.Zero, (nint)texPtr, tex.Length);
-            if (_apricotTexture == null)
-            {
-                throw new InvalidOperationException("The returned texture was null.");
-            }
+            _apricotTexture = (ApricotTexture*)apricotTexture;
 
             TextureUtils.DescribeTexture(_apricotTexture->Texture);
 
@@ -118,10 +127,26 @@ public unsafe class TextureBootstrap : IDisposable
         }
     }
 
+    private static async ValueTask<nint> CreateTexture(
+        CreateApricotTextureFromTex easyCreate,
+        nint texPtr,
+        int texLength,
+        CancellationToken cancellationToken)
+    {
+        var apricotTexture = easyCreate(nint.Zero, texPtr, texLength);
+        while (apricotTexture == nint.Zero)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
+            apricotTexture = easyCreate(nint.Zero, texPtr, texLength);
+        }
+
+        return apricotTexture;
+    }
+
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
     private delegate nint CreateApricotTextureFromTex(nint thisPtr, nint unk1, long unk2);
 
-    public void Dispose()
+    public unsafe void Dispose()
     {
         if (_apricotTexture != null)
         {

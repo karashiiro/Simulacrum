@@ -104,7 +104,7 @@ public class Simulacrum : IDalamudPlugin
         var width = _videoReader.Width;
         var height = _videoReader.Height;
         PluginLog.Log($"Bootstrapping texture with dimensions ({width}, {height})");
-        _textureBootstrap.Initialize(width, height);
+        await _textureBootstrap.Initialize(width, height, cancellationToken);
 
         // Initialize the screen
         _sync = new TimePlaybackTracker();
