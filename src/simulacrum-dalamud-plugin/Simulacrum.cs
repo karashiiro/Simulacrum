@@ -28,10 +28,8 @@ public class Simulacrum : IDalamudPlugin
     private readonly CustomizationWindow _customizationWindow;
     private readonly PluginConfiguration _config;
     private readonly PrimitiveDebug _primitive;
-    private readonly VideoReader _videoReader;
+    private readonly SigScanner _sigScanner;
     private readonly WindowSystem _windows;
-
-    private readonly TextureBootstrap _textureBootstrap;
 
     private readonly CancellationTokenSource _cts;
     private readonly Task _task;
@@ -39,7 +37,9 @@ public class Simulacrum : IDalamudPlugin
     private IDisposable? _unsubscribe;
     private IPlaybackTracker? _sync;
     private Material? _material;
+    private TextureBootstrap? _textureBootstrap;
     private TextureScreen? _screen;
+    private VideoReader? _videoReader;
     private VideoReaderMediaSource? _renderSource;
     private GCHandle? _logFunctionHandle;
     private HostctlClient? _hostctl;
@@ -57,15 +57,12 @@ public class Simulacrum : IDalamudPlugin
         _clientState = clientState;
         _commandManager = commandManager;
         _pluginInterface = pluginInterface;
+        _sigScanner = sigScanner;
 
         _config = (PluginConfiguration?)pluginInterface.GetPluginConfig() ?? new PluginConfiguration();
         _config.Initialize(pluginInterface);
 
         _primitive = new PrimitiveDebug(sigScanner);
-
-        _textureBootstrap = new TextureBootstrap(sigScanner);
-
-        _videoReader = new VideoReader();
 
         _windows = new WindowSystem("Simulacrum");
         _customizationWindow = new CustomizationWindow();
@@ -96,6 +93,10 @@ public class Simulacrum : IDalamudPlugin
     {
         await Connect(cancellationToken);
 
+        // TODO: Do all of this screen initialization over a list of screens which are disposed with the plugin
+        _textureBootstrap = new TextureBootstrap(_sigScanner);
+
+        _videoReader = new VideoReader();
         if (!_videoReader.Open(VideoPath))
         {
             throw new InvalidOperationException("Failed to open video.");
@@ -124,6 +125,8 @@ public class Simulacrum : IDalamudPlugin
             }
 
             var position = _clientState.LocalPlayer.Position;
+
+            // TODO: Do this for each screen with more safety checks
 
             // TODO: There's a 1px texture wraparound on all sides of the primitive, possibly due to UV/command type
             var context = _primitive.GetContext();
@@ -179,11 +182,13 @@ public class Simulacrum : IDalamudPlugin
         _hostctl = await HostctlClient.FromUri(hostctlUri, cancellationToken);
         _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev =>
         {
+            // TODO: Initialize a screen
             if (ev.Data?.Id is null) return;
             _mediaSources[ev.Data.Id] = ev.Data;
         }));
         _hostctlBag.Add(_hostctl.OnMediaSourceList().Subscribe(ev =>
         {
+            // TODO: Initialize a screen
             if (ev.Data is null) return;
             foreach (var mediaSource in ev.Data)
             {
@@ -292,7 +297,7 @@ public class Simulacrum : IDalamudPlugin
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
 
         _unsubscribe?.Dispose();
-        _textureBootstrap.Dispose();
+        _textureBootstrap?.Dispose();
         _material?.Dispose();
 
         foreach (var subscription in _hostctlBag)
@@ -302,8 +307,8 @@ public class Simulacrum : IDalamudPlugin
 
         _hostctl?.Dispose();
 
-        _videoReader.Close();
-        _videoReader.Dispose();
+        _videoReader?.Close();
+        _videoReader?.Dispose();
 
         UninstallAVLogHandler();
     }
