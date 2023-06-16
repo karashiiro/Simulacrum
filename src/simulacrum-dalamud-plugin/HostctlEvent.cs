@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Dalamud.Logging;
 
 namespace Simulacrum;
 
@@ -91,12 +92,22 @@ public abstract class HostctlEvent
         [JsonIgnore]
         public DateTimeOffset PlayheadUpdatedAt => DateTimeOffset.FromUnixTimeMilliseconds(_playheadUpdatedAt);
 
+        [JsonIgnore]
+        public double PlayheadSecondsActual
+        {
+            get
+            {
+                var diff = DateTimeOffset.UtcNow - PlayheadUpdatedAt;
+                return PlayheadSeconds + diff.TotalSeconds;
+            }
+        }
+
         [JsonPropertyName("state")] public string? State { get; init; }
     }
 
     public class MediaSourceDto
     {
-        [JsonPropertyName("meta")] private JsonElement _meta;
+        [JsonPropertyName("meta")] public JsonElement MetaRaw { get; init; }
 
         [JsonPropertyName("id")] public string? Id { get; init; }
 
@@ -106,12 +117,12 @@ public abstract class HostctlEvent
 
         private MediaMetadata? DeserializeMeta()
         {
-            return _meta.GetProperty("type").GetString() switch
+            return MetaRaw.GetProperty("type").GetString() switch
             {
-                "blank" => _meta.Deserialize<BlankMetadata>(),
-                "image" => _meta.Deserialize<ImageMetadata>(),
-                "video" => _meta.Deserialize<VideoMetadata>(),
-                _ => throw new ArgumentOutOfRangeException(nameof(_meta)),
+                "blank" => MetaRaw.Deserialize<BlankMetadata>(),
+                "image" => MetaRaw.Deserialize<ImageMetadata>(),
+                "video" => MetaRaw.Deserialize<VideoMetadata>(),
+                _ => throw new ArgumentOutOfRangeException(nameof(MetaRaw)),
             };
         }
     }

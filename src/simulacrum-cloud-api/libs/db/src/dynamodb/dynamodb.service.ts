@@ -7,7 +7,7 @@ import {
 import { DocumentClientV3 } from '@typedorm/document-client';
 import { Injectable } from '@nestjs/common';
 import { table } from './entity/table';
-import { DbAccessService, MediaMetadata, MediaSourceDto } from '../common';
+import { DbAccessService, MediaSourceDto } from '../common';
 import { MediaSource } from './entity/media-source.entity';
 
 const documentClient = new DocumentClientV3(
@@ -36,9 +36,16 @@ export class DynamoDbService implements DbAccessService {
     return results.items ?? [];
   }
 
-  createMediaSource(meta: MediaMetadata): Promise<MediaSourceDto> {
+  createMediaSource(
+    dto: Omit<MediaSourceDto, 'id' | 'updatedAt'>,
+  ): Promise<MediaSourceDto> {
+    // Set the update timestamp for the playhead in milliseconds for sync precision
+    if (dto.meta.type === 'video') {
+      dto.meta.playheadUpdatedAt = new Date().valueOf();
+    }
+
     const ms = new MediaSource();
-    ms.meta = meta;
+    ms.meta = dto.meta;
     return this.entityManager.create(ms);
   }
 
@@ -48,7 +55,7 @@ export class DynamoDbService implements DbAccessService {
   ): Promise<MediaSourceDto | undefined> {
     // Set the update timestamp for the playhead in milliseconds for sync precision
     const meta = dto.meta;
-    if (meta?.type === 'video' && meta.playheadSeconds != null) {
+    if (meta?.type === 'video') {
       meta.playheadUpdatedAt = new Date().valueOf();
     }
 

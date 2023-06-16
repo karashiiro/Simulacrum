@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
+using Dalamud.Logging;
 
 namespace Simulacrum;
 
@@ -20,7 +21,7 @@ public class HostctlClient : IDisposable
     {
         _cts = new CancellationTokenSource();
         _handler = new SocketsHttpHandler();
-        _sendLock = new SemaphoreSlim(0, 1);
+        _sendLock = new SemaphoreSlim(1, 1);
         _events = new Subject<HostctlEvent>();
         _uri = uri;
 
@@ -84,9 +85,9 @@ public class HostctlClient : IDisposable
 
                 ReceiveEvent(buffer.AsSpan()[..result.Count]);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // TODO: Route to logger
+                PluginLog.LogError(e, "Failed to receive event");
             }
         }
     }

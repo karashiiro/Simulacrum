@@ -6,6 +6,8 @@ public class ScreenManager : IDisposable
 {
     private readonly IDictionary<string, IScreen> _screens;
 
+    public IEnumerable<IScreen> Screens => _screens.Values;
+
     public ScreenManager()
     {
         _screens = new Dictionary<string, IScreen>();

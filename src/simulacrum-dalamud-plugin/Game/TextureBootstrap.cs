@@ -146,7 +146,7 @@ public class TextureBootstrap : IDisposable
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
     private delegate nint CreateApricotTextureFromTex(nint thisPtr, nint unk1, long unk2);
 
-    public unsafe void Dispose()
+    unsafe void IDisposable.Dispose()
     {
         if (_apricotTexture != null)
         {

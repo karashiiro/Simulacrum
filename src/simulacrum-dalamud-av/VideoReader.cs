@@ -16,8 +16,9 @@ public partial class VideoReader : IDisposable
         _ptr = VideoReaderAlloc();
     }
 
-    public bool Open(string filename)
+    public bool Open(string? filename)
     {
+        ArgumentNullException.ThrowIfNull(filename);
         return _ptr != nint.Zero && VideoReaderOpen(_ptr, filename);
     }
 

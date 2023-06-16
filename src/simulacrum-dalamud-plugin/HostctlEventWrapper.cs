@@ -1,13 +1,14 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Dalamud.Logging;
 
 namespace Simulacrum;
 
 public class HostctlEventWrapper
 {
-    [JsonPropertyName("event")] private HostctlEventType? Event { get; init; }
+    [JsonPropertyName("event")] public HostctlEventType? Event { get; set; }
 
-    [JsonPropertyName("data")] public JsonElement Data { get; init; }
+    [JsonPropertyName("data")] public JsonElement Data { get; set; }
 
     public static HostctlEventWrapper WrapRequest(HostctlEvent @event)
     {

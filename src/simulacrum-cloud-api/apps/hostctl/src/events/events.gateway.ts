@@ -10,13 +10,13 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
-import { MediaMetadata, MediaSourceDto } from '@simulacrum/db/common';
+import { MediaSourceDto } from '@simulacrum/db/common';
 import { Observable, bufferCount, from, map } from 'rxjs';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 
 interface MediaCreateEvent {
-  mediaSource: Omit<MediaMetadata, 'id' | 'updatedAt'>;
+  mediaSource: Omit<MediaSourceDto, 'id' | 'updatedAt'>;
 }
 
 interface VideoSourceSyncRequest {
@@ -134,6 +134,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() ev: VideoSourcePlayRequest,
   ): Promise<void> {
     const dto = await this.db.updateMediaSource(ev.id, {
+      // TODO: This overwrites the URI; it's a single unit of data
       meta: {
         type: 'video',
         state: 'playing',

@@ -1,4 +1,5 @@
-﻿using Dalamud.Logging;
+﻿using System.Diagnostics;
+using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Lumina.Data.Files;
 using Silk.NET.Direct3D11;
@@ -7,6 +8,7 @@ namespace Simulacrum.Game;
 
 public static class TextureUtils
 {
+    [Conditional("DEBUG")]
     public static unsafe void DescribeTexture(Texture* texture)
     {
         var dxTexture = (ID3D11Texture2D*)texture->D3D11Texture2D;

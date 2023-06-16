@@ -17,11 +17,18 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly IDisposable _unsubscribe;
     private double _ptsSeconds;
 
-    public VideoReaderMediaSource(VideoReader reader, IReadOnlyPlaybackTracker sync)
+    public VideoReaderMediaSource(string? uri, IReadOnlyPlaybackTracker sync)
     {
-        _reader = reader;
+        ArgumentNullException.ThrowIfNull(uri);
+
+        _reader = new VideoReader();
+        if (!_reader.Open(uri))
+        {
+            throw new InvalidOperationException("Failed to open video.");
+        }
+
         _sync = sync;
-        _cacheBufferSize = reader.Width * reader.Height * PixelSize();
+        _cacheBufferSize = _reader.Width * _reader.Height * PixelSize();
 
         // For some reason, sws_scale writes 8 black pixels after the end of the buffer.
         // If video playback randomly crashes, it's probably because this needs to be
@@ -73,6 +80,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     public void Dispose()
     {
         _unsubscribe.Dispose();
+        _reader.Close();
+        _reader.Dispose();
         Marshal.FreeHGlobal(_cacheBufferPtr);
         GC.SuppressFinalize(this);
     }

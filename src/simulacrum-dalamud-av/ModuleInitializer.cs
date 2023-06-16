@@ -51,6 +51,8 @@ public static class ModuleInitializer
         LoadLibrary(nativeLibraries, "mpg123.dll");
         LoadLibrary(nativeLibraries, "vorbisfile.dll");
         LoadLibrary(nativeLibraries, "openmpt.dll");
+        if (File.Exists(ResolvePath("libcrypto-3-x64.dll")))
+            LoadLibrary(nativeLibraries, "libcrypto-3-x64.dll");
         LoadLibrary(nativeLibraries, "srt.dll");
         LoadLibrary(nativeLibraries, "pthreadVC3d.dll");
         LoadLibrary(nativeLibraries, "ssh.dll");

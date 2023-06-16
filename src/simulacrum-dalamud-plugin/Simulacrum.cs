@@ -8,13 +8,10 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Simulacrum.AV;
 using Simulacrum.Drawing;
-using Simulacrum.Drawing.Common;
 using Simulacrum.Game;
 using Simulacrum.Game.Structures;
-using Material = Simulacrum.Game.Material;
 
 namespace Simulacrum;
 
@@ -24,27 +21,23 @@ public class Simulacrum : IDalamudPlugin
 
     private readonly ClientState _clientState;
     private readonly CommandManager _commandManager;
-    private readonly DalamudPluginInterface _pluginInterface;
     private readonly CustomizationWindow _customizationWindow;
+    private readonly DalamudPluginInterface _pluginInterface;
+    private readonly MediaSourceManager _mediaSources;
+    private readonly PlaybackTrackerManager _playbackTrackers;
     private readonly PluginConfiguration _config;
     private readonly PrimitiveDebug _primitive;
-    private readonly SigScanner _sigScanner;
+    private readonly ScreenManager _screens;
+    private readonly TextureFactory _textureFactory;
     private readonly WindowSystem _windows;
 
     private readonly CancellationTokenSource _cts;
     private readonly Task _task;
 
     private IDisposable? _unsubscribe;
-    private IPlaybackTracker? _sync;
-    private Material? _material;
-    private TextureBootstrap? _textureBootstrap;
-    private TextureScreen? _screen;
-    private VideoReader? _videoReader;
-    private VideoReaderMediaSource? _renderSource;
     private GCHandle? _logFunctionHandle;
     private HostctlClient? _hostctl;
     private IList<IDisposable> _hostctlBag;
-    private IDictionary<string, HostctlEvent.MediaSourceDto> _mediaSources;
 
     public Simulacrum(
         [RequiredVersion("1.0")] ClientState clientState,
@@ -57,7 +50,6 @@ public class Simulacrum : IDalamudPlugin
         _clientState = clientState;
         _commandManager = commandManager;
         _pluginInterface = pluginInterface;
-        _sigScanner = sigScanner;
 
         _config = (PluginConfiguration?)pluginInterface.GetPluginConfig() ?? new PluginConfiguration();
         _config.Initialize(pluginInterface);
@@ -73,47 +65,20 @@ public class Simulacrum : IDalamudPlugin
 
         _hostctlBag = new List<IDisposable>();
 
-        _mediaSources = new Dictionary<string, HostctlEvent.MediaSourceDto>();
-
-        _commandManager.AddHandler("/simplay", new CommandInfo((_, _) => _sync?.Play()));
-        _commandManager.AddHandler("/simpause", new CommandInfo((_, _) => _sync?.Pause()));
-        _commandManager.AddHandler("/simsync", new CommandInfo((_, _) => _sync?.Pan(0)));
-        _commandManager.AddHandler("/simoff", new CommandInfo((_, _) => _screen?.Show(new BlankMediaSource())));
-        _commandManager.AddHandler("/simon",
-            new CommandInfo((_, _) => _screen?.Show((IMediaSource?)_renderSource ?? new BlankMediaSource())));
+        _mediaSources = new MediaSourceManager();
+        _playbackTrackers = new PlaybackTrackerManager();
+        _screens = new ScreenManager();
+        _textureFactory = new TextureFactory(sigScanner);
 
         // Continue initialization in a separate task which will be rejoined on dispose
         _cts = new CancellationTokenSource();
         _task = Initialize(_cts.Token);
     }
 
-    private const string VideoPath = @"https://dc6xbzf7ukys8.cloudfront.net/rider64_xKQhMNjffD.m3u8";
-
     private async Task Initialize(CancellationToken cancellationToken)
     {
         await Connect(cancellationToken);
-
-        // TODO: Do all of this screen initialization over a list of screens which are disposed with the plugin
-        _textureBootstrap = new TextureBootstrap(_sigScanner);
-
-        _videoReader = new VideoReader();
-        if (!_videoReader.Open(VideoPath))
-        {
-            throw new InvalidOperationException("Failed to open video.");
-        }
-
-        var width = _videoReader.Width;
-        var height = _videoReader.Height;
-        PluginLog.Log($"Bootstrapping texture with dimensions ({width}, {height})");
-        await _textureBootstrap.Initialize(width, height, cancellationToken);
-
-        // Initialize the screen
-        _sync = new TimePlaybackTracker();
-        _renderSource = new VideoReaderMediaSource(_videoReader, _sync);
-        _screen = new TextureScreen(_textureBootstrap, _pluginInterface.UiBuilder);
-        _screen.Show(_renderSource);
-
-        _material = Material.CreateFromTexture(_textureBootstrap.TexturePointer);
+        await _hostctl!.SendEvent(new HostctlEvent.MediaSourceListRequest(), cancellationToken);
 
         PluginLog.Log("Initializing PrimitiveDebug");
         _primitive.Initialize();
@@ -126,51 +91,53 @@ public class Simulacrum : IDalamudPlugin
 
             var position = _clientState.LocalPlayer.Position;
 
-            // TODO: Do this for each screen with more safety checks
-
-            // TODO: There's a 1px texture wraparound on all sides of the primitive, possibly due to UV/command type
-            var context = _primitive.GetContext();
-            var vertexPtr = context.DrawCommand(0x21, 4, 5, _material.Pointer);
-            if (vertexPtr == nint.Zero)
+            // TODO: Add safety checks
+            foreach (var screen in _screens.Screens.OfType<MaterialScreen>().Where(s => s.MaterialPointer != nint.Zero))
             {
-                return;
-            }
-
-            var aspectRatio = GetAspectRatio(_textureBootstrap.Texture);
-            var dimensions = new Vector3(1, aspectRatio, 0);
-            var translation = _customizationWindow.Translation;
-            var scale = _customizationWindow.Scale;
-            var color = _customizationWindow.Color;
-
-            unsafe
-            {
-                _ = new Span<Vertex>((void*)vertexPtr, 4)
+                // TODO: There's a 1px texture wraparound on all sides of the primitive, possibly due to UV/command type
+                var context = _primitive.GetContext();
+                var vertexPtr = context.DrawCommand(0x21, 4, 5, screen.MaterialPointer);
+                if (vertexPtr == nint.Zero)
                 {
-                    [0] = new()
+                    return;
+                }
+
+                var aspectRatio = screen.GetAspectRatio();
+                var dimensions = new Vector3(1, aspectRatio, 0);
+                var translation = _customizationWindow.Translation;
+                var scale = _customizationWindow.Scale;
+                var color = _customizationWindow.Color;
+
+                unsafe
+                {
+                    _ = new Span<Vertex>((void*)vertexPtr, 4)
                     {
-                        Position = position + translation + Vector3.UnitY * dimensions * scale,
-                        Color = color,
-                        UV = UV.FromUV(0, 0),
-                    },
-                    [1] = new()
-                    {
-                        Position = position + translation,
-                        Color = color,
-                        UV = UV.FromUV(0, 1),
-                    },
-                    [2] = new()
-                    {
-                        Position = position + translation + dimensions * scale,
-                        Color = color,
-                        UV = UV.FromUV(1, 0),
-                    },
-                    [3] = new()
-                    {
-                        Position = position + translation + Vector3.UnitX * dimensions * scale,
-                        Color = color,
-                        UV = UV.FromUV(1, 1),
-                    },
-                };
+                        [0] = new()
+                        {
+                            Position = position + translation + Vector3.UnitY * dimensions * scale,
+                            Color = color,
+                            UV = UV.FromUV(0, 0),
+                        },
+                        [1] = new()
+                        {
+                            Position = position + translation,
+                            Color = color,
+                            UV = UV.FromUV(0, 1),
+                        },
+                        [2] = new()
+                        {
+                            Position = position + translation + dimensions * scale,
+                            Color = color,
+                            UV = UV.FromUV(1, 0),
+                        },
+                        [3] = new()
+                        {
+                            Position = position + translation + Vector3.UnitX * dimensions * scale,
+                            Color = color,
+                            UV = UV.FromUV(1, 1),
+                        },
+                    };
+                }
             }
         });
     }
@@ -180,42 +147,78 @@ public class Simulacrum : IDalamudPlugin
         var hostctlUri = new Uri("ws://localhost:3000");
 
         _hostctl = await HostctlClient.FromUri(hostctlUri, cancellationToken);
-        _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev =>
-        {
-            // TODO: Initialize a screen
-            if (ev.Data?.Id is null) return;
-            _mediaSources[ev.Data.Id] = ev.Data;
-        }));
+        _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev => { InitializeMediaSource(ev.Data); }));
         _hostctlBag.Add(_hostctl.OnMediaSourceList().Subscribe(ev =>
         {
-            // TODO: Initialize a screen
             if (ev.Data is null) return;
             foreach (var mediaSource in ev.Data)
             {
-                if (mediaSource.Id is null) continue;
-                _mediaSources[mediaSource.Id] = mediaSource;
+                // TODO: Use SubscribeAsync from AsyncRx and await these or something to get actual exceptions
+                InitializeMediaSource(mediaSource);
             }
         }));
-        _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(_ => { _sync?.Play(); }));
-        _hostctlBag.Add(_hostctl.OnVideoSourcePause().Subscribe(_ => { _sync?.Pause(); }));
-        _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(_ => { _sync?.Pan(0); }));
+        _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(ev =>
+        {
+            PluginLog.Log($"Now playing media source \"{ev.Data?.Id}\"");
+            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Play();
+        }));
+        _hostctlBag.Add(_hostctl.OnVideoSourcePause().Subscribe(ev =>
+        {
+            PluginLog.Log($"Now pausing media source \"{ev.Data?.Id}\"");
+            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pause();
+        }));
+        _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(ev =>
+        {
+            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(0);
+        }));
         _hostctlBag.Add(_hostctl.OnVideoSourceSync().Subscribe(ev =>
         {
             if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
-            var diff = DateTimeOffset.UtcNow - videoMetadata.PlayheadUpdatedAt;
-            var playheadCurrent = videoMetadata.PlayheadSeconds + diff.TotalSeconds;
-            _sync?.Pan(playheadCurrent);
+            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadSecondsActual);
         }));
     }
 
-    private static float GetAspectRatio(Texture texture)
+    private async ValueTask InitializeMediaSource(HostctlEvent.MediaSourceDto? dto,
+        CancellationToken cancellationToken = default)
     {
-        return GetAspectRatio(Convert.ToInt32(texture.Width), Convert.ToInt32(texture.Height));
-    }
+        if (dto?.Id is null) return;
+        switch (dto.Meta)
+        {
+            case HostctlEvent.BlankMetadata:
+                _mediaSources.AddMediaSource(dto.Id, new BlankMediaSource());
+                break;
+            case HostctlEvent.ImageMetadata:
+                // TODO
+                break;
+            case HostctlEvent.VideoMetadata video:
+            {
+                PluginLog.Log($"Got new video source: {video.Uri}");
 
-    private static float GetAspectRatio(int width, int height)
-    {
-        return (float)height / width;
+                var videoSync = new TimePlaybackTracker();
+                // TODO: This breaks for some reason
+                // videoSync.Pan(video.PlayheadSecondsActual);
+                if (video.State == "playing")
+                {
+                    videoSync.Play();
+                }
+
+                var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync);
+                _playbackTrackers.AddPlaybackTracker(dto.Id, videoSync);
+                _mediaSources.AddMediaSource(dto.Id, videoMediaSource);
+
+                var (width, height) = videoMediaSource.Size();
+                PluginLog.Log($"Bootstrapping texture with dimensions ({width}, {height})");
+                var texture = await _textureFactory.Create(width, height, cancellationToken);
+                var materialScreen = new MaterialScreen(texture, _pluginInterface.UiBuilder);
+                materialScreen.Show(videoMediaSource);
+
+                // TODO: Screens should not be bound to media sources
+                _screens.AddScreen(dto.Id, materialScreen);
+            }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(dto));
+        }
     }
 
     [Conditional("DEBUG")]
@@ -291,14 +294,14 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simplay");
 
-        _screen?.Dispose();
-        _renderSource?.Dispose();
+        _screens.Dispose();
+        _playbackTrackers.Dispose();
+        _mediaSources.Dispose();
+        _textureFactory.Dispose();
 
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
 
         _unsubscribe?.Dispose();
-        _textureBootstrap?.Dispose();
-        _material?.Dispose();
 
         foreach (var subscription in _hostctlBag)
         {
@@ -306,9 +309,6 @@ public class Simulacrum : IDalamudPlugin
         }
 
         _hostctl?.Dispose();
-
-        _videoReader?.Close();
-        _videoReader?.Dispose();
 
         UninstallAVLogHandler();
     }
