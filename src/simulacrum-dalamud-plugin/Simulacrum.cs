@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
@@ -38,6 +39,7 @@ public class Simulacrum : IDalamudPlugin
     private GCHandle? _logFunctionHandle;
     private HostctlClient? _hostctl;
     private IList<IDisposable> _hostctlBag;
+    private IList<IAsyncDisposable> _hostctlAsyncBag;
 
     public Simulacrum(
         [RequiredVersion("1.0")] ClientState clientState,
@@ -64,6 +66,7 @@ public class Simulacrum : IDalamudPlugin
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
         _hostctlBag = new List<IDisposable>();
+        _hostctlAsyncBag = new List<IAsyncDisposable>();
 
         _mediaSources = new MediaSourceManager();
         _playbackTrackers = new PlaybackTrackerManager();
@@ -147,14 +150,16 @@ public class Simulacrum : IDalamudPlugin
         var hostctlUri = new Uri("ws://localhost:3000");
 
         _hostctl = await HostctlClient.FromUri(hostctlUri, cancellationToken);
-        _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev => { InitializeMediaSource(ev.Data); }));
-        _hostctlBag.Add(_hostctl.OnMediaSourceList().Subscribe(ev =>
+        _hostctlAsyncBag.Add(await _hostctl.OnMediaSourceCreate().ToAsyncObservable().SubscribeAsync(async ev =>
+        {
+            await InitializeMediaSource(ev.Data, cancellationToken);
+        }));
+        _hostctlAsyncBag.Add(await _hostctl.OnMediaSourceList().ToAsyncObservable().SubscribeAsync(async ev =>
         {
             if (ev.Data is null) return;
             foreach (var mediaSource in ev.Data)
             {
-                // TODO: Use SubscribeAsync from AsyncRx and await these or something to get actual exceptions
-                InitializeMediaSource(mediaSource);
+                await InitializeMediaSource(mediaSource, cancellationToken);
             }
         }));
         _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(ev =>
@@ -272,9 +277,19 @@ public class Simulacrum : IDalamudPlugin
         }
     }
 
+    private async Task PreDispose()
+    {
+        foreach (var subscription in _hostctlAsyncBag)
+        {
+            await subscription.DisposeAsync();
+        }
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (!disposing) return;
+
+        PreDispose().GetAwaiter().GetResult();
 
         _cts.Cancel();
         try
@@ -302,6 +317,11 @@ public class Simulacrum : IDalamudPlugin
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
 
         _unsubscribe?.Dispose();
+
+        foreach (var subscription in _hostctlAsyncBag)
+        {
+            subscription.DisposeAsync().GetAwaiter().GetResult();
+        }
 
         foreach (var subscription in _hostctlBag)
         {
