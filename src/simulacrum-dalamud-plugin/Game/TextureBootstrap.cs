@@ -134,6 +134,8 @@ public class TextureBootstrap : IDisposable
         CancellationToken cancellationToken)
     {
         var apricotTexture = easyCreate(nint.Zero, texPtr, texLength);
+
+        // If the graphics subsystem hasn't been initialized yet, easyCreate will return a null pointer.
         while (apricotTexture == nint.Zero)
         {
             await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);

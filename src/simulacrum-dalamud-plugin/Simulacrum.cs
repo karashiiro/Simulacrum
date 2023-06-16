@@ -213,8 +213,7 @@ public class Simulacrum : IDalamudPlugin
 
                 var (width, height) = videoMediaSource.Size();
                 PluginLog.Log($"Bootstrapping texture with dimensions ({width}, {height})");
-                var texture = await _textureFactory.Create(width, height, cancellationToken);
-                var materialScreen = new MaterialScreen(texture, _pluginInterface.UiBuilder);
+                var materialScreen = new MaterialScreen(_textureFactory, _pluginInterface.UiBuilder);
                 materialScreen.Show(videoMediaSource);
 
                 // TODO: Screens should not be bound to media sources

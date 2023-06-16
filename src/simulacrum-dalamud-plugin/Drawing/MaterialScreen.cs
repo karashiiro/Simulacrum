@@ -1,5 +1,4 @@
 ﻿using Dalamud.Interface;
-using Dalamud.Logging;
 using Simulacrum.Drawing.Common;
 using Simulacrum.Game;
 
@@ -7,43 +6,65 @@ namespace Simulacrum.Drawing;
 
 public class MaterialScreen : IScreen, IDisposable
 {
-    private readonly TextureBootstrap _texture;
-    private readonly Material _material;
+    private readonly TextureFactory _textureFactory;
     private readonly UiBuilder _ui;
-    private byte[]? _buffer;
+
+    private byte[] _buffer;
+    private Material? _material;
+    private TextureBootstrap? _texture;
     private IMediaSource? _source;
+    private IntVector2 _size;
 
-    public nint MaterialPointer => _material.Pointer;
+    public nint MaterialPointer => _material?.Pointer ?? nint.Zero;
 
-    public MaterialScreen(TextureBootstrap texture, UiBuilder ui)
+    public MaterialScreen(TextureFactory textureFactory, UiBuilder ui)
     {
-        _texture = texture;
-        _material = Material.CreateFromTexture(_texture.TexturePointer);
+        _buffer = Array.Empty<byte>();
+
+        _textureFactory = textureFactory;
         _ui = ui;
 
         // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui
         _ui.Draw += Draw;
     }
 
+    private async Task RebuildMaterial(int width, int height)
+    {
+        // You're not supposed to call GetResult() on a ValueTask, so this is just a regular
+        // task instead.
+        _material?.Dispose();
+        _texture = await _textureFactory.Create(width, height, default);
+        _material = Material.CreateFromTexture(_texture.TexturePointer);
+    }
+
     private void Draw()
     {
-        if (_source == null || _texture.TexturePointer == nint.Zero) return;
+        if (_source == null || _texture?.TexturePointer == nint.Zero) return;
 
-        if (_buffer == null)
+        var sourceSize = _source.Size();
+        if (_size != sourceSize)
         {
-            var sourceSize = _source.Size();
-            var sourcePixelSize = _source.PixelSize();
-            var bufferSize = sourceSize.X * sourceSize.Y * sourcePixelSize;
+            _size = sourceSize;
+
+            var (sourceWidth, sourceHeight) = sourceSize;
+            var sourcePixelSize = _source.PixelSize(); // Not currently checking if this has changed
+            var bufferSize = sourceWidth * sourceHeight * sourcePixelSize;
+
             _buffer = new byte[bufferSize];
+
+            // Initialize the screen with white (default is transparent) so we know it exists
             for (var i = 0; i < _buffer.Length; i++)
             {
                 _buffer[i] = 0xFF;
             }
+
+            // Rebuild the render surface; this doesn't need to happen immediately
+            _ = RebuildMaterial(sourceWidth, sourceHeight);
         }
 
         _source.RenderTo(_buffer);
 
-        _texture.Mutate((sub, desc) =>
+        _texture?.Mutate((sub, desc) =>
         {
             unsafe
             {
@@ -77,7 +98,7 @@ public class MaterialScreen : IScreen, IDisposable
     public void Dispose()
     {
         _ui.Draw -= Draw;
-        _material.Dispose();
+        _material?.Dispose();
         GC.SuppressFinalize(this);
     }
 }

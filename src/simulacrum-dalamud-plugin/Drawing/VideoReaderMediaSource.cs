@@ -74,7 +74,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     public IntVector2 Size()
     {
-        return new IntVector2(_reader.Width, _reader.Height);
+        return IntVector2.Create(_reader.Width, _reader.Height);
     }
 
     public void Dispose()

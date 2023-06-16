@@ -16,6 +16,6 @@ public class BlankMediaSource : IMediaSource
 
     public IntVector2 Size()
     {
-        return new IntVector2(0, 0);
+        return IntVector2.Empty;
     }
 }
