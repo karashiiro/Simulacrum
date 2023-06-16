@@ -16,6 +16,8 @@ export type MediaMetadata =
   | ({ type: 'image' } & Partial<ImageMetadata>)
   | ({ type: 'video' } & Partial<VideoMetadata>);
 
+export type MediaSourceType = MediaMetadata['type'];
+
 export interface MediaSourceDto {
   id: string;
   meta: MediaMetadata;

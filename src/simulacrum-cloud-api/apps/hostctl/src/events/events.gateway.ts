@@ -134,7 +134,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() ev: VideoSourcePlayRequest,
   ): Promise<void> {
     const dto = await this.db.updateMediaSource(ev.id, {
-      // TODO: This overwrites the URI; it's a single unit of data
       meta: {
         type: 'video',
         state: 'playing',

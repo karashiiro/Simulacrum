@@ -7,7 +7,7 @@ import {
 import { DocumentClientV3 } from '@typedorm/document-client';
 import { Injectable } from '@nestjs/common';
 import { table } from './entity/table';
-import { DbAccessService, MediaSourceDto } from '../common';
+import { DbAccessService, MediaSourceDto, MediaSourceType } from '../common';
 import { MediaSource } from './entity/media-source.entity';
 
 const documentClient = new DocumentClientV3(
@@ -22,21 +22,143 @@ createConnection({
   documentClient,
 });
 
+type UnknownMediaSourceDto =
+  | MediaSourceDto
+  | { meta: Partial<{ type: MediaSourceType }> | MediaSourceDto['meta'] };
+
+/**
+ * Sets the type of an opaque media source to the provided type, and
+ * asserts that it is the provided discriminated union case of the
+ * meta field.
+ * @param mediaSource The opaque media source object.
+ * @param type The type to set and assert.
+ */
+function setMediaSourceMetaType<T extends MediaSourceType>(
+  mediaSource: UnknownMediaSourceDto,
+  type: T,
+): asserts mediaSource is MediaSourceDto & {
+  meta: MediaSourceDto['meta'] & { type: T };
+} {
+  mediaSource.meta.type = type;
+}
+
+function assertExhaustive(x: never) {
+  return x;
+}
+
+function mediaSourceFromDynamo(mediaSource: MediaSource): MediaSourceDto;
+
+function mediaSourceFromDynamo(
+  mediaSource: MediaSource | undefined,
+): MediaSourceDto | undefined;
+
+/**
+ * Converts a media source entity instance from DynamoDB into the common
+ * media source object type.
+ * @param mediaSource The media source entity instance from DynamoDB.
+ * @returns The converted media source object.
+ */
+function mediaSourceFromDynamo(
+  mediaSource: MediaSource | undefined,
+): MediaSourceDto | undefined {
+  if (mediaSource === undefined) {
+    return undefined;
+  }
+
+  const mediaSourceDto: UnknownMediaSourceDto = {
+    id: mediaSource.id,
+    meta: {},
+    updatedAt: mediaSource.updatedAt,
+  };
+
+  setMediaSourceMetaType(mediaSourceDto, mediaSource.type);
+  switch (mediaSource.type) {
+    case 'blank':
+      break;
+    case 'image':
+      mediaSourceDto.meta = {
+        type: 'image',
+        uri: mediaSource.uri ?? '',
+      };
+      break;
+    case 'video':
+      mediaSourceDto.meta = {
+        type: 'video',
+        uri: mediaSource.uri ?? '',
+        playheadSeconds: mediaSource.playheadSeconds ?? 0,
+        playheadUpdatedAt: mediaSource.playheadUpdatedAt ?? 0,
+        state: mediaSource.state ?? 'paused',
+      };
+      break;
+    default:
+      assertExhaustive(mediaSource.type);
+      break;
+  }
+
+  return mediaSourceDto;
+}
+
+/**
+ * Converts a common media source object into a DynamoDB media source entity instance.
+ * @param mediaSourceDto The common media source object.
+ * @returns A DynamoDB media source entity instance.
+ */
+function mediaSourceToDynamo(
+  mediaSourceDto: Partial<MediaSourceDto>,
+): MediaSource {
+  const ms = new MediaSource();
+  if (mediaSourceDto.id) ms.id = mediaSourceDto.id;
+
+  if (!mediaSourceDto.meta) {
+    throw new Error('Object does not have field "meta".');
+  }
+
+  // Flatten the object metadata into the entity object
+  ms.type = mediaSourceDto.meta.type;
+  switch (mediaSourceDto.meta.type) {
+    case 'blank':
+      break;
+    case 'image':
+      ms.uri = mediaSourceDto.meta.uri;
+      break;
+    case 'video':
+      ms.uri = mediaSourceDto.meta.uri;
+      ms.playheadSeconds = mediaSourceDto.meta.playheadSeconds;
+      ms.playheadUpdatedAt = mediaSourceDto.meta.playheadUpdatedAt;
+      ms.state = mediaSourceDto.meta.state;
+      break;
+    default:
+      assertExhaustive(mediaSourceDto.meta);
+      break;
+  }
+
+  if (mediaSourceDto.updatedAt) ms.updatedAt = mediaSourceDto.updatedAt;
+  return ms;
+}
+
+function mediaSourceUpdateFromDynamo(
+  mediaSource: MediaSource,
+): Partial<MediaSource> {
+  return JSON.parse(JSON.stringify(mediaSource));
+}
+
 @Injectable()
 export class DynamoDbService implements DbAccessService {
   private readonly entityManager = getEntityManager();
   private readonly scanManager = getScanManager();
 
-  findMediaSource(id: string): Promise<MediaSourceDto | undefined> {
-    return this.entityManager.findOne(MediaSource, { id });
+  async findMediaSource(id: string): Promise<MediaSourceDto | undefined> {
+    const mediaSource = await this.entityManager.findOne(MediaSource, { id });
+    return mediaSourceFromDynamo(mediaSource);
   }
 
   async findAllMediaSources(): Promise<MediaSourceDto[]> {
     const results = await this.scanManager.find(MediaSource);
-    return results.items ?? [];
+    const resultItems = results.items ?? [];
+    return resultItems.map((ms) => mediaSourceFromDynamo(ms));
   }
 
-  createMediaSource(
+  async createMediaSource(
     dto: Omit<MediaSourceDto, 'id' | 'updatedAt'>,
   ): Promise<MediaSourceDto> {
     // Set the update timestamp for the playhead in milliseconds for sync precision
@@ -44,12 +166,13 @@ export class DynamoDbService implements DbAccessService {
       dto.meta.playheadUpdatedAt = new Date().valueOf();
     }
 
-    const ms = new MediaSource();
-    ms.meta = dto.meta;
-    return this.entityManager.create(ms);
+    const mediaSource = await this.entityManager.create<MediaSource>(
+      mediaSourceToDynamo(dto),
+    );
+    return mediaSourceFromDynamo(mediaSource);
   }
 
-  updateMediaSource(
+  async updateMediaSource(
     id: string,
     dto: Partial<MediaSourceDto>,
   ): Promise<MediaSourceDto | undefined> {
@@ -59,6 +182,11 @@ export class DynamoDbService implements DbAccessService {
       meta.playheadUpdatedAt = new Date().valueOf();
     }
 
-    return this.entityManager.update(MediaSource, { id }, dto);
+    const mediaSource = await this.entityManager.update(
+      MediaSource,
+      { id },
+      mediaSourceUpdateFromDynamo(mediaSourceToDynamo(dto)),
+    );
+    return mediaSourceFromDynamo(mediaSource);
   }
 }

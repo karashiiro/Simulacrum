@@ -1,4 +1,4 @@
-import { MediaMetadata, MediaSourceDto } from '@simulacrum/db/common';
+import { MediaSourceType, PlaybackState } from '@simulacrum/db/common';
 import {
   AUTO_GENERATE_ATTRIBUTE_STRATEGY,
   Attribute,
@@ -13,14 +13,26 @@ import {
     sortKey: 'MEDIASRC#{{id}}',
   },
 })
-export class MediaSource implements MediaSourceDto {
+export class MediaSource {
   @AutoGenerateAttribute({
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.UUID4,
   })
   id: string;
 
+  @Attribute({ isEnum: true })
+  type: MediaSourceType;
+
   @Attribute()
-  meta: MediaMetadata;
+  uri?: string;
+
+  @Attribute()
+  playheadSeconds?: number;
+
+  @Attribute()
+  playheadUpdatedAt?: number;
+
+  @Attribute({ isEnum: true })
+  state?: PlaybackState;
 
   @AutoGenerateAttribute({
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.EPOCH_DATE,
