@@ -136,9 +136,15 @@ function mediaSourceToDynamo(
   return ms;
 }
 
+/**
+ * Converts a media source entity instance into an update object representing that instance.
+ * @param mediaSource The media source entity instance.
+ * @returns An update object representing the assigned fields on the entity instance.
+ */
 function mediaSourceUpdateFromDynamo(
   mediaSource: MediaSource,
 ): Partial<MediaSource> {
+  // Sorry not sorry
   return JSON.parse(JSON.stringify(mediaSource));
 }
 
