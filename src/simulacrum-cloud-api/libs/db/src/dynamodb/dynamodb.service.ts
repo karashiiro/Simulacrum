@@ -7,8 +7,14 @@ import {
 import { DocumentClientV3 } from '@typedorm/document-client';
 import { Injectable } from '@nestjs/common';
 import { table } from './entity/table';
-import { DbAccessService, MediaSourceDto, MediaSourceType } from '../common';
+import {
+  DbAccessService,
+  MediaSourceDto,
+  MediaSourceType,
+  ScreenDto,
+} from '../common';
 import { MediaSource } from './entity/media-source.entity';
+import { Screen } from './entity/screen.entity';
 
 const documentClient = new DocumentClientV3(
   new DynamoDBClient({
@@ -18,7 +24,7 @@ const documentClient = new DocumentClientV3(
 
 createConnection({
   table: table,
-  entities: [MediaSource],
+  entities: [MediaSource, Screen],
   documentClient,
 });
 
@@ -194,5 +200,28 @@ export class DynamoDbService implements DbAccessService {
       mediaSourceUpdateFromDynamo(mediaSourceToDynamo(dto)),
     );
     return mediaSourceFromDynamo(mediaSource);
+  }
+
+  async findScreensByMediaSourceId(
+    mediaSourceId: string,
+  ): Promise<ScreenDto[]> {
+    const results = await this.entityManager.find(
+      Screen,
+      { mediaSourceId },
+      {
+        queryIndex: 'GSI1',
+      },
+    );
+    return results.items ?? [];
+  }
+
+  async createScreen(
+    dto: Omit<ScreenDto, 'id' | 'updatedAt'>,
+  ): Promise<ScreenDto> {
+    const screen = new Screen();
+    screen.mediaSourceId = dto.mediaSourceId;
+
+    const result = await this.entityManager.create<Screen>(screen);
+    return result;
   }
 }

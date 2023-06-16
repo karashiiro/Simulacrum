@@ -10,12 +10,20 @@ import {
   WsResponse,
 } from '@nestjs/websockets';
 import { DbService } from '@simulacrum/db';
-import { MediaSourceDto } from '@simulacrum/db/common';
+import { MediaSourceDto, ScreenDto } from '@simulacrum/db/common';
 import { Observable, bufferCount, from, map } from 'rxjs';
 import * as WebSocket from 'ws';
 import { WebSocketServer as Server } from 'ws';
 
-interface MediaCreateEvent {
+interface ScreenCreateEvent {
+  screen: Omit<ScreenDto, 'id' | 'updatedAt'>;
+}
+
+interface MediaSourceListScreensEvent {
+  mediaSourceId: string;
+}
+
+interface MediaSourceCreateEvent {
   mediaSource: Omit<MediaSourceDto, 'id' | 'updatedAt'>;
 }
 
@@ -34,6 +42,14 @@ interface VideoSourcePauseRequest {
 interface VideoSourcePanRequest {
   id: string;
   playheadSeconds: number;
+}
+
+interface ScreenCreateBroadcast {
+  screen: ScreenDto;
+}
+
+interface MediaSourceListScreensResponse {
+  screens: ScreenDto[];
 }
 
 interface MediaSourceListResponse {
@@ -85,6 +101,33 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('Connection from client ended');
   }
 
+  @SubscribeMessage('SCREEN_CREATE')
+  async createScreen(@MessageBody() ev: ScreenCreateEvent): Promise<void> {
+    const dto = await this.db.createScreen(ev.screen);
+    broadcast<ScreenCreateBroadcast>(this.wss, {
+      event: 'SCREEN_CREATE',
+      data: {
+        screen: dto,
+      },
+    });
+  }
+
+  @SubscribeMessage('MEDIA_SOURCE_LIST_SCREENS')
+  async listScreensForMediaSource(
+    @MessageBody() ev: MediaSourceListScreensEvent,
+  ): Promise<Observable<WsResponse<MediaSourceListScreensResponse>>> {
+    const dtos = await this.db.findScreensByMediaSourceId(ev.mediaSourceId);
+    return from(dtos).pipe(
+      bufferCount(10),
+      map((dtos) => ({
+        event: 'MEDIA_SOURCE_LIST_SCREENS',
+        data: {
+          screens: dtos,
+        },
+      })),
+    );
+  }
+
   @SubscribeMessage('MEDIA_SOURCE_LIST')
   async listMediaSources(): Promise<
     Observable<WsResponse<MediaSourceListResponse>>
@@ -102,7 +145,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('MEDIA_SOURCE_CREATE')
-  async createMediaSource(@MessageBody() ev: MediaCreateEvent): Promise<void> {
+  async createMediaSource(
+    @MessageBody() ev: MediaSourceCreateEvent,
+  ): Promise<void> {
     const dto = await this.db.createMediaSource(ev.mediaSource);
     broadcast<MediaSourceCreateBroadcast>(this.wss, {
       event: 'MEDIA_SOURCE_CREATE',

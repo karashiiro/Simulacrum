@@ -1,11 +1,30 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using Dalamud.Logging;
 
 namespace Simulacrum;
 
 public abstract class HostctlEvent
 {
+    public class ScreenCreateRequest : HostctlEvent
+    {
+        [JsonPropertyName("screen")] public ScreenDto? Data { get; init; }
+    }
+
+    public class ScreenCreateBroadcast : HostctlEvent
+    {
+        [JsonPropertyName("screen")] public ScreenDto? Data { get; init; }
+    }
+
+    public class MediaSourceListScreensRequest : HostctlEvent
+    {
+        [JsonPropertyName("mediaSourceId")] public string? MediaSourceId { get; init; }
+    }
+
+    public class MediaSourceListScreensResponse : HostctlEvent
+    {
+        [JsonPropertyName("screens")] public ScreenDto[]? Data { get; init; }
+    }
+
     public class MediaSourceListRequest : HostctlEvent
     {
     }
@@ -58,7 +77,7 @@ public abstract class HostctlEvent
     {
         [JsonPropertyName("id")] public string? Id { get; init; }
 
-        [JsonPropertyName("playheadSeconds")] public long PlayheadSeconds { get; init; }
+        [JsonPropertyName("playheadSeconds")] public double PlayheadSeconds { get; init; }
     }
 
     public class VideoSourcePanBroadcast : HostctlEvent
@@ -87,18 +106,15 @@ public abstract class HostctlEvent
         [JsonPropertyName("playheadSeconds")] public double PlayheadSeconds { get; init; }
 
         [JsonPropertyName("playheadUpdatedAt")]
-        private long _playheadUpdatedAt;
-
-        [JsonIgnore]
-        public DateTimeOffset PlayheadUpdatedAt => DateTimeOffset.FromUnixTimeMilliseconds(_playheadUpdatedAt);
+        public double PlayheadUpdatedAt { get; init; }
 
         [JsonIgnore]
         public double PlayheadSecondsActual
         {
             get
             {
-                var diff = DateTimeOffset.UtcNow - PlayheadUpdatedAt;
-                return PlayheadSeconds + diff.TotalSeconds;
+                var diff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - PlayheadUpdatedAt;
+                return PlayheadSeconds + diff;
             }
         }
 
@@ -125,5 +141,14 @@ public abstract class HostctlEvent
                 _ => throw new ArgumentOutOfRangeException(nameof(MetaRaw)),
             };
         }
+    }
+
+    public class ScreenDto
+    {
+        [JsonPropertyName("id")] public string? Id { get; init; }
+
+        [JsonPropertyName("mediaSourceId")] public string? MediaSourceId { get; init; }
+
+        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
     }
 }

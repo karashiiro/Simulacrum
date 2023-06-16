@@ -24,15 +24,6 @@
         "resolved": "6.0.0",
         "contentHash": "31kfaW4ZupZzPsI5PVe77VhnvFF55qgma7KZr/E0iFTs6fmdhhG8j0mgEx620iLTey1EynOkEfnyTjtNEpJzGw=="
       },
-      "System.Reactive.Async": {
-        "type": "Direct",
-        "requested": "[6.0.0-alpha.18, )",
-        "resolved": "6.0.0-alpha.18",
-        "contentHash": "4svM94ZT4+cCTSKDiz0dCKdtv2qQCMO3XEUCEWfF2+/9W6oMDkoHbFs6HXF4lGKOji5KH0u6EXOXRa2TfyoSmA==",
-        "dependencies": {
-          "System.Reactive": "6.0.0"
-        }
-      },
       "Thinktecture.Runtime.Extensions": {
         "type": "Direct",
         "requested": "[6.2.0, )",

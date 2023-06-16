@@ -1,4 +1,4 @@
-import { MediaSourceDto } from './entities';
+import { MediaSourceDto, ScreenDto } from './entities';
 
 export interface DbAccessService {
   findMediaSource(id: string): Promise<MediaSourceDto | undefined>;
@@ -13,4 +13,8 @@ export interface DbAccessService {
     id: string,
     dto: Partial<MediaSourceDto>,
   ): Promise<MediaSourceDto | undefined>;
+
+  findScreensByMediaSourceId(mediaSourceId: string): Promise<ScreenDto[]>;
+
+  createScreen(dto: Omit<ScreenDto, 'id' | 'updatedAt'>): Promise<ScreenDto>;
 }

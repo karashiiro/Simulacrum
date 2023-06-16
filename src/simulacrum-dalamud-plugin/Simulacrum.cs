@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
@@ -39,7 +38,6 @@ public class Simulacrum : IDalamudPlugin
     private GCHandle? _logFunctionHandle;
     private HostctlClient? _hostctl;
     private IList<IDisposable> _hostctlBag;
-    private IList<IAsyncDisposable> _hostctlAsyncBag;
 
     public Simulacrum(
         [RequiredVersion("1.0")] ClientState clientState,
@@ -66,7 +64,6 @@ public class Simulacrum : IDalamudPlugin
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
         _hostctlBag = new List<IDisposable>();
-        _hostctlAsyncBag = new List<IAsyncDisposable>();
 
         _mediaSources = new MediaSourceManager();
         _playbackTrackers = new PlaybackTrackerManager();
@@ -150,18 +147,28 @@ public class Simulacrum : IDalamudPlugin
         var hostctlUri = new Uri("ws://localhost:3000");
 
         _hostctl = await HostctlClient.FromUri(hostctlUri, cancellationToken);
-        _hostctlAsyncBag.Add(await _hostctl.OnMediaSourceCreate().ToAsyncObservable().SubscribeAsync(async ev =>
+        _hostctlBag.Add(_hostctl.OnScreenCreate().Subscribe(ev => { InitializeScreen(ev.Data); }));
+        _hostctlBag.Add(_hostctl.OnMediaSourceListScreens().Subscribe(ev =>
         {
-            await InitializeMediaSource(ev.Data, cancellationToken);
+            if (ev.Data is null) return;
+            foreach (var screen in ev.Data)
+            {
+                InitializeScreen(screen);
+            }
         }));
-        _hostctlAsyncBag.Add(await _hostctl.OnMediaSourceList().ToAsyncObservable().SubscribeAsync(async ev =>
+        _hostctlBag.Add(_hostctl.OnMediaSourceList().Subscribe(ev =>
         {
             if (ev.Data is null) return;
             foreach (var mediaSource in ev.Data)
             {
-                await InitializeMediaSource(mediaSource, cancellationToken);
+                InitializeMediaSource(mediaSource);
+                _ = _hostctl.SendEvent(new HostctlEvent.MediaSourceListScreensRequest
+                {
+                    MediaSourceId = mediaSource.Id,
+                }, _cts.Token);
             }
         }));
+        _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev => { InitializeMediaSource(ev.Data); }));
         _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(ev =>
         {
             PluginLog.Log($"Now playing media source \"{ev.Data?.Id}\"");
@@ -183,8 +190,23 @@ public class Simulacrum : IDalamudPlugin
         }));
     }
 
-    private async ValueTask InitializeMediaSource(HostctlEvent.MediaSourceDto? dto,
-        CancellationToken cancellationToken = default)
+    private void InitializeScreen(HostctlEvent.ScreenDto? dto)
+    {
+        if (dto?.Id is null) return;
+
+        var materialScreen = new MaterialScreen(_textureFactory, _pluginInterface.UiBuilder);
+        _screens.AddScreen(dto.Id, materialScreen);
+
+        if (dto.MediaSourceId is null) return;
+
+        var mediaSource = _mediaSources.GetMediaSource(dto.MediaSourceId);
+        if (mediaSource is not null)
+        {
+            materialScreen.Show(mediaSource);
+        }
+    }
+
+    private void InitializeMediaSource(HostctlEvent.MediaSourceDto? dto)
     {
         if (dto?.Id is null) return;
         switch (dto.Meta)
@@ -210,14 +232,6 @@ public class Simulacrum : IDalamudPlugin
                 var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync);
                 _playbackTrackers.AddPlaybackTracker(dto.Id, videoSync);
                 _mediaSources.AddMediaSource(dto.Id, videoMediaSource);
-
-                var (width, height) = videoMediaSource.Size();
-                PluginLog.Log($"Bootstrapping texture with dimensions ({width}, {height})");
-                var materialScreen = new MaterialScreen(_textureFactory, _pluginInterface.UiBuilder);
-                materialScreen.Show(videoMediaSource);
-
-                // TODO: Screens should not be bound to media sources
-                _screens.AddScreen(dto.Id, materialScreen);
             }
                 break;
             default:
@@ -276,19 +290,9 @@ public class Simulacrum : IDalamudPlugin
         }
     }
 
-    private async Task PreDispose()
-    {
-        foreach (var subscription in _hostctlAsyncBag)
-        {
-            await subscription.DisposeAsync();
-        }
-    }
-
     protected virtual void Dispose(bool disposing)
     {
         if (!disposing) return;
-
-        PreDispose().GetAwaiter().GetResult();
 
         _cts.Cancel();
         try
@@ -316,11 +320,6 @@ public class Simulacrum : IDalamudPlugin
         _pluginInterface.UiBuilder.Draw -= _windows.Draw;
 
         _unsubscribe?.Dispose();
-
-        foreach (var subscription in _hostctlAsyncBag)
-        {
-            subscription.DisposeAsync().GetAwaiter().GetResult();
-        }
 
         foreach (var subscription in _hostctlBag)
         {

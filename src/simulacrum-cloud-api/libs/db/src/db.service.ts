@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DbAccessService, MediaSourceDto } from './common';
+import { DbAccessService, MediaSourceDto, ScreenDto } from './common';
 import { DynamoDbService } from './dynamodb/dynamodb.service';
 
 @Injectable()
@@ -25,5 +25,13 @@ export class DbService implements DbAccessService {
     dto: Partial<MediaSourceDto>,
   ): Promise<MediaSourceDto | undefined> {
     return this.ddb.updateMediaSource(id, dto);
+  }
+
+  findScreensByMediaSourceId(mediaSourceId: string): Promise<ScreenDto[]> {
+    return this.ddb.findScreensByMediaSourceId(mediaSourceId);
+  }
+
+  createScreen(dto: Omit<ScreenDto, 'id' | 'updatedAt'>): Promise<ScreenDto> {
+    return this.ddb.createScreen(dto);
   }
 }

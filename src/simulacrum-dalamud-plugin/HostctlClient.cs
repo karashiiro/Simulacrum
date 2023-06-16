@@ -16,6 +16,7 @@ public class HostctlClient : IDisposable
     private readonly Uri _uri;
 
     private ClientWebSocket? _ws;
+    private Task? _inboundLoop;
 
     private HostctlClient(Uri uri)
     {
@@ -28,7 +29,8 @@ public class HostctlClient : IDisposable
         RebuildClient();
     }
 
-    public async Task SendEvent(HostctlEvent @event, CancellationToken cancellationToken = default)
+    public async Task SendEvent<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
+        where TEvent : HostctlEvent
     {
         if (_ws?.State != WebSocketState.Open)
         {
@@ -47,6 +49,10 @@ public class HostctlClient : IDisposable
             await _ws.SendAsync(buffer, WebSocketMessageType.Text, WebSocketMessageFlags.EndOfMessage,
                 cancellationToken);
         }
+        catch (Exception e)
+        {
+            PluginLog.Error(e, "Failed to send event");
+        }
         finally
         {
             _sendLock.Release();
@@ -55,6 +61,7 @@ public class HostctlClient : IDisposable
 
     private void RebuildClient()
     {
+        _ws?.Dispose();
         _ws = new ClientWebSocket();
         _ws.Options.HttpVersion = HttpVersion.Version30;
         _ws.Options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
@@ -70,14 +77,21 @@ public class HostctlClient : IDisposable
             if (_ws?.State != WebSocketState.Open)
             {
                 // Attempt to reconnect to the server
-                RebuildClient();
-                await Connect(_cts.Token);
-                return;
+                try
+                {
+                    RebuildClient();
+                    await Connect(cancellationToken);
+                }
+                catch (WebSocketException e)
+                {
+                    PluginLog.LogError(e, "Failed to reconnect to the server");
+                    continue;
+                }
             }
 
             try
             {
-                var result = await _ws.ReceiveAsync(buffer, cancellationToken);
+                var result = await _ws!.ReceiveAsync(buffer, cancellationToken);
                 if (result.CloseStatus is not null)
                 {
                     break;
@@ -121,7 +135,8 @@ public class HostctlClient : IDisposable
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
         await _ws!.ConnectAsync(_uri, new HttpMessageInvoker(_handler), cts.Token);
         cts.Token.ThrowIfCancellationRequested();
-        _ = InboundLoop(_cts.Token);
+        PluginLog.Log($"Now connected to {_uri}");
+        _inboundLoop = InboundLoop(_cts.Token);
     }
 
     private async Task Disconnect()
@@ -135,9 +150,9 @@ public class HostctlClient : IDisposable
         {
             await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed", _cts.Token);
         }
-        catch (Exception)
+        catch (WebSocketException e)
         {
-            // TODO: Route exception to logger
+            PluginLog.LogError(e, "Failed to close connection");
         }
     }
 
@@ -151,8 +166,7 @@ public class HostctlClient : IDisposable
     public void Dispose()
     {
         _cts.CancelAfter(TimeSpan.FromSeconds(5));
-        Disconnect().GetAwaiter().GetResult();
-        _cts.Dispose();
+        Disconnect().ContinueWith(_ => _inboundLoop).ContinueWith(_ => _cts.Dispose());
 
         _events.Dispose();
         _sendLock.Dispose();
@@ -160,6 +174,22 @@ public class HostctlClient : IDisposable
         _handler.Dispose();
 
         GC.SuppressFinalize(this);
+    }
+
+    public IObservable<HostctlEvent.ScreenCreateBroadcast> OnScreenCreate()
+    {
+        return _events
+            .Select(ev => ev as HostctlEvent.ScreenCreateBroadcast)
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
+    }
+
+    public IObservable<HostctlEvent.MediaSourceListScreensResponse> OnMediaSourceListScreens()
+    {
+        return _events
+            .Select(ev => ev as HostctlEvent.MediaSourceListScreensResponse)
+            .Where(dto => dto is not null)
+            .Select(dto => dto!);
     }
 
     public IObservable<HostctlEvent.MediaSourceListResponse> OnMediaSourceList()

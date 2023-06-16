@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using Dalamud.Logging;
 
 namespace Simulacrum;
 
@@ -10,10 +9,12 @@ public class HostctlEventWrapper
 
     [JsonPropertyName("data")] public JsonElement Data { get; set; }
 
-    public static HostctlEventWrapper WrapRequest(HostctlEvent @event)
+    public static HostctlEventWrapper WrapRequest<TEvent>(TEvent @event) where TEvent : HostctlEvent
     {
         var eventType = @event switch
         {
+            HostctlEvent.ScreenCreateRequest => HostctlEventType.ScreenCreate,
+            HostctlEvent.MediaSourceListScreensRequest => HostctlEventType.MediaSourceListScreens,
             HostctlEvent.MediaSourceListRequest => HostctlEventType.MediaSourceList,
             HostctlEvent.MediaSourceCreateRequest => HostctlEventType.MediaSourceCreate,
             HostctlEvent.VideoSourceSyncRequest => HostctlEventType.VideoSourceSync,
@@ -34,6 +35,8 @@ public class HostctlEventWrapper
     public static HostctlEvent? UnwrapResponse(HostctlEventWrapper eventWrapper)
     {
         return eventWrapper.Event?.Switch<JsonElement, HostctlEvent?>(eventWrapper.Data,
+            HostctlEventType.ScreenCreate, static w => w.Deserialize<HostctlEvent.ScreenCreateBroadcast>(),
+            HostctlEventType.MediaSourceListScreens, static w => w.Deserialize<HostctlEvent.MediaSourceListScreensResponse>(),
             HostctlEventType.MediaSourceList, static w => w.Deserialize<HostctlEvent.MediaSourceListResponse>(),
             HostctlEventType.MediaSourceCreate, static w => w.Deserialize<HostctlEvent.MediaSourceCreateBroadcast>(),
             HostctlEventType.VideoSourceSync, static w => w.Deserialize<HostctlEvent.VideoSourceSyncResponse>(),

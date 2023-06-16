@@ -23,3 +23,9 @@ export interface MediaSourceDto {
   meta: MediaMetadata;
   updatedAt: number;
 }
+
+export interface ScreenDto {
+  id: string;
+  mediaSourceId?: string;
+  updatedAt: number;
+}
