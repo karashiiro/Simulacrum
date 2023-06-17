@@ -39,7 +39,10 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _unsubscribe = sync.OnPan().Subscribe(ts =>
         {
             _ptsSeconds = ts;
-            if (!_reader.SeekFrame(Convert.ToInt64(ts)))
+
+            var timeBase = _reader.TimeBase;
+            var pts = ts * timeBase.Denominator / timeBase.Numerator;
+            if (!_reader.SeekFrame(Convert.ToInt64(pts)))
             {
                 PluginLog.LogWarning("Failed to seek through video");
             }
