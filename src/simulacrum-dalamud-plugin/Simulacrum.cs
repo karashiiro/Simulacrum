@@ -29,7 +29,7 @@ public class Simulacrum : IDalamudPlugin
     private readonly PlaybackTrackerManager _playbackTrackers;
     private readonly PluginConfiguration _config;
     private readonly PrimitiveDebug _primitive;
-    private readonly ScreenManager _screens;
+    private readonly MaterialScreenManager _materialScreens;
     private readonly TextureFactory _textureFactory;
     private readonly WindowSystem _windows;
 
@@ -58,19 +58,20 @@ public class Simulacrum : IDalamudPlugin
 
         _primitive = new PrimitiveDebug(sigScanner);
 
-        _windows = new WindowSystem("Simulacrum");
-        _customizationWindow = new CustomizationWindow();
-        _windows.AddWindow(_customizationWindow);
-        _customizationWindow.IsOpen = true;
-
-        _pluginInterface.UiBuilder.Draw += _windows.Draw;
-
         _hostctlBag = new List<IDisposable>();
 
         _mediaSources = new MediaSourceManager();
         _playbackTrackers = new PlaybackTrackerManager();
-        _screens = new ScreenManager();
+        _materialScreens = new MaterialScreenManager();
         _textureFactory = new TextureFactory(sigScanner);
+
+        _windows = new WindowSystem("Simulacrum");
+        _customizationWindow = new CustomizationWindow();
+        _windows.AddWindow(_customizationWindow);
+        _windows.AddWindow(new DebugWindow(_materialScreens, _mediaSources));
+        _customizationWindow.IsOpen = true;
+
+        _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
         _commandManager.AddHandler("/simcreate", new CommandInfo((command, arguments) =>
         {
@@ -135,8 +136,7 @@ public class Simulacrum : IDalamudPlugin
             _customizationWindow.WorldPosition = _clientState.LocalPlayer.Position;
 
             // TODO: Add safety checks
-            foreach (var screen in _screens.Screens
-                         .OfType<MaterialScreen>()
+            foreach (var screen in _materialScreens.Screens
                          .Where(s => s.MaterialPointer != nint.Zero)
                          .Where(s => s.GetLocation().Territory == _clientState.TerritoryType))
             {
@@ -248,7 +248,7 @@ public class Simulacrum : IDalamudPlugin
             Position = Position.FromCoordinates(dto.Position.X, dto.Position.Y, dto.Position.Z),
         });
 
-        _screens.AddScreen(dto.Id, materialScreen);
+        _materialScreens.AddScreen(dto.Id, materialScreen);
 
         if (dto.MediaSourceId is null) return;
 
@@ -362,7 +362,7 @@ public class Simulacrum : IDalamudPlugin
 
         _cts.Dispose();
 
-        _screens.Dispose();
+        _materialScreens.Dispose();
         _playbackTrackers.Dispose();
         _mediaSources.Dispose();
         _textureFactory.Dispose();

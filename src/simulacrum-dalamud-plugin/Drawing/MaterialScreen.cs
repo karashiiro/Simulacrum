@@ -18,6 +18,8 @@ public class MaterialScreen : IScreen, IDisposable
 
     public nint MaterialPointer => _material?.Pointer ?? nint.Zero;
 
+    public GameTextureWrap? ImGuiTextureWrap => _texture != null ? new(_texture.TexturePointer) : null;
+
     public MaterialScreen(TextureFactory textureFactory, UiBuilder ui, Location location)
     {
         _buffer = Array.Empty<byte>();

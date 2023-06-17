@@ -16,8 +16,7 @@ public class CustomizationWindow : Window
     private Vector3 _scale;
     private Vector4 _color;
 
-    public CustomizationWindow(ImGuiWindowFlags flags = ImGuiWindowFlags.None, bool forceMainWindow = false) : base(
-        "Simulacrum", flags, forceMainWindow)
+    public CustomizationWindow() : base("Simulacrum")
     {
         _translation = new Vector3(1, 1, 1);
         _scale = new Vector3(1, 1, 0);

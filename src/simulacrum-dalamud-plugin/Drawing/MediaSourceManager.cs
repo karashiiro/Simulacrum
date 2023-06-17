@@ -6,6 +6,9 @@ public class MediaSourceManager : IDisposable
 {
     private readonly IDictionary<string, IMediaSource> _mediaSources;
 
+    public IEnumerable<KeyValuePair<string, IMediaSource>> MediaSourceEntries =>
+        new Dictionary<string, IMediaSource>(_mediaSources); // Enumeration-safe
+
     public MediaSourceManager()
     {
         _mediaSources = new Dictionary<string, IMediaSource>();
