@@ -17,6 +17,17 @@ Simulacrum uses NUKE as a build script manager. It is strongly recommended to in
 [ReSharper](https://nuke.build/docs/ide/resharper/), [Visual Studio](https://nuke.build/docs/ide/visual-studio/),
 [Visual Studio Code](https://nuke.build/docs/ide/vscode/)) when developing Simulacrum.
 
+### Repository structure
+
+All project components are stored in the `src` directory. Their purposes are listed below:
+
+```
+simulacrum-cloud-api: The WebSocket API.
+simulacrum-cloud-aws-cdk: IaC for provisioning AWS resources.
+simulacrum-cloud-diagrams: Solution architecture diagrams.
+simulacrum-dalamud-*: Dalamud plugin-related projects.
+```
+
 ### FFmpeg
 
 Simulacrum relies on FFmpeg for AV-decoding. If you are modifying the native libraries, make sure you have the FFmpeg development files installed.
