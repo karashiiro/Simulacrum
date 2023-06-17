@@ -32,8 +32,10 @@ public class MaterialScreen : IScreen, IDisposable
         _ui.Draw += Draw;
     }
 
-    private async ValueTask RebuildMaterial(int width, int height)
+    private async Task RebuildMaterial(int width, int height)
     {
+        // Detaching ValueTasks is bad, so this is a regular Task instead
+        // https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca2012
         _material?.Dispose();
         _texture = await _textureFactory.Create(width, height, default);
         _material = Material.CreateFromTexture(_texture.TexturePointer);
