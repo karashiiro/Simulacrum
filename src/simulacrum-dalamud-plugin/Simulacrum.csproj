@@ -69,9 +69,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="test.tex" />
-        <EmbeddedResource Include="test.tex" />
-        <None Remove="test.png" />
+        <None Remove="bootstrap_rgba.tex" />
+        <EmbeddedResource Include="bootstrap_rgba.tex" />
     </ItemGroup>
 
     <ItemGroup>

@@ -58,7 +58,7 @@ public class TextureBootstrap : IDisposable
         var easyCreate = Marshal.GetDelegateForFunctionPointer<CreateApricotTextureFromTex>(addr);
         PluginLog.Log($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr - _sigScanner.Module.BaseAddress:X}");
 
-        await using var texFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.test.tex") ??
+        await using var texFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.bootstrap_rgba.tex") ??
                                   throw new InvalidOperationException("Could not find embedded file.");
 
         // Allocate a pinned array and get a stable pointer to it in a safe context so
