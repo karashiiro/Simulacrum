@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { DynamoDbService } from './dynamodb.service';
+import { Module } from "@nestjs/common";
+import { DynamoDbService } from "./dynamodb.service";
 
 @Module({
   providers: [DynamoDbService],

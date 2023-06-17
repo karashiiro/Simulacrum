@@ -1,0 +1,15 @@
+{
+  "name": "simulacrum",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "postinstall": "manypkg check"
+  },
+  "dependencies": {
+    "@manypkg/cli": "latest",
+    "turbo": "^1.10.3"
+  },
+  "workspaces": [
+    "src/*"
+  ]
+}

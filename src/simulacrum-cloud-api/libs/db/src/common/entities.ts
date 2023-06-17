@@ -2,7 +2,7 @@ export interface ImageMetadata {
   uri: string;
 }
 
-export type PlaybackState = 'playing' | 'paused';
+export type PlaybackState = "playing" | "paused";
 
 export interface VideoMetadata {
   uri: string;
@@ -12,11 +12,11 @@ export interface VideoMetadata {
 }
 
 export type MediaMetadata =
-  | { type: 'blank' }
-  | ({ type: 'image' } & Partial<ImageMetadata>)
-  | ({ type: 'video' } & Partial<VideoMetadata>);
+  | { type: "blank" }
+  | ({ type: "image" } & Partial<ImageMetadata>)
+  | ({ type: "video" } & Partial<VideoMetadata>);
 
-export type MediaSourceType = MediaMetadata['type'];
+export type MediaSourceType = MediaMetadata["type"];
 
 export interface MediaSourceDto {
   id: string;

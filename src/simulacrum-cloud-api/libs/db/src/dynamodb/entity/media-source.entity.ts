@@ -1,16 +1,16 @@
-import { MediaSourceType, PlaybackState } from '@simulacrum/db/common';
+import { MediaSourceType, PlaybackState } from "@simulacrum/db/common";
 import {
   AUTO_GENERATE_ATTRIBUTE_STRATEGY,
   Attribute,
   AutoGenerateAttribute,
   Entity,
-} from '@typedorm/common';
+} from "@typedorm/common";
 
 @Entity({
-  name: 'mediaSource',
+  name: "mediaSource",
   primaryKey: {
-    partitionKey: 'MEDIASRC#{{id}}',
-    sortKey: 'MEDIASRC#{{id}}',
+    partitionKey: "MEDIASRC#{{id}}",
+    sortKey: "MEDIASRC#{{id}}",
   },
 })
 export class MediaSource {

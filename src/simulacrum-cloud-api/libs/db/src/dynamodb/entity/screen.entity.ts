@@ -1,22 +1,22 @@
-import { Position, ScreenDto } from '@simulacrum/db/common';
+import { Position, ScreenDto } from "@simulacrum/db/common";
 import {
   AUTO_GENERATE_ATTRIBUTE_STRATEGY,
   Attribute,
   AutoGenerateAttribute,
   Entity,
   INDEX_TYPE,
-} from '@typedorm/common';
+} from "@typedorm/common";
 
 @Entity({
-  name: 'screen',
+  name: "screen",
   primaryKey: {
-    partitionKey: 'SCREEN#{{id}}',
-    sortKey: 'SCREEN#{{id}}',
+    partitionKey: "SCREEN#{{id}}",
+    sortKey: "SCREEN#{{id}}",
   },
   indexes: {
     GSI1: {
-      partitionKey: 'MEDIASRC#{{mediaSourceId}}',
-      sortKey: 'SCREEN#{{id}}',
+      partitionKey: "MEDIASRC#{{mediaSourceId}}",
+      sortKey: "SCREEN#{{id}}",
       type: INDEX_TYPE.GSI,
     },
   },

@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger } from "@nestjs/common";
 import {
   MessageBody,
   OnGatewayConnection,
@@ -8,15 +8,15 @@ import {
   WebSocketServer,
   WsException,
   WsResponse,
-} from '@nestjs/websockets';
-import { DbService } from '@simulacrum/db';
-import { MediaSourceDto, ScreenDto } from '@simulacrum/db/common';
-import { Observable, bufferCount, from, map } from 'rxjs';
-import * as WebSocket from 'ws';
-import { WebSocketServer as Server } from 'ws';
+} from "@nestjs/websockets";
+import { DbService } from "@simulacrum/db";
+import { MediaSourceDto, ScreenDto } from "@simulacrum/db/common";
+import { Observable, bufferCount, from, map } from "rxjs";
+import * as WebSocket from "ws";
+import { WebSocketServer as Server } from "ws";
 
 interface ScreenCreateEvent {
-  screen: Omit<ScreenDto, 'id' | 'updatedAt'>;
+  screen: Omit<ScreenDto, "id" | "updatedAt">;
 }
 
 interface MediaSourceListScreensEvent {
@@ -24,7 +24,7 @@ interface MediaSourceListScreensEvent {
 }
 
 interface MediaSourceCreateEvent {
-  mediaSource: Omit<MediaSourceDto, 'id' | 'updatedAt'>;
+  mediaSource: Omit<MediaSourceDto, "id" | "updatedAt">;
 }
 
 interface VideoSourceSyncRequest {
@@ -94,41 +94,41 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly db: DbService) {}
 
   handleConnection() {
-    this.logger.log('Got new connection');
+    this.logger.log("Got new connection");
   }
 
   handleDisconnect() {
-    this.logger.log('Connection from client ended');
+    this.logger.log("Connection from client ended");
   }
 
-  @SubscribeMessage('SCREEN_CREATE')
+  @SubscribeMessage("SCREEN_CREATE")
   async createScreen(@MessageBody() ev: ScreenCreateEvent): Promise<void> {
     const dto = await this.db.createScreen(ev.screen);
     broadcast<ScreenCreateBroadcast>(this.wss, {
-      event: 'SCREEN_CREATE',
+      event: "SCREEN_CREATE",
       data: {
         screen: dto,
       },
     });
   }
 
-  @SubscribeMessage('MEDIA_SOURCE_LIST_SCREENS')
+  @SubscribeMessage("MEDIA_SOURCE_LIST_SCREENS")
   async listScreensForMediaSource(
-    @MessageBody() ev: MediaSourceListScreensEvent,
+    @MessageBody() ev: MediaSourceListScreensEvent
   ): Promise<Observable<WsResponse<MediaSourceListScreensResponse>>> {
     const dtos = await this.db.findScreensByMediaSourceId(ev.mediaSourceId);
     return from(dtos).pipe(
       bufferCount(10),
       map((dtos) => ({
-        event: 'MEDIA_SOURCE_LIST_SCREENS',
+        event: "MEDIA_SOURCE_LIST_SCREENS",
         data: {
           screens: dtos,
         },
-      })),
+      }))
     );
   }
 
-  @SubscribeMessage('MEDIA_SOURCE_LIST')
+  @SubscribeMessage("MEDIA_SOURCE_LIST")
   async listMediaSources(): Promise<
     Observable<WsResponse<MediaSourceListResponse>>
   > {
@@ -136,104 +136,104 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return from(dtos).pipe(
       bufferCount(10),
       map((dtos) => ({
-        event: 'MEDIA_SOURCE_LIST',
+        event: "MEDIA_SOURCE_LIST",
         data: {
           mediaSources: dtos,
         },
-      })),
+      }))
     );
   }
 
-  @SubscribeMessage('MEDIA_SOURCE_CREATE')
+  @SubscribeMessage("MEDIA_SOURCE_CREATE")
   async createMediaSource(
-    @MessageBody() ev: MediaSourceCreateEvent,
+    @MessageBody() ev: MediaSourceCreateEvent
   ): Promise<void> {
     const dto = await this.db.createMediaSource(ev.mediaSource);
     broadcast<MediaSourceCreateBroadcast>(this.wss, {
-      event: 'MEDIA_SOURCE_CREATE',
+      event: "MEDIA_SOURCE_CREATE",
       data: {
         mediaSource: dto,
       },
     });
   }
 
-  @SubscribeMessage('VIDEO_SOURCE_SYNC')
+  @SubscribeMessage("VIDEO_SOURCE_SYNC")
   async syncVideoSource(
-    @MessageBody() ev: VideoSourceSyncRequest,
+    @MessageBody() ev: VideoSourceSyncRequest
   ): Promise<WsResponse<VideoSourceSyncResponse>> {
     const dto = await this.db.findMediaSource(ev.id);
     if (!dto) {
-      throw new WsException('Could not find media source.');
+      throw new WsException("Could not find media source.");
     }
 
     return {
-      event: 'VIDEO_SOURCE_SYNC',
+      event: "VIDEO_SOURCE_SYNC",
       data: {
         mediaSource: dto,
       },
     };
   }
 
-  @SubscribeMessage('VIDEO_SOURCE_PLAY')
+  @SubscribeMessage("VIDEO_SOURCE_PLAY")
   async playMediaSource(
-    @MessageBody() ev: VideoSourcePlayRequest,
+    @MessageBody() ev: VideoSourcePlayRequest
   ): Promise<void> {
     const dto = await this.db.updateMediaSource(ev.id, {
       meta: {
-        type: 'video',
-        state: 'playing',
+        type: "video",
+        state: "playing",
       },
     });
     if (!dto) {
-      throw new WsException('Could not find media source.');
+      throw new WsException("Could not find media source.");
     }
 
     broadcast<VideoSourcePlayBroadcast>(this.wss, {
-      event: 'VIDEO_SOURCE_PLAY',
+      event: "VIDEO_SOURCE_PLAY",
       data: {
         mediaSource: dto,
       },
     });
   }
 
-  @SubscribeMessage('VIDEO_SOURCE_PAUSE')
+  @SubscribeMessage("VIDEO_SOURCE_PAUSE")
   async pauseMediaSource(
-    @MessageBody() ev: VideoSourcePauseRequest,
+    @MessageBody() ev: VideoSourcePauseRequest
   ): Promise<void> {
     const dto = await this.db.updateMediaSource(ev.id, {
       meta: {
-        type: 'video',
-        state: 'paused',
+        type: "video",
+        state: "paused",
       },
     });
     if (!dto) {
-      throw new WsException('Could not find media source.');
+      throw new WsException("Could not find media source.");
     }
 
     broadcast<VideoSourcePauseBroadcast>(this.wss, {
-      event: 'VIDEO_SOURCE_PAUSE',
+      event: "VIDEO_SOURCE_PAUSE",
       data: {
         mediaSource: dto,
       },
     });
   }
 
-  @SubscribeMessage('VIDEO_SOURCE_PAN')
+  @SubscribeMessage("VIDEO_SOURCE_PAN")
   async panMediaSource(
-    @MessageBody() ev: VideoSourcePanRequest,
+    @MessageBody() ev: VideoSourcePanRequest
   ): Promise<void> {
     const dto = await this.db.updateMediaSource(ev.id, {
       meta: {
-        type: 'video',
+        type: "video",
         playheadSeconds: ev.playheadSeconds,
       },
     });
     if (!dto) {
-      throw new WsException('Could not find media source.');
+      throw new WsException("Could not find media source.");
     }
 
     broadcast<VideoSourcePanBroadcast>(this.wss, {
-      event: 'VIDEO_SOURCE_PAN',
+      event: "VIDEO_SOURCE_PAN",
       data: {
         mediaSource: dto,
       },

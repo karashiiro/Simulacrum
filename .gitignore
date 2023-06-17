@@ -17,3 +17,4 @@ Release/
 *.sln.*.user
 
 node_modules/
+.turbo

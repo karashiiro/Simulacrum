@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { HostctlService } from './hostctl.service';
-import { EventsGateway } from './events/events.gateway';
-import { DbModule } from '@simulacrum/db';
+import { Module } from "@nestjs/common";
+import { HostctlService } from "./hostctl.service";
+import { EventsGateway } from "./events/events.gateway";
+import { DbModule } from "@simulacrum/db";
 
 @Module({
   imports: [DbModule],
