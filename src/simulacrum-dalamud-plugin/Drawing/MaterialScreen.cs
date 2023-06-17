@@ -30,7 +30,7 @@ public class MaterialScreen : IScreen, IDisposable
         _ui.Draw += Draw;
     }
 
-    private async Task RebuildMaterial(int width, int height)
+    private async ValueTask RebuildMaterial(int width, int height)
     {
         // You're not supposed to call GetResult() on a ValueTask, so this is just a regular
         // task instead.
