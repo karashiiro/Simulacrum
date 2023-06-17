@@ -125,11 +125,15 @@ public abstract class HostctlEvent
     {
         [JsonPropertyName("meta")] public JsonElement MetaRaw { get; init; }
 
-        [JsonPropertyName("id")] public string? Id { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("id")]
+        public string? Id { get; init; }
 
         [JsonIgnore] public MediaMetadata? Meta => DeserializeMeta();
 
-        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("updatedAt")]
+        public long? UpdatedAt { get; init; }
 
         private MediaMetadata? DeserializeMeta()
         {
@@ -143,12 +147,29 @@ public abstract class HostctlEvent
         }
     }
 
+    public class PositionDto
+    {
+        [JsonPropertyName("x")] public float X { get; init; }
+
+        [JsonPropertyName("y")] public float Y { get; init; }
+
+        [JsonPropertyName("z")] public float Z { get; init; }
+    }
+
     public class ScreenDto
     {
-        [JsonPropertyName("id")] public string? Id { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("id")]
+        public string? Id { get; init; }
+
+        [JsonPropertyName("territory")] public int Territory { get; init; }
+
+        [JsonPropertyName("position")] public PositionDto? Position { get; init; }
 
         [JsonPropertyName("mediaSourceId")] public string? MediaSourceId { get; init; }
 
-        [JsonPropertyName("updatedAt")] public long UpdatedAt { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("updatedAt")]
+        public long? UpdatedAt { get; init; }
     }
 }

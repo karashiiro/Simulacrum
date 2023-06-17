@@ -219,6 +219,8 @@ export class DynamoDbService implements DbAccessService {
     dto: Omit<ScreenDto, 'id' | 'updatedAt'>,
   ): Promise<ScreenDto> {
     const screen = new Screen();
+    screen.territory = dto.territory;
+    screen.position = dto.position;
     screen.mediaSourceId = dto.mediaSourceId;
 
     const result = await this.entityManager.create<Screen>(screen);

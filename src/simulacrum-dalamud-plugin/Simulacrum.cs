@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
@@ -8,6 +9,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Utility;
 using Simulacrum.AV;
 using Simulacrum.Drawing;
 using Simulacrum.Game;
@@ -70,6 +72,46 @@ public class Simulacrum : IDalamudPlugin
         _screens = new ScreenManager();
         _textureFactory = new TextureFactory(sigScanner);
 
+        _commandManager.AddHandler("/simcreate", new CommandInfo((command, arguments) =>
+        {
+            _ = _hostctl?.SendEvent(new HostctlEvent.MediaSourceCreateRequest
+            {
+                Data = new HostctlEvent.MediaSourceDto
+                {
+                    MetaRaw = JsonSerializer.SerializeToElement(new HostctlEvent.VideoMetadata
+                    {
+                        Type = "video",
+                        Uri = "https://dc6xbzf7ukys8.cloudfront.net/rider64_xKQhMNjffD.m3u8",
+                        State = "playing",
+                    }),
+                },
+            });
+        }));
+
+        _commandManager.AddHandler("/simplace", new CommandInfo((command, arguments) =>
+        {
+            if (_clientState.LocalPlayer is null || arguments.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var position = _clientState.LocalPlayer.Position;
+            _ = _hostctl?.SendEvent(new HostctlEvent.ScreenCreateRequest
+            {
+                Data = new HostctlEvent.ScreenDto
+                {
+                    Territory = _clientState.TerritoryType,
+                    Position = new HostctlEvent.PositionDto
+                    {
+                        X = position.X,
+                        Y = position.Y,
+                        Z = position.Z,
+                    },
+                    MediaSourceId = arguments,
+                },
+            });
+        }));
+
         // Continue initialization in a separate task which will be rejoined on dispose
         _cts = new CancellationTokenSource();
         _task = Initialize(_cts.Token);
@@ -89,12 +131,14 @@ public class Simulacrum : IDalamudPlugin
                 return;
             }
 
-            var position = _clientState.LocalPlayer.Position;
             _customizationWindow.Territory = _clientState.TerritoryType;
-            _customizationWindow.WorldPosition = position;
+            _customizationWindow.WorldPosition = _clientState.LocalPlayer.Position;
 
             // TODO: Add safety checks
-            foreach (var screen in _screens.Screens.OfType<MaterialScreen>().Where(s => s.MaterialPointer != nint.Zero))
+            foreach (var screen in _screens.Screens
+                         .OfType<MaterialScreen>()
+                         .Where(s => s.MaterialPointer != nint.Zero)
+                         .Where(s => s.GetLocation().Territory == _clientState.TerritoryType))
             {
                 // TODO: There's a 1px texture wraparound on all sides of the primitive, possibly due to UV/command type
                 var context = _primitive.GetContext();
@@ -109,6 +153,8 @@ public class Simulacrum : IDalamudPlugin
                 var translation = _customizationWindow.Translation;
                 var scale = _customizationWindow.Scale;
                 var color = _customizationWindow.Color;
+                var location = screen.GetLocation();
+                var position = location.Position;
 
                 unsafe
                 {
@@ -194,9 +240,14 @@ public class Simulacrum : IDalamudPlugin
 
     private void InitializeScreen(HostctlEvent.ScreenDto? dto)
     {
-        if (dto?.Id is null) return;
+        if (dto?.Id is null || dto.Position is null) return;
 
-        var materialScreen = new MaterialScreen(_textureFactory, _pluginInterface.UiBuilder);
+        var materialScreen = new MaterialScreen(_textureFactory, _pluginInterface.UiBuilder, new Location
+        {
+            Territory = dto.Territory,
+            Position = Position.FromCoordinates(dto.Position.X, dto.Position.Y, dto.Position.Z),
+        });
+
         _screens.AddScreen(dto.Id, materialScreen);
 
         if (dto.MediaSourceId is null) return;
@@ -296,6 +347,9 @@ public class Simulacrum : IDalamudPlugin
     {
         if (!disposing) return;
 
+        _commandManager.RemoveHandler("/simplace");
+        _commandManager.RemoveHandler("/simcreate");
+
         _cts.Cancel();
         try
         {
@@ -307,12 +361,6 @@ public class Simulacrum : IDalamudPlugin
         }
 
         _cts.Dispose();
-
-        _commandManager.RemoveHandler("/simon");
-        _commandManager.RemoveHandler("/simoff");
-        _commandManager.RemoveHandler("/simsync");
-        _commandManager.RemoveHandler("/simpause");
-        _commandManager.RemoveHandler("/simplay");
 
         _screens.Dispose();
         _playbackTrackers.Dispose();

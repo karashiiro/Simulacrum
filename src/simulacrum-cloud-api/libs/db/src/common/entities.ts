@@ -24,8 +24,16 @@ export interface MediaSourceDto {
   updatedAt: number;
 }
 
+export interface Position {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface ScreenDto {
   id: string;
+  territory: number;
+  position: Position;
   mediaSourceId?: string;
   updatedAt: number;
 }

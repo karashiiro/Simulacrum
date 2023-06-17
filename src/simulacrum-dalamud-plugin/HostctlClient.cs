@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Dalamud.Logging;
 
 namespace Simulacrum;
@@ -59,14 +60,6 @@ public class HostctlClient : IDisposable
         }
     }
 
-    private void RebuildClient()
-    {
-        _ws?.Dispose();
-        _ws = new ClientWebSocket();
-        _ws.Options.HttpVersion = HttpVersion.Version30;
-        _ws.Options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
-    }
-
     private async Task InboundLoop(CancellationToken cancellationToken)
     {
         // Limit inbound message size to 1KB
@@ -114,6 +107,14 @@ public class HostctlClient : IDisposable
         _events.OnNext(@event);
     }
 
+    private void RebuildClient()
+    {
+        _ws?.Dispose();
+        _ws = new ClientWebSocket();
+        _ws.Options.HttpVersion = HttpVersion.Version30;
+        _ws.Options.HttpVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+    }
+
     private async Task Connect(CancellationToken cancellationToken)
     {
         // Retry until the connection succeeds, or a non-WebSocketException
@@ -137,7 +138,7 @@ public class HostctlClient : IDisposable
     {
         // The parameter is used to control timeouts from the caller, and
         // the field is used to handle disposal.
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
         await _ws!.ConnectAsync(_uri, new HttpMessageInvoker(_handler), cts.Token);
         cts.Token.ThrowIfCancellationRequested();
         PluginLog.Log($"Now connected to {_uri}");
@@ -192,63 +193,63 @@ public class HostctlClient : IDisposable
     {
         return _events
             .Select(ev => ev as HostctlEvent.ScreenCreateBroadcast)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
+            .Where(ev => ev is not null)
+            .Select(ev => ev!);
     }
 
     public IObservable<HostctlEvent.MediaSourceListScreensResponse> OnMediaSourceListScreens()
     {
         return _events
             .Select(ev => ev as HostctlEvent.MediaSourceListScreensResponse)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
+            .Where(ev => ev is not null)
+            .Select(ev => ev!);
     }
 
     public IObservable<HostctlEvent.MediaSourceListResponse> OnMediaSourceList()
     {
         return _events
             .Select(ev => ev as HostctlEvent.MediaSourceListResponse)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
+            .Where(ev => ev is not null)
+            .Select(ev => ev!);
     }
 
     public IObservable<HostctlEvent.MediaSourceCreateBroadcast> OnMediaSourceCreate()
     {
         return _events
             .Select(ev => ev as HostctlEvent.MediaSourceCreateBroadcast)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
+            .Where(ev => ev is not null)
+            .Select(ev => ev!);
     }
 
     public IObservable<HostctlEvent.VideoSourceSyncResponse> OnVideoSourceSync()
     {
         return _events
             .Select(ev => ev as HostctlEvent.VideoSourceSyncResponse)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
+            .Where(ev => ev is not null)
+            .Select(ev => ev!);
     }
 
     public IObservable<HostctlEvent.VideoSourcePlayBroadcast> OnVideoSourcePlay()
     {
         return _events
             .Select(ev => ev as HostctlEvent.VideoSourcePlayBroadcast)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
+            .Where(ev => ev is not null)
+            .Select(ev => ev!);
     }
 
     public IObservable<HostctlEvent.VideoSourcePauseBroadcast> OnVideoSourcePause()
     {
         return _events
             .Select(ev => ev as HostctlEvent.VideoSourcePauseBroadcast)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
+            .Where(ev => ev is not null)
+            .Select(ev => ev!);
     }
 
     public IObservable<HostctlEvent.VideoSourcePanBroadcast> OnVideoSourcePan()
     {
         return _events
             .Select(ev => ev as HostctlEvent.VideoSourcePanBroadcast)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!);
+            .Where(ev => ev is not null)
+            .Select(ev => ev!);
     }
 }

@@ -8,6 +8,7 @@ public class MaterialScreen : IScreen, IDisposable
 {
     private readonly TextureFactory _textureFactory;
     private readonly UiBuilder _ui;
+    private readonly Location _location;
 
     private byte[] _buffer;
     private Material? _material;
@@ -17,12 +18,13 @@ public class MaterialScreen : IScreen, IDisposable
 
     public nint MaterialPointer => _material?.Pointer ?? nint.Zero;
 
-    public MaterialScreen(TextureFactory textureFactory, UiBuilder ui)
+    public MaterialScreen(TextureFactory textureFactory, UiBuilder ui, Location location)
     {
         _buffer = Array.Empty<byte>();
 
         _textureFactory = textureFactory;
         _ui = ui;
+        _location = location;
 
         // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui
         _ui.Draw += Draw;
@@ -93,6 +95,11 @@ public class MaterialScreen : IScreen, IDisposable
 
         var (width, height) = _source.Size();
         return (float)height / width;
+    }
+
+    public Location GetLocation()
+    {
+        return _location;
     }
 
     public void Dispose()

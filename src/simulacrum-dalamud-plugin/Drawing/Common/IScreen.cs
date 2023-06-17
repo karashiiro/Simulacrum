@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Simulacrum.Game;
 
 namespace Simulacrum.Drawing.Common;
 
@@ -17,4 +18,10 @@ public interface IScreen
     /// </summary>
     /// <returns></returns>
     float GetAspectRatio();
+
+    /// <summary>
+    /// Returns the location of this screen.
+    /// </summary>
+    /// <returns></returns>
+    Location GetLocation();
 }

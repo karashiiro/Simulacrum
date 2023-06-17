@@ -1,4 +1,4 @@
-import { ScreenDto } from '@simulacrum/db/common';
+import { Position, ScreenDto } from '@simulacrum/db/common';
 import {
   AUTO_GENERATE_ATTRIBUTE_STRATEGY,
   Attribute,
@@ -26,6 +26,12 @@ export class Screen implements ScreenDto {
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.UUID4,
   })
   id: string;
+
+  @Attribute()
+  territory: number;
+
+  @Attribute()
+  position: Position;
 
   @Attribute()
   mediaSourceId?: string;
