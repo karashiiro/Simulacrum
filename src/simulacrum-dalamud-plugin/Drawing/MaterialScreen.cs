@@ -34,8 +34,6 @@ public class MaterialScreen : IScreen, IDisposable
 
     private async ValueTask RebuildMaterial(int width, int height)
     {
-        // You're not supposed to call GetResult() on a ValueTask, so this is just a regular
-        // task instead.
         _material?.Dispose();
         _texture = await _textureFactory.Create(width, height, default);
         _material = Material.CreateFromTexture(_texture.TexturePointer);
