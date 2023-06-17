@@ -1,0 +1,9 @@
+{
+  "name": "simulacrum-cloud-diagrams",
+  "scripts": {
+    "dev": "nodemon -w simulacrum --exec \"python3 -m simulacrum\" -e py"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

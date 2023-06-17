@@ -1,0 +1,6 @@
+.venv*/
+venv*/
+__pycache__/
+
+# Ignore any top-level images just in case people have weird development setups
+/*.png

@@ -1,8 +1,12 @@
-# Welcome to your CDK TypeScript project
+# simulacrum-cloud-aws-cdk
 
 This is a blank project for CDK development with TypeScript.
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
+
+## Architecture diagram
+
+![Architecture diagram](../simulacrum-cloud-diagrams/diagrams/aws.png)
 
 ## Useful commands
 
