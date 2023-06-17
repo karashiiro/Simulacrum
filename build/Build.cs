@@ -2,9 +2,11 @@ using System.Diagnostics.CodeAnalysis;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
+using Nuke.Common.Tooling;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.MSBuild;
 using Nuke.Common.Utilities.Collections;
+using Serilog;
 
 [SuppressMessage("ReSharper", "UnusedMember.Local")]
 [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
@@ -25,6 +27,25 @@ class Build : NukeBuild
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
 
     [Solution] readonly Solution Solution;
+
+    [PathVariable] readonly Tool Yarn;
+
+    Target YarnAssertRoot => _ => _
+        .Executes(() => { Assert.FileExists(RootDirectory / "yarn.lock"); });
+
+    Target YarnInstall => _ => _
+        .DependsOn(YarnAssertRoot)
+        .Before(YarnBuild, CdkDiff)
+        .Executes(() => { Yarn("install"); });
+
+    Target YarnBuild => _ => _
+        .DependsOn(YarnAssertRoot)
+        .Executes(() => { Yarn("build"); });
+
+    [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
+    Target CdkDiff => _ => _
+        .DependsOn(YarnAssertRoot)
+        .Executes(() => { Yarn("workspace simulacrum-cloud-aws-cdk cdk diff", logger: (_, m) => Log.Debug(m)); });
 
     Target Clean => _ => _
         .Before(Restore, RestoreD17)

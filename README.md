@@ -27,11 +27,11 @@ The plugin should always be built for the x64 platform, to match the game itself
 
 ### Backend
 
-The backend is built in Nest.js on AWS, and uses standard Node tooling. It will be integrated into the NUKE toolchain later.
+The backend is built in Nest on AWS, using Node-based tooling.
 
 Backend components will have self-hosted equivalents written after the initial version is done. The AWS backend will represent
 a reference architecture that can be refactored and simplified for more constrained environments.
 
-#### Archiecture diagram
+#### Architecture diagram
 
 ![Architecture diagram](./src/simulacrum-cloud-diagrams/simulacrum/aws.png)
