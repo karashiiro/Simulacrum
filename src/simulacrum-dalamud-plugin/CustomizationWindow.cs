@@ -6,6 +6,8 @@ namespace Simulacrum;
 
 public class CustomizationWindow : Window
 {
+    public Vector3 WorldPosition { get; set; }
+    public int Territory { get; set; }
     public Vector3 Translation => _translation;
     public Vector3 Scale => _scale;
     public Vector4 Color => _color;
@@ -27,5 +29,7 @@ public class CustomizationWindow : Window
         ImGui.InputFloat3("Translation", ref _translation);
         ImGui.InputFloat3("Scale", ref _scale);
         ImGui.ColorPicker4("Overlay", ref _color);
+        ImGui.Text($"Current TerritoryType: {Territory}");
+        ImGui.Text($"Current position: {WorldPosition}");
     }
 }

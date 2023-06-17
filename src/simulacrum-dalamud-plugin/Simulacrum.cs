@@ -90,6 +90,8 @@ public class Simulacrum : IDalamudPlugin
             }
 
             var position = _clientState.LocalPlayer.Position;
+            _customizationWindow.Territory = _clientState.TerritoryType;
+            _customizationWindow.WorldPosition = position;
 
             // TODO: Add safety checks
             foreach (var screen in _screens.Screens.OfType<MaterialScreen>().Where(s => s.MaterialPointer != nint.Zero))
