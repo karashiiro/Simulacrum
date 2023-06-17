@@ -28,3 +28,5 @@ The plugin should always be built for the x64 platform, to match the game itself
 ### Backend
 
 The backend is built in Nest.js on AWS, and uses standard Node tooling. It will be integrated into the NUKE toolchain later.
+
+Backend components will have self-hosted equivalents written after the initial version is done.
