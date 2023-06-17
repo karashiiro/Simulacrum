@@ -1,17 +1,17 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "./src/simulacrum-cloud-api"
-		},
-		{
-			"path": "./src/simulacrum-cloud-aws-cdk"
-		},
-		{
-			"path": "./src/simulacrum-cloud-diagrams"
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "./src/simulacrum-cloud-api"
+    },
+    {
+      "path": "./src/simulacrum-cloud-aws-cdk"
+    },
+    {
+      "path": "./src/simulacrum-cloud-diagrams"
+    }
+  ],
+  "settings": {}
 }
