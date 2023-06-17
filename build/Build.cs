@@ -14,7 +14,7 @@ using Serilog;
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
 [GitHubActions("build", GitHubActionsImage.WindowsLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(YarnBuild) })] // TODO: Enable plugin builds in CI
+    InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild) })] // TODO: Enable plugin builds in CI
 class Build : NukeBuild
 {
     /// Support plugins are available for:
