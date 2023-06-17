@@ -2,7 +2,9 @@
   "name": "simulacrum",
   "private": true,
   "scripts": {
+    "build": "turbo build",
     "dev": "turbo dev",
+    "format": "turbo format",
     "postinstall": "manypkg check"
   },
   "dependencies": {
