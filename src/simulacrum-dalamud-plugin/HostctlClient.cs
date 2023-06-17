@@ -77,16 +77,7 @@ public class HostctlClient : IDisposable
             if (_ws?.State != WebSocketState.Open)
             {
                 // Attempt to reconnect to the server
-                try
-                {
-                    RebuildClient();
-                    await Connect(cancellationToken);
-                }
-                catch (WebSocketException e)
-                {
-                    PluginLog.LogError(e, "Failed to reconnect to the server");
-                    continue;
-                }
+                await Connect(cancellationToken);
             }
 
             try
@@ -125,11 +116,25 @@ public class HostctlClient : IDisposable
 
     private async Task Connect(CancellationToken cancellationToken)
     {
-        if (_ws is null)
+        // Retry until the connection succeeds, or a non-WebSocketException
+        // (such as an OperationCancelledException) is thrown.
+        while (true)
         {
-            RebuildClient();
+            try
+            {
+                RebuildClient();
+                await ConnectInternal(cancellationToken);
+                return;
+            }
+            catch (WebSocketException e)
+            {
+                PluginLog.LogError(e, "Failed to connect to the server");
+            }
         }
+    }
 
+    private async Task ConnectInternal(CancellationToken cancellationToken)
+    {
         // The parameter is used to control timeouts from the caller, and
         // the field is used to handle disposal.
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
@@ -166,7 +171,14 @@ public class HostctlClient : IDisposable
     public void Dispose()
     {
         _cts.CancelAfter(TimeSpan.FromSeconds(5));
-        Disconnect().ContinueWith(_ => _inboundLoop).ContinueWith(_ => _cts.Dispose());
+        try
+        {
+            Disconnect().ContinueWith(_ => _inboundLoop).ContinueWith(_ => _cts.Dispose()).GetAwaiter().GetResult();
+        }
+        catch (Exception e)
+        {
+            PluginLog.LogWarning(e, "The WebSocket loop completed with an exception");
+        }
 
         _events.Dispose();
         _sendLock.Dispose();

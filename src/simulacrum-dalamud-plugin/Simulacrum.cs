@@ -301,7 +301,7 @@ public class Simulacrum : IDalamudPlugin
         }
         catch (Exception e)
         {
-            PluginLog.LogWarning(e, "The main task completed with an exception.");
+            PluginLog.LogWarning(e, "The main task completed with an exception");
         }
 
         _cts.Dispose();
