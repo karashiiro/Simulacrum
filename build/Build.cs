@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Nuke.Common;
+using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
@@ -11,6 +12,9 @@ using Serilog;
 [SuppressMessage("ReSharper", "UnusedMember.Local")]
 [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
+[GitHubActions("build", GitHubActionsImage.WindowsLatest,
+    On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
+    InvokedTargets = new[] { nameof(YarnBuild) })] // TODO: Enable plugin builds in CI
 class Build : NukeBuild
 {
     /// Support plugins are available for:
