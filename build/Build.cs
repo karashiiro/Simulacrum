@@ -35,19 +35,28 @@ class Build : NukeBuild
     [PathVariable] readonly Tool Yarn;
 
     Target YarnAssertRoot => _ => _
+        .Unlisted()
         .Executes(() => { Assert.FileExists(RootDirectory / "yarn.lock"); });
 
     Target YarnInstall => _ => _
+        .Description("Installs the Node.js package dependencies using yarn.")
         .DependsOn(YarnAssertRoot)
-        .Before(YarnBuild, CdkDiff)
+        .Before(YarnDev, YarnBuild, CdkDiff)
         .Executes(() => { Yarn("install"); });
 
+    Target YarnDev => _ => _
+        .Description("Runs the development servers using yarn.")
+        .DependsOn(YarnAssertRoot)
+        .Executes(() => { Yarn("dev", exitHandler: _ => { }); });
+
     Target YarnBuild => _ => _
+        .Description("Builds the Node.js packages in the monorepo using yarn.")
         .DependsOn(YarnAssertRoot)
         .Executes(() => { Yarn("build"); });
 
     [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
     Target CdkDiff => _ => _
+        .Description("Diffs the CDK stacks in the repo against those in your AWS account.")
         .DependsOn(YarnAssertRoot)
         .Executes(() => { Yarn("workspace simulacrum-cloud-aws-cdk cdk diff", logger: (_, m) => Log.Debug(m)); });
 
@@ -76,6 +85,7 @@ class Build : NukeBuild
         });
 
     Target CompileD17 => _ => _
+        .Description("[TODO] Compiles the Dalamud plugin using pre-built native dependencies.")
         .DependsOn(RestoreD17)
         .Executes(() =>
         {
@@ -85,6 +95,7 @@ class Build : NukeBuild
         });
 
     Target Compile => _ => _
+        .Description("Compiles the Dalamud plugin.")
         .DependsOn(Restore)
         .Executes(() =>
         {

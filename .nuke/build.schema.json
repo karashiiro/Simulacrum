@@ -80,6 +80,7 @@
               "RestoreD17",
               "YarnAssertRoot",
               "YarnBuild",
+              "YarnDev",
               "YarnInstall"
             ]
           }
@@ -102,6 +103,7 @@
               "RestoreD17",
               "YarnAssertRoot",
               "YarnBuild",
+              "YarnDev",
               "YarnInstall"
             ]
           }

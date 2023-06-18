@@ -17,6 +17,11 @@ Simulacrum uses NUKE as a build script manager. It is strongly recommended to in
 [ReSharper](https://nuke.build/docs/ide/resharper/), [Visual Studio](https://nuke.build/docs/ide/visual-studio/),
 [Visual Studio Code](https://nuke.build/docs/ide/vscode/)) when developing Simulacrum.
 
+Run `nuke YarnInstall` (or `yarn install`) to install the Node.js package dependencies (*TODO: Check for `yarn` first*).
+
+Running `nuke YarnDev` (or `yarn dev`, or `turbo dev`, if you have the appropriate tools installed already) will run the development
+servers.
+
 ### Repository structure
 
 All project components are stored in the `src` directory. Their purposes are listed below:
@@ -24,6 +29,7 @@ All project components are stored in the `src` directory. Their purposes are lis
 ```
 simulacrum-cloud-api: The WebSocket API.
 simulacrum-cloud-aws-cdk: IaC for provisioning AWS resources.
+simulacrum-cloud-aws-local: Docker Compose things for AWS development.
 simulacrum-cloud-diagrams: Solution architecture diagrams.
 simulacrum-dalamud-*: Dalamud plugin-related projects.
 ```
