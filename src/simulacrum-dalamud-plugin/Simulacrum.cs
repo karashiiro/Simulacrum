@@ -14,6 +14,7 @@ using Simulacrum.AV;
 using Simulacrum.Drawing;
 using Simulacrum.Game;
 using Simulacrum.Game.Structures;
+using Simulacrum.Hostctl;
 
 namespace Simulacrum;
 
@@ -194,7 +195,7 @@ public class Simulacrum : IDalamudPlugin
     {
         var hostctlUri = new Uri("ws://localhost:3000");
 
-        _hostctl = await HostctlClient.FromUri(hostctlUri, cancellationToken);
+        _hostctl = await HostctlClient.FromUri(hostctlUri, (e, m) => PluginLog.LogError(e, m), cancellationToken);
         _hostctlBag.Add(_hostctl.OnScreenCreate().Subscribe(ev => { InitializeScreen(ev.Data); }));
         _hostctlBag.Add(_hostctl.OnMediaSourceListScreens().Subscribe(ev =>
         {

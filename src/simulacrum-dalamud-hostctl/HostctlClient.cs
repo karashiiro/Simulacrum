@@ -3,13 +3,12 @@ using System.Net.WebSockets;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Dalamud.Logging;
 
-namespace Simulacrum;
+namespace Simulacrum.Hostctl;
 
 public class HostctlClient : IDisposable
 {
+    private readonly Action<Exception, string> _logError;
     private readonly CancellationTokenSource _cts;
     private readonly SocketsHttpHandler _handler;
     private readonly SemaphoreSlim _sendLock;
@@ -19,8 +18,9 @@ public class HostctlClient : IDisposable
     private ClientWebSocket? _ws;
     private Task? _inboundLoop;
 
-    private HostctlClient(Uri uri)
+    private HostctlClient(Uri uri, Action<Exception, string> logError)
     {
+        _logError = logError;
         _cts = new CancellationTokenSource();
         _handler = new SocketsHttpHandler();
         _sendLock = new SemaphoreSlim(1, 1);
@@ -52,7 +52,7 @@ public class HostctlClient : IDisposable
         }
         catch (Exception e)
         {
-            PluginLog.Error(e, "Failed to send event");
+            _logError(e, "Failed to send event");
         }
         finally
         {
@@ -85,7 +85,7 @@ public class HostctlClient : IDisposable
             }
             catch (Exception e)
             {
-                PluginLog.LogError(e, "Failed to receive event");
+                _logError(e, "Failed to receive event");
             }
         }
     }
@@ -129,7 +129,7 @@ public class HostctlClient : IDisposable
             }
             catch (WebSocketException e)
             {
-                PluginLog.LogError(e, "Failed to connect to the server");
+                _logError(e, "Failed to connect to the server");
             }
         }
     }
@@ -141,7 +141,6 @@ public class HostctlClient : IDisposable
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
         await _ws!.ConnectAsync(_uri, new HttpMessageInvoker(_handler), cts.Token);
         cts.Token.ThrowIfCancellationRequested();
-        PluginLog.Log($"Now connected to {_uri}");
         _inboundLoop = InboundLoop(_cts.Token);
     }
 
@@ -158,13 +157,14 @@ public class HostctlClient : IDisposable
         }
         catch (WebSocketException e)
         {
-            PluginLog.LogError(e, "Failed to close connection");
+            _logError(e, "Failed to close connection");
         }
     }
 
-    public static async Task<HostctlClient> FromUri(Uri uri, CancellationToken cancellationToken = default)
+    public static async Task<HostctlClient> FromUri(Uri uri, Action<Exception, string> logError,
+        CancellationToken cancellationToken = default)
     {
-        var client = new HostctlClient(uri);
+        var client = new HostctlClient(uri, logError);
         await client.Connect(cancellationToken);
         return client;
     }
@@ -178,7 +178,7 @@ public class HostctlClient : IDisposable
         }
         catch (Exception e)
         {
-            PluginLog.LogWarning(e, "The WebSocket loop completed with an exception");
+            _logError(e, "The WebSocket loop completed with an exception");
         }
 
         _events.Dispose();

@@ -1,6 +1,6 @@
 ﻿using Thinktecture;
 
-namespace Simulacrum;
+namespace Simulacrum.Hostctl;
 
 public sealed partial class HostctlEventType : IEnum<string>
 {

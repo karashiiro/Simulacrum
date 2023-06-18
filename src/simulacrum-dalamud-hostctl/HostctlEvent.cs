@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Simulacrum;
+namespace Simulacrum.Hostctl;
 
 public abstract class HostctlEvent
 {

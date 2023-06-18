@@ -22,7 +22,6 @@
         <PackageReference Include="Silk.NET.Direct3D11" Version="2.17.1" />
         <PackageReference Include="System.Reactive" Version="6.0.0" />
         <PackageReference Include="Thinktecture.Runtime.Extensions" Version="6.2.0" />
-        <PackageReference Include="Thinktecture.Runtime.Extensions.Json" Version="6.2.0" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -80,6 +79,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\simulacrum-dalamud-av\Simulacrum.AV.csproj" />
+        <ProjectReference Include="..\simulacrum-dalamud-hostctl\Simulacrum.Hostctl.csproj" />
     </ItemGroup>
 
     <Target Name="CopyNativeLibraries" AfterTargets="Build">
