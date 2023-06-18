@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
@@ -34,30 +35,36 @@ class Build : NukeBuild
 
     [PathVariable] readonly Tool Yarn;
 
+    [LocalPath("./src/simulacrum-depcheck/depcheck.cmd")]
+    readonly Tool DepCheck;
+
+    Target CheckDeps => _ => _
+        .Description("Checks for the required dependencies in the environment.")
+        .DependentFor(YarnInstall, YarnDev, YarnBuild, CdkDiff)
+        .Executes(() => { DepCheck(""); });
+
     Target YarnAssertRoot => _ => _
         .Unlisted()
+        .DependentFor(YarnInstall, YarnDev, YarnBuild, CdkDiff)
         .Executes(() => { Assert.FileExists(RootDirectory / "yarn.lock"); });
 
     Target YarnInstall => _ => _
         .Description("Installs the Node.js package dependencies using yarn.")
-        .DependsOn(YarnAssertRoot)
+        .DependentFor(YarnDev, YarnBuild, CdkDiff)
         .Before(YarnDev, YarnBuild, CdkDiff)
         .Executes(() => { Yarn("install"); });
 
     Target YarnDev => _ => _
         .Description("Runs the development servers using yarn.")
-        .DependsOn(YarnAssertRoot)
         .Executes(() => { Yarn("dev", exitHandler: _ => { }); });
 
     Target YarnBuild => _ => _
         .Description("Builds the Node.js packages in the monorepo using yarn.")
-        .DependsOn(YarnAssertRoot)
         .Executes(() => { Yarn("build"); });
 
     [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
     Target CdkDiff => _ => _
         .Description("Diffs the CDK stacks in the repo against those in your AWS account.")
-        .DependsOn(YarnAssertRoot)
         .Executes(() => { Yarn("workspace simulacrum-cloud-aws-cdk cdk diff", logger: (_, m) => Log.Debug(m)); });
 
     Target Clean => _ => _
