@@ -13,7 +13,7 @@ function Assert-Dependency {
 
 Assert-Dependency "yarn"
 Assert-Dependency "docker"
-Assert-Dependency "python"
+Assert-Dependency "python3"
 
 Write-Output ""
 Write-Output "All environment dependencies are installed!"
