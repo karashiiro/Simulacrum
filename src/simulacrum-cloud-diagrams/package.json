@@ -1,6 +1,6 @@
 {
   "name": "simulacrum-cloud-diagrams",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "nodemon -w simulacrum --exec \"python3 -m simulacrum\" -e py"
