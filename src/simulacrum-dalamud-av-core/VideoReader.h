@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "PacketQueue.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -17,6 +18,7 @@ namespace Simulacrum::AV::Core
         AVRational time_base;
 
         VideoReader();
+        ~VideoReader();
 
         bool Open(const char* uri);
         bool ReadFrame(uint8_t* frame_buffer, int64_t* pts);
@@ -24,12 +26,17 @@ namespace Simulacrum::AV::Core
         void Close();
 
     private:
+        PacketQueue* video_packet_queue;
+        std::thread ingest_thread;
+        bool done;
+
         AVFormatContext* av_format_ctx;
         AVCodecContext* av_codec_ctx;
         int video_stream_index;
         AVFrame* av_frame;
-        AVPacket* av_packet;
         SwsContext* sws_scaler_ctx;
+
+        void Ingest() const;
     };
 }
 

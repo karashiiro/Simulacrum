@@ -60,7 +60,6 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
         if (!_reader.ReadFrame(cacheBuffer, out var pts))
         {
-            PluginLog.LogWarning("Failed to read frame from video reader");
             return;
         }
 

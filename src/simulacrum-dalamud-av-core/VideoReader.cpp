@@ -2,8 +2,10 @@
 #include <windows.h>
 #include "VideoReader.h"
 
-// Ripped from https://github.com/bmewj/video-app
-// and https://ffmpeg.org/doxygen/trunk/api-h264-test_8c_source.html
+// Ripped from
+// * https://github.com/bmewj/video-app
+// * https://ffmpeg.org/doxygen/trunk/api-h264-test_8c_source.html
+// * http://dranger.com/ffmpeg/ffmpeg.html
 
 // av_err2str returns a temporary array. This doesn't work in gcc.
 // This function can be used as a replacement for av_err2str.
@@ -31,13 +33,19 @@ Simulacrum::AV::Core::VideoReader::VideoReader()
     : width{},
       height{},
       time_base{},
+      done{},
       av_format_ctx{},
       av_codec_ctx{},
       video_stream_index(-1),
       av_frame{},
-      av_packet{},
       sws_scaler_ctx{}
 {
+    video_packet_queue = new PacketQueue();
+}
+
+Simulacrum::AV::Core::VideoReader::~VideoReader()
+{
+    delete video_packet_queue;
 }
 
 bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
@@ -110,49 +118,33 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         return false;
     }
 
-    av_packet = av_packet_alloc();
-    if (!av_packet)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate packet");
-        return false;
-    }
+    ingest_thread = std::thread(&VideoReader::Ingest, this);
 
     return true;
 }
 
 bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t* pts)
 {
-    // Decode one frame
-    while (av_read_frame(av_format_ctx, av_packet) >= 0)
+    AVPacket* next_packet;
+    if (!video_packet_queue->Pop(&next_packet))
     {
-        if (av_packet->stream_index != video_stream_index)
-        {
-            av_packet_unref(av_packet);
-            continue;
-        }
+        return false;
+    }
 
-        int result = avcodec_send_packet(av_codec_ctx, av_packet);
-        if (result < 0)
-        {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
-            return false;
-        }
+    int result = avcodec_send_packet(av_codec_ctx, next_packet);
+    if (result < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
+        av_packet_free(&next_packet);
+        return false;
+    }
 
-        result = avcodec_receive_frame(av_codec_ctx, av_frame);
-        if (result == AVERROR(EAGAIN) || result == AVERROR_EOF)
-        {
-            av_packet_unref(av_packet);
-            continue;
-        }
-
-        if (result < 0)
-        {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
-            return false;
-        }
-
-        av_packet_unref(av_packet);
-        break;
+    result = avcodec_receive_frame(av_codec_ctx, av_frame);
+    if (result < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
+        av_packet_free(&next_packet);
+        return false;
     }
 
     *pts = av_frame->pts;
@@ -167,6 +159,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
     if (!sws_scaler_ctx)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate sws context");
+        av_packet_free(&next_packet);
         return false;
     }
 
@@ -174,57 +167,20 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
     int dest_linesize[4] = {width * 4, 0, 0, 0};
     sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height, dest, dest_linesize);
 
+    av_packet_free(&next_packet);
     return true;
 }
 
 bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
 {
-    int result = av_seek_frame(av_format_ctx, video_stream_index, ts, AVSEEK_FLAG_BACKWARD);
-    if (result < 0)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek stream: %s", av_make_error(result));
-        return false;
-    }
-
-    // av_seek_frame takes effect after one frame, so I'm decoding one here
-    // so that the next call to video_reader_read_frame() will give the correct
-    // frame
-    while (av_read_frame(av_format_ctx, av_packet) >= 0)
-    {
-        if (av_packet->stream_index != video_stream_index)
-        {
-            av_packet_unref(av_packet);
-            continue;
-        }
-
-        result = avcodec_send_packet(av_codec_ctx, av_packet);
-        if (result < 0)
-        {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
-            return false;
-        }
-
-        result = avcodec_receive_frame(av_codec_ctx, av_frame);
-        if (result == AVERROR(EAGAIN) || result == AVERROR_EOF)
-        {
-            av_packet_unref(av_packet);
-            continue;
-        }
-        if (result < 0)
-        {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
-            return false;
-        }
-
-        av_packet_unref(av_packet);
-        break;
-    }
-
     return true;
 }
 
 void Simulacrum::AV::Core::VideoReader::Close()
 {
+    done = true;
+    ingest_thread.join();
+
     if (sws_scaler_ctx)
     {
         sws_freeContext(sws_scaler_ctx);
@@ -238,21 +194,48 @@ void Simulacrum::AV::Core::VideoReader::Close()
         av_format_ctx = nullptr;
     }
 
-    if (av_frame)
-    {
-        av_frame_free(&av_frame);
-        av_frame = nullptr;
-    }
-
-    if (av_packet)
-    {
-        av_packet_free(&av_packet);
-        av_packet = nullptr;
-    }
-
     if (av_codec_ctx)
     {
         avcodec_free_context(&av_codec_ctx);
         av_codec_ctx = nullptr;
     }
+}
+
+void Simulacrum::AV::Core::VideoReader::Ingest() const
+{
+    AVPacket* packet = nullptr;
+
+    while (!done)
+    {
+        if (!packet)
+        {
+            packet = av_packet_alloc();
+            if (!packet)
+            {
+                av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate packet");
+                break;
+            }
+        }
+
+        if (av_read_frame(av_format_ctx, packet) < 0)
+        {
+            // No more packets to read
+            break;
+        }
+
+        if (packet->stream_index == video_stream_index)
+        {
+            av_log(nullptr, AV_LOG_INFO, "[user] Pushed packet");
+            video_packet_queue->Push(packet);
+        }
+        else
+        {
+            av_packet_free(&packet);
+        }
+
+        packet = nullptr;
+    }
+
+    // Free the packet if it hasn't already been freed
+    av_packet_free(&packet);
 }
