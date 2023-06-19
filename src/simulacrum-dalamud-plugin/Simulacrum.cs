@@ -83,7 +83,7 @@ public class Simulacrum : IDalamudPlugin
                     MetaRaw = JsonSerializer.SerializeToElement(new HostctlEvent.VideoMetadata
                     {
                         Type = "video",
-                        Uri = "https://dc6xbzf7ukys8.cloudfront.net/rider64_xKQhMNjffD.m3u8",
+                        Uri = "https://dc6xbzf7ukys8.cloudfront.net/chugjug.m3u8",
                         State = "playing",
                     }),
                 },
