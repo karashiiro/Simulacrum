@@ -35,16 +35,20 @@ Simulacrum::AV::Core::VideoReader::VideoReader()
       time_base{},
       done{},
       av_format_ctx{},
-      av_codec_ctx{},
+      audio_codec_ctx{},
+      video_codec_ctx{},
+      audio_stream_index(-1),
       video_stream_index(-1),
       av_frame{},
       sws_scaler_ctx{}
 {
+    audio_packet_queue = new PacketQueue();
     video_packet_queue = new PacketQueue();
 }
 
 Simulacrum::AV::Core::VideoReader::~VideoReader()
 {
+    delete audio_packet_queue;
     delete video_packet_queue;
 }
 
@@ -71,6 +75,16 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         return false;
     }
 
+    // Find the first valid audio stream inside the file
+    // TODO: See if AVCodec can be used from this
+    audio_stream_index = av_find_best_stream(av_format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+    if (audio_stream_index < 0)
+    {
+        // TODO: Soundless video files are valid but need special handling here
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not find audio stream in input file");
+        return false;
+    }
+
     // Find the first valid video stream inside the file
     video_stream_index = av_find_best_stream(av_format_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (video_stream_index < 0)
@@ -79,35 +93,63 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         return false;
     }
 
-    const auto* av_codec_params = av_format_ctx->streams[video_stream_index]->codecpar;
-    const auto* av_codec = const_cast<AVCodec*>(avcodec_find_decoder(av_codec_params->codec_id));
-    if (!av_codec)
+    const auto* audio_codec_params = av_format_ctx->streams[audio_stream_index]->codecpar;
+    const auto* audio_codec = const_cast<AVCodec*>(avcodec_find_decoder(audio_codec_params->codec_id));
+    if (!audio_codec)
     {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not find decoder");
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not find audio decoder");
         return false;
     }
 
-    width = av_codec_params->width;
-    height = av_codec_params->height;
+    const auto* video_codec_params = av_format_ctx->streams[video_stream_index]->codecpar;
+    const auto* video_codec = const_cast<AVCodec*>(avcodec_find_decoder(video_codec_params->codec_id));
+    if (!video_codec)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not find video decoder");
+        return false;
+    }
+
+    width = video_codec_params->width;
+    height = video_codec_params->height;
     time_base = av_format_ctx->streams[video_stream_index]->time_base;
 
-    // Set up a codec context for the decoder
-    av_codec_ctx = avcodec_alloc_context3(av_codec);
-    if (!av_codec_ctx)
+    // Set up a codec context for the audio decoder
+    audio_codec_ctx = avcodec_alloc_context3(audio_codec);
+    if (!audio_codec_ctx)
     {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate decoder context");
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate audio decoder context");
         return false;
     }
 
-    if (avcodec_parameters_to_context(av_codec_ctx, av_codec_params) < 0)
+    if (avcodec_parameters_to_context(audio_codec_ctx, audio_codec_params) < 0)
     {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not copy decoder context");
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not copy audio decoder context");
         return false;
     }
 
-    if (avcodec_open2(av_codec_ctx, av_codec, nullptr) < 0)
+    if (avcodec_open2(audio_codec_ctx, audio_codec, nullptr) < 0)
     {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not open decoder");
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not open audio decoder");
+        return false;
+    }
+
+    // Set up a codec context for the video decoder
+    video_codec_ctx = avcodec_alloc_context3(video_codec);
+    if (!video_codec_ctx)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate video decoder context");
+        return false;
+    }
+
+    if (avcodec_parameters_to_context(video_codec_ctx, video_codec_params) < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not copy video decoder context");
+        return false;
+    }
+
+    if (avcodec_open2(video_codec_ctx, video_codec, nullptr) < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not open video decoder");
         return false;
     }
 
@@ -133,14 +175,14 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
 
     const std::shared_ptr<AVPacket*> next_packet(&next_packet_raw, av_packet_free);
 
-    int result = avcodec_send_packet(av_codec_ctx, *next_packet);
+    int result = avcodec_send_packet(video_codec_ctx, *next_packet);
     if (result < 0)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
         return false;
     }
 
-    result = avcodec_receive_frame(av_codec_ctx, av_frame);
+    result = avcodec_receive_frame(video_codec_ctx, av_frame);
     if (result < 0)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
@@ -151,7 +193,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
 
     if (!sws_scaler_ctx)
     {
-        const auto source_pix_fmt = correct_for_deprecated_pixel_format(av_codec_ctx->pix_fmt);
+        const auto source_pix_fmt = correct_for_deprecated_pixel_format(video_codec_ctx->pix_fmt);
         sws_scaler_ctx = sws_getContext(width, height, source_pix_fmt,
                                         width, height, AV_PIX_FMT_BGRA,
                                         SWS_BILINEAR, nullptr, nullptr, nullptr);
@@ -192,10 +234,16 @@ void Simulacrum::AV::Core::VideoReader::Close()
         av_format_ctx = nullptr;
     }
 
-    if (av_codec_ctx)
+    if (audio_codec_ctx)
     {
-        avcodec_free_context(&av_codec_ctx);
-        av_codec_ctx = nullptr;
+        avcodec_free_context(&audio_codec_ctx);
+        audio_codec_ctx = nullptr;
+    }
+
+    if (video_codec_ctx)
+    {
+        avcodec_free_context(&video_codec_ctx);
+        video_codec_ctx = nullptr;
     }
 }
 
@@ -223,8 +271,11 @@ void Simulacrum::AV::Core::VideoReader::Ingest() const
 
         if (packet->stream_index == video_stream_index)
         {
-            av_log(nullptr, AV_LOG_INFO, "[user] Pushed packet");
             video_packet_queue->Push(packet);
+        }
+        else if (packet->stream_index == audio_stream_index)
+        {
+            audio_packet_queue->Push(packet);
         }
         else
         {

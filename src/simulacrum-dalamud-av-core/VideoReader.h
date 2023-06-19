@@ -26,12 +26,15 @@ namespace Simulacrum::AV::Core
         void Close();
 
     private:
+        PacketQueue* audio_packet_queue;
         PacketQueue* video_packet_queue;
         std::thread ingest_thread;
         bool done;
 
         AVFormatContext* av_format_ctx;
-        AVCodecContext* av_codec_ctx;
+        AVCodecContext* audio_codec_ctx;
+        AVCodecContext* video_codec_ctx;
+        int audio_stream_index;
         int video_stream_index;
         AVFrame* av_frame;
         SwsContext* sws_scaler_ctx;
