@@ -125,17 +125,18 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
 
 bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t* pts)
 {
-    AVPacket* next_packet;
-    if (!video_packet_queue->Pop(&next_packet))
+    AVPacket* next_packet_raw;
+    if (!video_packet_queue->Pop(&next_packet_raw))
     {
         return false;
     }
 
-    int result = avcodec_send_packet(av_codec_ctx, next_packet);
+    const std::shared_ptr<AVPacket*> next_packet(&next_packet_raw, av_packet_free);
+
+    int result = avcodec_send_packet(av_codec_ctx, *next_packet);
     if (result < 0)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
-        av_packet_free(&next_packet);
         return false;
     }
 
@@ -143,7 +144,6 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
     if (result < 0)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
-        av_packet_free(&next_packet);
         return false;
     }
 
@@ -159,7 +159,6 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
     if (!sws_scaler_ctx)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate sws context");
-        av_packet_free(&next_packet);
         return false;
     }
 
@@ -167,7 +166,6 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
     int dest_linesize[4] = {width * 4, 0, 0, 0};
     sws_scale(sws_scaler_ctx, av_frame->data, av_frame->linesize, 0, av_frame->height, dest, dest_linesize);
 
-    av_packet_free(&next_packet);
     return true;
 }
 
