@@ -234,8 +234,6 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
 
     const auto req_size = av_samples_get_buffer_size(nullptr, audio_codec_ctx->ch_layout.nb_channels,
                                                      audio_frame.nb_samples, audio_codec_ctx->sample_fmt, 1);
-    av_log(nullptr, AV_LOG_INFO, "[user] req_size=%d audio_buffer_index=%d audio_buffer_size=%d", req_size,
-           audio_buffer_index, audio_buffer_size);
     memcpy(audio_buffer_pending + audio_buffer_index, audio_frame.data[0], req_size);
     audio_buffer_index += req_size;
     audio_buffer_size += req_size;
