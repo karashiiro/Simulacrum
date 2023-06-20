@@ -12,6 +12,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly nint _cacheBufferPtr;
     private readonly int _cacheBufferRawSize;
     private readonly int _cacheBufferSize;
+    private readonly nint _audioBufferPtr;
+    private readonly int _audioBufferSize;
 
     private readonly IReadOnlyPlaybackTracker _sync;
     private readonly IDisposable _unsubscribe;
@@ -36,6 +38,9 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _cacheBufferRawSize = _cacheBufferSize + 32;
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
+        _audioBufferSize = 1024;
+        _audioBufferPtr = Marshal.AllocHGlobal(_audioBufferSize);
+
         _unsubscribe = sync.OnPan().Subscribe(ts =>
         {
             _ptsSeconds = ts;
@@ -52,6 +57,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     public unsafe void RenderTo(Span<byte> buffer)
     {
         var cacheBuffer = new Span<byte>((byte*)_cacheBufferPtr, _cacheBufferRawSize);
+        var audioBuffer = new Span<byte>((byte*)_audioBufferPtr, _audioBufferSize);
+
         if (_sync.GetTime() < _ptsSeconds)
         {
             cacheBuffer[.._cacheBufferSize].CopyTo(buffer);
@@ -62,6 +69,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         {
             return;
         }
+
+        _reader.ReadAudioStream(audioBuffer);
 
         var timeBase = _reader.TimeBase;
         var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;
@@ -84,6 +93,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _unsubscribe.Dispose();
         _reader.Close();
         _reader.Dispose();
+        Marshal.FreeHGlobal(_audioBufferPtr);
         Marshal.FreeHGlobal(_cacheBufferPtr);
         GC.SuppressFinalize(this);
     }

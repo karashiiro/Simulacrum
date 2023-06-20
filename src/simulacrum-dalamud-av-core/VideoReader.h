@@ -21,6 +21,7 @@ namespace Simulacrum::AV::Core
         ~VideoReader();
 
         bool Open(const char* uri);
+        bool ReadAudioStream(uint8_t* audio_buffer, int len);
         bool ReadFrame(uint8_t* frame_buffer, int64_t* pts);
         [[nodiscard]] bool SeekFrame(int64_t ts) const;
         void Close();
@@ -28,6 +29,11 @@ namespace Simulacrum::AV::Core
     private:
         PacketQueue* audio_packet_queue;
         PacketQueue* video_packet_queue;
+        uint8_t* audio_buffer_pending;
+        int audio_buffer_size;
+        int audio_buffer_index;
+        AVFrame audio_frame;
+        AVFrame video_frame;
         std::thread ingest_thread;
         bool done;
 
@@ -36,9 +42,9 @@ namespace Simulacrum::AV::Core
         AVCodecContext* video_codec_ctx;
         int audio_stream_index;
         int video_stream_index;
-        AVFrame* av_frame;
         SwsContext* sws_scaler_ctx;
 
+        bool DecodeAudioFrame();
         void Ingest() const;
     };
 }
@@ -57,6 +63,14 @@ inline DllExport void VideoReaderFree(const Simulacrum::AV::Core::VideoReader* r
 inline DllExport bool VideoReaderOpen(Simulacrum::AV::Core::VideoReader* reader, const char* uri)
 {
     return reader->Open(uri);
+}
+
+inline DllExport bool VideoReaderReadAudioStream(
+    Simulacrum::AV::Core::VideoReader* reader,
+    uint8_t* audio_buffer,
+    const int len)
+{
+    return reader->ReadAudioStream(audio_buffer, len);
 }
 
 inline DllExport bool VideoReaderReadFrame(
