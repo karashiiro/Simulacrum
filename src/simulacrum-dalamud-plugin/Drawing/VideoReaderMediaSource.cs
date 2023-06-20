@@ -38,7 +38,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _cacheBufferRawSize = _cacheBufferSize + 32;
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
-        _audioBufferSize = 1024;
+        _audioBufferSize = 8192;
         _audioBufferPtr = Marshal.AllocHGlobal(_audioBufferSize);
 
         _unsubscribe = sync.OnPan().Subscribe(ts =>
@@ -70,8 +70,10 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             return;
         }
 
-        var n = _reader.ReadAudioStream(audioBuffer);
-        PluginLog.Log($"{n} bytes read from audio stream");
+        if (_reader.ReadAudioStream(audioBuffer) < _audioBufferSize)
+        {
+            PluginLog.LogWarning("Less bytes were read from the stream than requested");
+        }
 
         var timeBase = _reader.TimeBase;
         var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;
