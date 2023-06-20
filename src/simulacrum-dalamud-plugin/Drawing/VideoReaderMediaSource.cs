@@ -70,7 +70,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             return;
         }
 
-        _reader.ReadAudioStream(audioBuffer);
+        var n = _reader.ReadAudioStream(audioBuffer);
+        PluginLog.Log($"{n} bytes read from audio stream");
 
         var timeBase = _reader.TimeBase;
         var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;

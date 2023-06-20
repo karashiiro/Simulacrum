@@ -168,33 +168,37 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
     return true;
 }
 
-bool Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, int len)
+int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, int len)
 {
+    int n_write = 0;
+
     while (len > 0)
     {
         if (audio_buffer_size >= len)
         {
             memcpy(audio_buffer, audio_buffer_pending, len);
+            n_write += len;
             audio_buffer_size -= len;
             audio_buffer_index += len;
-            break;
+            return n_write;
         }
 
-        if (audio_buffer_size < len)
+        if (audio_buffer_size > 0 && audio_buffer_size < len)
         {
             memcpy(audio_buffer, audio_buffer_pending, audio_buffer_size);
             len -= audio_buffer_size;
+            n_write += audio_buffer_size;
             audio_buffer_size = 0;
             audio_buffer_index = 0;
         }
         else if (!DecodeAudioFrame())
         {
             // Failed to decode audio frame, nothing to do
-            return false;
+            return n_write;
         }
     }
 
-    return true;
+    return n_write;
 }
 
 bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
