@@ -39,7 +39,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
         _totalRead += toRead;
 
-        PluginLog.Log($"req={count} recv={toRead} total={_totalRead}");
+        PluginLog.Log($"req={count} recv={toRead} total={_totalRead} buffer={_currentNodeSize}");
         return toRead;
     }
 

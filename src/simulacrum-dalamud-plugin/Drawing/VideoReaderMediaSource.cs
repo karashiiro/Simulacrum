@@ -68,6 +68,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         var audioBuffer = ArrayPool<byte>.Shared.Rent(_audioBufferSize);
 
         var audioBytesRead = _reader.ReadAudioStream(audioBuffer.AsSpan(.._audioBufferSize));
+        PluginLog.Log($"read={audioBytesRead}");
         _audioBufferQueue.Push(audioBuffer, audioBytesRead);
 
         if (_soundOut.PlaybackState == PlaybackState.Stopped)

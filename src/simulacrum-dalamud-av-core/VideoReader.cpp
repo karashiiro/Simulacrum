@@ -3,7 +3,7 @@
 #include <windows.h>
 #include "VideoReader.h"
 
-typedef int sample_container;
+typedef short sample_container;
 
 enum
 {
@@ -12,7 +12,7 @@ enum
     out_audio_channels = 1,
 };
 
-constexpr auto out_sample_format = AV_SAMPLE_FMT_S32;
+constexpr auto out_sample_format = AV_SAMPLE_FMT_S16;
 
 // Ripped from
 // * https://github.com/bmewj/video-app
@@ -198,7 +198,7 @@ int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, in
     {
         if (audio_buffer_size >= len)
         {
-            memcpy(audio_buffer, audio_buffer_pending, len);
+            memcpy(audio_buffer, audio_buffer_pending + audio_buffer_index, len);
             n_write += len;
             audio_buffer_size -= len;
 
@@ -214,7 +214,7 @@ int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, in
 
         if (audio_buffer_size > 0 && audio_buffer_size < len)
         {
-            memcpy(audio_buffer, audio_buffer_pending, audio_buffer_size);
+            memcpy(audio_buffer, audio_buffer_pending + audio_buffer_index, audio_buffer_size);
             len -= audio_buffer_size;
             n_write += audio_buffer_size;
             audio_buffer_size = 0;
@@ -266,8 +266,8 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
         AVChannelLayout out_ch_layout;
         av_channel_layout_default(&out_ch_layout, audio_channel_count);
         swr_alloc_set_opts2(&swr_resampler_ctx, &out_ch_layout, out_sample_format, sample_rate,
-                            &audio_codec_ctx->ch_layout, audio_codec_ctx->sample_fmt, audio_codec_ctx->sample_rate, 0,
-                            nullptr);
+                            &audio_codec_ctx->ch_layout, audio_codec_ctx->sample_fmt, audio_codec_ctx->sample_rate,
+                            audio_codec_ctx->log_level_offset, nullptr);
         swr_init(swr_resampler_ctx);
 
         if (!swr_is_initialized(swr_resampler_ctx))
@@ -288,17 +288,15 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
     assert(max_audio_frame_size - audio_buffer_size >= req_size);
 
     uint8_t* ab = audio_buffer_pending + audio_buffer_index;
-    const auto frame_count = swr_convert(swr_resampler_ctx, &ab, audio_frame.nb_samples,
-                                         const_cast<const uint8_t**>(audio_frame.data), audio_frame.nb_samples);
-    if (0 > frame_count)
+    const auto sample_count = swr_convert(swr_resampler_ctx, &ab, audio_frame.nb_samples,
+                                          const_cast<const uint8_t**>(audio_frame.data), audio_frame.nb_samples);
+    if (sample_count < 0)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Could not rescale audio samples");
         return false;
     }
 
-    //memcpy(audio_buffer_pending + audio_buffer_index, audio_frame.data[0], req_size);
-
-    assert(frame_count * sizeof(sample_container) == req_size);
+    assert(sample_count * sizeof(sample_container) == req_size);
     audio_buffer_size += req_size;
 
     return true;

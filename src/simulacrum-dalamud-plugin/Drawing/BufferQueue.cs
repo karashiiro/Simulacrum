@@ -21,7 +21,12 @@ public class BufferQueue : IDisposable
         {
             var temp = _head;
             _head = new BufferListNode(buffer, length, _disposeBuffer);
+
             _head.Next = temp;
+            if (temp != null)
+            {
+                temp.Prev = _head;
+            }
 
             _tail ??= _head;
         }
@@ -36,20 +41,20 @@ public class BufferQueue : IDisposable
         _lock.Wait();
         try
         {
-            var temp = _head;
+            var temp = _tail;
             if (temp == null)
             {
                 throw new InvalidOperationException("No elements are remaining in the list.");
             }
 
-            _head = _head?.Next;
+            _tail = _tail?.Prev;
 
-            if (_head == null)
+            if (_tail == null)
             {
-                _tail = null;
+                _head = null;
             }
 
-            temp.Next = null;
+            temp.Prev = null;
             return temp;
         }
         finally
@@ -77,6 +82,7 @@ public class BufferQueue : IDisposable
         private readonly byte[] _buffer;
         private readonly int _length;
 
+        public BufferListNode? Prev { get; set; }
         public BufferListNode? Next { get; set; }
 
         public ReadOnlySpan<byte> Span => _buffer.AsSpan()[.._length];
