@@ -2,6 +2,8 @@
 #include <windows.h>
 #include "VideoReader.h"
 
+#include <assert.h>
+
 enum
 {
     max_audio_frame_size = 192000
@@ -234,6 +236,7 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
 
     const auto req_size = av_samples_get_buffer_size(nullptr, audio_codec_ctx->ch_layout.nb_channels,
                                                      audio_frame.nb_samples, audio_codec_ctx->sample_fmt, 1);
+    assert(max_audio_frame_size - audio_buffer_size >= req_size);
     memcpy(audio_buffer_pending + audio_buffer_index, audio_frame.data[0], req_size);
     audio_buffer_index += req_size;
     audio_buffer_size += req_size;
