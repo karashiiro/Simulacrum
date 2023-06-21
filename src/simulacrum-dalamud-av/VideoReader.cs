@@ -7,9 +7,13 @@ public partial class VideoReader : IDisposable
 {
     private nint _ptr;
 
-    public int Width => VideoReaderGetWidth(_ptr);
-    public int Height => VideoReaderGetHeight(_ptr);
-    public AVRational TimeBase => VideoReaderGetTimeBase(_ptr);
+    public int Width => _ptr != nint.Zero ? VideoReaderGetWidth(_ptr) : 0;
+    public int Height => _ptr != nint.Zero ? VideoReaderGetHeight(_ptr) : 0;
+    public AVRational TimeBase => _ptr != nint.Zero ? VideoReaderGetTimeBase(_ptr) : default;
+    public bool SupportsAudio => _ptr != nint.Zero && VideoReaderSupportsAudio(_ptr);
+    public int SampleRate => _ptr != nint.Zero ? VideoReaderGetSampleRate(_ptr) : 0;
+    public int BitsPerSample => _ptr != nint.Zero ? VideoReaderGetBitsPerSample(_ptr) : 0;
+    public int AudioChannelCount => _ptr != nint.Zero ? VideoReaderGetAudioChannelCount(_ptr) : 0;
 
     public VideoReader()
     {
@@ -102,4 +106,17 @@ public partial class VideoReader : IDisposable
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetTimeBase")]
     internal static partial AVRational VideoReaderGetTimeBase(nint reader);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetSampleRate")]
+    internal static partial int VideoReaderGetSampleRate(nint reader);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetBitsPerSample")]
+    internal static partial int VideoReaderGetBitsPerSample(nint reader);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetAudioChannelCount")]
+    internal static partial int VideoReaderGetAudioChannelCount(nint reader);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderSupportsAudio")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool VideoReaderSupportsAudio(nint reader);
 }

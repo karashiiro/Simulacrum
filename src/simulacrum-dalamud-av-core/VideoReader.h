@@ -5,6 +5,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
 }
 
 #define DllExport __declspec(dllexport)
@@ -14,7 +15,8 @@ namespace Simulacrum::AV::Core
     class VideoReader
     {
     public:
-        int width, height;
+        int width, height, sample_rate, bits_per_sample, audio_channel_count;
+        bool supports_audio;
         AVRational time_base;
 
         VideoReader();
@@ -43,6 +45,7 @@ namespace Simulacrum::AV::Core
         int audio_stream_index;
         int video_stream_index;
         SwsContext* sws_scaler_ctx;
+        SwrContext* swr_resampler_ctx;
 
         bool DecodeAudioFrame();
         void Ingest() const;
@@ -104,5 +107,25 @@ inline DllExport int VideoReaderGetHeight(const Simulacrum::AV::Core::VideoReade
 inline DllExport AVRational VideoReaderGetTimeBase(const Simulacrum::AV::Core::VideoReader* reader)
 {
     return reader->time_base;
+}
+
+inline DllExport int VideoReaderGetSampleRate(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->sample_rate;
+}
+
+inline DllExport int VideoReaderGetBitsPerSample(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->bits_per_sample;
+}
+
+inline DllExport int VideoReaderGetAudioChannelCount(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->audio_channel_count;
+}
+
+inline DllExport bool VideoReaderSupportsAudio(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->supports_audio;
 }
 }

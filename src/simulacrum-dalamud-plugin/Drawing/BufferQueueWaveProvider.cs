@@ -1,4 +1,5 @@
-﻿using NAudio.Wave;
+﻿using Dalamud.Logging;
+using NAudio.Wave;
 
 namespace Simulacrum.Drawing;
 
@@ -8,6 +9,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
     private BufferQueue.BufferListNode? _currentNode;
     private int _currentNodeIndex;
     private int _currentNodeSize;
+    private int _totalRead;
 
     public WaveFormat WaveFormat { get; }
 
@@ -25,7 +27,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
 
         var toRead = Math.Min(count, _currentNodeSize);
-        _currentNode?.Span[_currentNodeIndex..].CopyTo(buffer.AsSpan(offset));
+        _currentNode?.Span.Slice(_currentNodeIndex, toRead).CopyTo(buffer.AsSpan(offset));
         _currentNodeIndex += toRead;
         _currentNodeSize -= toRead;
 
@@ -35,6 +37,9 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
             _currentNode = null;
         }
 
+        _totalRead += toRead;
+
+        PluginLog.Log($"req={count} recv={toRead} total={_totalRead}");
         return toRead;
     }
 

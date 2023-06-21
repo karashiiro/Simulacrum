@@ -1,19 +1,25 @@
-﻿#include <string>
+﻿#include <cassert>
+#include <string>
 #include <windows.h>
 #include "VideoReader.h"
 
-#include <assert.h>
+typedef int sample_container;
 
 enum
 {
-    max_audio_frame_size = 192000
+    max_audio_frame_size = 192000,
+    out_bits_per_sample = sizeof(sample_container) * 8,
+    out_audio_channels = 1,
 };
+
+constexpr auto out_sample_format = AV_SAMPLE_FMT_S32;
 
 // Ripped from
 // * https://github.com/bmewj/video-app
 // * https://ffmpeg.org/doxygen/trunk/api-h264-test_8c_source.html
 // * https://ffmpeg.org/doxygen/trunk/ffplay_8c_source.html
 // * http://dranger.com/ffmpeg/ffmpeg.html
+// * https://rodic.fr/blog/libavcodec-tutorial-decode-audio-file/
 
 // av_err2str returns a temporary array. This doesn't work in gcc.
 // This function can be used as a replacement for av_err2str.
@@ -40,6 +46,10 @@ static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix
 Simulacrum::AV::Core::VideoReader::VideoReader()
     : width{},
       height{},
+      sample_rate{},
+      bits_per_sample{},
+      audio_channel_count{},
+      supports_audio{},
       time_base{},
       audio_buffer_size{},
       audio_buffer_index{},
@@ -51,7 +61,8 @@ Simulacrum::AV::Core::VideoReader::VideoReader()
       video_codec_ctx{},
       audio_stream_index(-1),
       video_stream_index(-1),
-      sws_scaler_ctx{}
+      sws_scaler_ctx{},
+      swr_resampler_ctx{}
 {
     audio_packet_queue = new PacketQueue();
     video_packet_queue = new PacketQueue();
@@ -97,6 +108,8 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         return false;
     }
 
+    supports_audio = audio_stream_index != -1;
+
     // Find the first valid video stream inside the file
     video_stream_index = av_find_best_stream(av_format_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (video_stream_index < 0)
@@ -119,6 +132,13 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Could not find video decoder");
         return false;
+    }
+
+    if (supports_audio)
+    {
+        sample_rate = audio_codec_params->sample_rate;
+        bits_per_sample = out_bits_per_sample;
+        audio_channel_count = out_audio_channels;
     }
 
     width = video_codec_params->width;
@@ -234,11 +254,51 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
         return false;
     }
 
-    const auto req_size = av_samples_get_buffer_size(nullptr, audio_codec_ctx->ch_layout.nb_channels,
-                                                     audio_frame.nb_samples, audio_codec_ctx->sample_fmt, 1);
+    if (!swr_resampler_ctx)
+    {
+        swr_resampler_ctx = swr_alloc();
+        if (!swr_resampler_ctx)
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate swr context");
+            return false;
+        }
+
+        AVChannelLayout out_ch_layout;
+        av_channel_layout_default(&out_ch_layout, audio_channel_count);
+        swr_alloc_set_opts2(&swr_resampler_ctx, &out_ch_layout, out_sample_format, sample_rate,
+                            &audio_codec_ctx->ch_layout, audio_codec_ctx->sample_fmt, audio_codec_ctx->sample_rate, 0,
+                            nullptr);
+        swr_init(swr_resampler_ctx);
+
+        if (!swr_is_initialized(swr_resampler_ctx))
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Could not initialize swr context");
+            return false;
+        }
+    }
+
+    const auto req_size = av_samples_get_buffer_size(nullptr, audio_channel_count,
+                                                     audio_frame.nb_samples, out_sample_format, 1);
+    if (req_size < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not get required audio buffer size");
+        return false;
+    }
+
     assert(max_audio_frame_size - audio_buffer_size >= req_size);
-    memcpy(audio_buffer_pending + audio_buffer_index, audio_frame.data[0], req_size);
-    audio_buffer_index += req_size;
+
+    uint8_t* ab = audio_buffer_pending + audio_buffer_index;
+    const auto frame_count = swr_convert(swr_resampler_ctx, &ab, audio_frame.nb_samples,
+                                         const_cast<const uint8_t**>(audio_frame.data), audio_frame.nb_samples);
+    if (0 > frame_count)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not rescale audio samples");
+        return false;
+    }
+
+    //memcpy(audio_buffer_pending + audio_buffer_index, audio_frame.data[0], req_size);
+
+    assert(frame_count * sizeof(sample_container) == req_size);
     audio_buffer_size += req_size;
 
     return true;
@@ -304,6 +364,12 @@ void Simulacrum::AV::Core::VideoReader::Close()
     {
         sws_freeContext(sws_scaler_ctx);
         sws_scaler_ctx = nullptr;
+    }
+
+    if (swr_resampler_ctx)
+    {
+        swr_free(&swr_resampler_ctx);
+        swr_resampler_ctx = nullptr;
     }
 
     if (av_format_ctx)

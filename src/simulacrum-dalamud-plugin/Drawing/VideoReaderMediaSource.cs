@@ -17,6 +17,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly int _audioBufferSize;
     private readonly BufferQueue _audioBufferQueue;
     private readonly BufferQueueWaveProvider _waveProvider;
+    private readonly DirectSoundOut _soundOut;
 
     private readonly IReadOnlyPlaybackTracker _sync;
     private readonly IDisposable _unsubscribe;
@@ -41,9 +42,13 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _cacheBufferRawSize = _cacheBufferSize + 32;
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
-        _audioBufferSize = 8192;
+        _audioBufferSize = 65536;
         _audioBufferQueue = new BufferQueue(buffer => ArrayPool<byte>.Shared.Return(buffer));
-        _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue, new WaveFormat());
+        _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
+            new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
+        _soundOut = new DirectSoundOut();
+        _soundOut.PlaybackStopped += (_, args) => PluginLog.Log($"Playback stopped: {args.Exception}");
+        _soundOut.Init(_waveProvider);
 
         _unsubscribe = sync.OnPan().Subscribe(ts =>
         {
@@ -58,10 +63,22 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         });
     }
 
+    private void BufferAudio()
+    {
+        var audioBuffer = ArrayPool<byte>.Shared.Rent(_audioBufferSize);
+
+        var audioBytesRead = _reader.ReadAudioStream(audioBuffer.AsSpan(.._audioBufferSize));
+        _audioBufferQueue.Push(audioBuffer, audioBytesRead);
+
+        if (_soundOut.PlaybackState == PlaybackState.Stopped)
+        {
+            _soundOut.Play();
+        }
+    }
+
     public unsafe void RenderTo(Span<byte> buffer)
     {
         var cacheBuffer = new Span<byte>((byte*)_cacheBufferPtr, _cacheBufferRawSize);
-        var audioBuffer = ArrayPool<byte>.Shared.Rent(_audioBufferSize);
 
         if (_sync.GetTime() < _ptsSeconds)
         {
@@ -74,13 +91,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             return;
         }
 
-        var audioBytesRead = _reader.ReadAudioStream(audioBuffer.AsSpan(.._audioBufferSize));
-        if (audioBytesRead < _audioBufferSize)
-        {
-            PluginLog.LogWarning("Less bytes were read from the stream than requested");
-        }
-
-        _audioBufferQueue.Push(audioBuffer, audioBytesRead);
+        BufferAudio();
 
         var timeBase = _reader.TimeBase;
         var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;
@@ -103,6 +114,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _unsubscribe.Dispose();
         _reader.Close();
         _reader.Dispose();
+        _soundOut.Dispose();
         _waveProvider.Dispose();
         _audioBufferQueue.Dispose();
         Marshal.FreeHGlobal(_cacheBufferPtr);
