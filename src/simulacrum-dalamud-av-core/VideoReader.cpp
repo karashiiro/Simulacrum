@@ -5,14 +5,14 @@
 
 typedef short sample_container;
 
+constexpr auto out_sample_format = AV_SAMPLE_FMT_S16;
+
 enum
 {
     max_audio_frame_size = 192000,
     out_bits_per_sample = sizeof(sample_container) * 8,
-    out_audio_channels = 1,
+    out_audio_channels = 2,
 };
-
-constexpr auto out_sample_format = AV_SAMPLE_FMT_S16;
 
 // Ripped from
 // * https://github.com/bmewj/video-app
@@ -296,7 +296,8 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
         return false;
     }
 
-    assert(sample_count * sizeof(sample_container) == req_size);
+    assert(audio_channel_count * sample_count * static_cast<int>(sizeof(sample_container)) == req_size);
+
     audio_buffer_size += req_size;
 
     return true;

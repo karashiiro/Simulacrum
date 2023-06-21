@@ -17,7 +17,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly int _audioBufferSize;
     private readonly BufferQueue _audioBufferQueue;
     private readonly BufferQueueWaveProvider _waveProvider;
-    private readonly DirectSoundOut _soundOut;
+    private readonly IWavePlayer _soundOut;
 
     private readonly IReadOnlyPlaybackTracker _sync;
     private readonly IDisposable _unsubscribe;
