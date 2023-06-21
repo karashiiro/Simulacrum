@@ -19,13 +19,13 @@ public class BufferQueue : IDisposable
         _lock.Wait();
         try
         {
-            var temp = _head;
+            var lastHead = _head;
             _head = new BufferListNode(buffer, length, _disposeBuffer);
 
-            _head.Next = temp;
-            if (temp != null)
+            _head.Next = lastHead;
+            if (lastHead != null)
             {
-                temp.Prev = _head;
+                lastHead.Prev = _head;
             }
 
             _tail ??= _head;
@@ -41,21 +41,21 @@ public class BufferQueue : IDisposable
         _lock.Wait();
         try
         {
-            var temp = _tail;
-            if (temp == null)
+            var lastTail = _tail;
+            if (lastTail == null)
             {
                 throw new InvalidOperationException("No elements are remaining in the list.");
             }
 
-            _tail = _tail?.Prev;
+            _tail = lastTail.Prev;
 
             if (_tail == null)
             {
                 _head = null;
             }
 
-            temp.Prev = null;
-            return temp;
+            lastTail.Prev = null;
+            return lastTail;
         }
         finally
         {
