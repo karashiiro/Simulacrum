@@ -71,7 +71,18 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     {
         while (!_done)
         {
-            BufferAudio();
+            if (BufferAudio() > 0)
+            {
+                if (_wavePlayer.PlaybackState == PlaybackState.Stopped)
+                {
+                    _wavePlayer.Play();
+                }
+            }
+
+            if (_wavePlayer.PlaybackState == PlaybackState.Stopped)
+            {
+                continue;
+            }
 
             // Discard audio samples if the audio pts is ahead of the clock, and pad
             // silence if the audio pts is behind the clock.
@@ -97,7 +108,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         }
     }
 
-    private void BufferAudio()
+    private int BufferAudio()
     {
         var audioBuffer = ArrayPool<byte>.Shared.Rent(_audioBufferSize);
         var audioSpan = audioBuffer.AsSpan(0, _audioBufferSize);
@@ -106,16 +117,13 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         if (audioBytesRead > 0)
         {
             _audioBufferQueue.Push(audioBuffer, audioBytesRead);
-
-            if (_wavePlayer.PlaybackState == PlaybackState.Stopped)
-            {
-                _wavePlayer.Play();
-            }
         }
         else
         {
             ArrayPool<byte>.Shared.Return(audioBuffer);
         }
+
+        return audioBytesRead;
     }
 
     public unsafe void RenderTo(Span<byte> buffer)
