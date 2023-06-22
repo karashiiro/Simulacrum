@@ -8,6 +8,8 @@ namespace Simulacrum.Drawing;
 
 public class VideoReaderMediaSource : IMediaSource, IDisposable
 {
+    private static readonly TimeSpan AudioSyncThreshold = TimeSpan.FromMilliseconds(100);
+
     private readonly VideoReader _reader;
 
     private readonly nint _cacheBufferPtr;
@@ -70,6 +72,27 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         while (!_done)
         {
             BufferAudio();
+
+            // Discard audio samples if the audio pts is ahead of the video pts, and pad
+            // silence if the audio pts is behind the video pts.
+            var audioDiff = TimeSpan.FromSeconds(_waveProvider.PlaybackPosition.TotalSeconds - _nextPts);
+            if (audioDiff > AudioSyncThreshold)
+            {
+                var nPadded = _waveProvider.PadSamples(audioDiff);
+                if (nPadded > 0)
+                {
+                    PluginLog.LogWarning($"Audio stream was ahead of clock, padded {nPadded} bytes of data");
+                }
+            }
+            else if (audioDiff < -AudioSyncThreshold)
+            {
+                var nDiscarded = _waveProvider.DiscardSamples(audioDiff);
+                if (nDiscarded > 0)
+                {
+                    PluginLog.LogWarning($"Audio stream was behind clock, discarded {nDiscarded} bytes of data");
+                }
+            }
+
             Thread.Sleep(TimeSpan.FromMilliseconds(10));
         }
     }

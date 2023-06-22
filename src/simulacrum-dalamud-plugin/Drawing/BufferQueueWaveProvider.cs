@@ -34,8 +34,8 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
 
         var seconds = duration.TotalSeconds;
-        var toPad = WaveFormat.AverageBytesPerSecond * seconds;
-        var toPadPadded = Convert.ToInt32(toPad) + WaveFormat.BitsPerSample / 8;
+        var toPad = Convert.ToInt32(WaveFormat.AverageBytesPerSecond * seconds);
+        var toPadPadded = toPad + toPad % WaveFormat.BlockAlign;
 
         _silentBytes += toPadPadded;
 
@@ -50,8 +50,8 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
 
         var seconds = -duration.TotalSeconds;
-        var toDiscard = WaveFormat.AverageBytesPerSecond * seconds;
-        var toDiscardPadded = Convert.ToInt32(toDiscard) + WaveFormat.BitsPerSample / 8;
+        var toDiscard = Convert.ToInt32(WaveFormat.AverageBytesPerSecond * seconds);
+        var toDiscardPadded = toDiscard + toDiscard % WaveFormat.BlockAlign;
 
         using var buffer = MemoryPool<byte>.Shared.Rent(toDiscardPadded);
         return Read(buffer.Memory.Span);
