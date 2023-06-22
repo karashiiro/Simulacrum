@@ -100,6 +100,8 @@ public class BufferQueue : IDisposable
         private readonly byte[] _buffer;
         private readonly int _length;
 
+        private bool _disposed;
+
         public BufferListNode? Prev { get; set; }
         public BufferListNode? Next { get; set; }
 
@@ -114,6 +116,9 @@ public class BufferQueue : IDisposable
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
+
             _dispose(_buffer);
             Next?.Dispose();
             GC.SuppressFinalize(this);
