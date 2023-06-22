@@ -42,10 +42,10 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _cacheBufferRawSize = _cacheBufferSize + 32;
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
-        _audioBufferSize = 65536;
+        _audioBufferSize = 262144;
         _audioBufferQueue = new BufferQueue(buffer => ArrayPool<byte>.Shared.Return(buffer));
         _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
-            new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
+            WaveFormat.CreateIeeeFloatWaveFormat(_reader.SampleRate, _reader.AudioChannelCount));
         _soundOut = new DirectSoundOut();
         _soundOut.PlaybackStopped += (_, args) => PluginLog.Log($"Playback stopped: {args.Exception}");
         _soundOut.Init(_waveProvider);
@@ -66,8 +66,10 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private void BufferAudio()
     {
         var audioBuffer = ArrayPool<byte>.Shared.Rent(_audioBufferSize);
+        var audioSpan = audioBuffer.AsSpan(.._audioBufferSize);
+        audioSpan.Clear();
 
-        var audioBytesRead = _reader.ReadAudioStream(audioBuffer.AsSpan(.._audioBufferSize));
+        var audioBytesRead = _reader.ReadAudioStream(audioSpan);
         _audioBufferQueue.Push(audioBuffer, audioBytesRead);
 
         if (_soundOut.PlaybackState == PlaybackState.Stopped)

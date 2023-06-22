@@ -3,13 +3,14 @@
 #include <windows.h>
 #include "VideoReader.h"
 
-typedef short sample_container;
+typedef float sample_container;
 
-constexpr auto out_sample_format = AV_SAMPLE_FMT_S16;
+constexpr auto out_sample_format = AV_SAMPLE_FMT_FLT;
 
 enum
 {
     max_audio_frame_size = 192000,
+    max_audio_buffer_size = max_audio_frame_size * 3 / 2,
     out_bits_per_sample = sizeof(sample_container) * 8,
     out_audio_channels = 2,
 };
@@ -66,7 +67,8 @@ Simulacrum::AV::Core::VideoReader::VideoReader()
 {
     audio_packet_queue = new PacketQueue();
     video_packet_queue = new PacketQueue();
-    audio_buffer_pending = new uint8_t[max_audio_frame_size * 3 / 2];
+    audio_buffer_pending = new uint8_t[max_audio_buffer_size];
+    memset(audio_buffer_pending, 0, max_audio_buffer_size);
 }
 
 Simulacrum::AV::Core::VideoReader::~VideoReader()
@@ -190,44 +192,25 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
     return true;
 }
 
-int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, int len)
+int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, const int len)
 {
-    int n_write = 0;
-
-    while (len > 0)
+    int n_read = 0;
+    while (n_read < len)
     {
-        if (audio_buffer_size >= len)
-        {
-            memcpy(audio_buffer, audio_buffer_pending + audio_buffer_index, len);
-            n_write += len;
-            audio_buffer_size -= len;
-
-            audio_buffer_index += len;
-            if (audio_buffer_size == 0)
-            {
-                // Reset the index if audio_buffer_size == len so we don't blast off into the higher regions of memory
-                audio_buffer_index = 0;
-            }
-
-            return n_write;
-        }
-
-        if (audio_buffer_size > 0 && audio_buffer_size < len)
-        {
-            memcpy(audio_buffer, audio_buffer_pending + audio_buffer_index, audio_buffer_size);
-            len -= audio_buffer_size;
-            n_write += audio_buffer_size;
-            audio_buffer_size = 0;
-            audio_buffer_index = 0;
-        }
-        else if (!DecodeAudioFrame())
+        if (audio_buffer_size == 0 && !DecodeAudioFrame())
         {
             // Failed to decode audio frame, nothing to do
-            return n_write;
+            break;
         }
+
+        const auto to_read = min(len - n_read, audio_buffer_size);
+        memcpy(audio_buffer + n_read, audio_buffer_pending + audio_buffer_index, to_read);
+        n_read += to_read;
+        audio_buffer_index += to_read;
+        audio_buffer_size -= to_read;
     }
 
-    return n_write;
+    return n_read;
 }
 
 bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
@@ -277,18 +260,18 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
         }
     }
 
-    const auto req_size = av_samples_get_buffer_size(nullptr, audio_channel_count,
-                                                     audio_frame.nb_samples, out_sample_format, 1);
+    const auto req_size = av_samples_get_buffer_size(nullptr, audio_channel_count, audio_frame.nb_samples,
+                                                     out_sample_format, 1);
     if (req_size < 0)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Could not get required audio buffer size");
         return false;
     }
 
-    assert(max_audio_frame_size - audio_buffer_size >= req_size);
+    assert(max_audio_buffer_size - audio_buffer_size >= req_size);
 
-    uint8_t* ab = audio_buffer_pending + audio_buffer_index;
-    const auto sample_count = swr_convert(swr_resampler_ctx, &ab, audio_frame.nb_samples,
+    uint8_t* out_data[8] = {audio_buffer_pending, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    const auto sample_count = swr_convert(swr_resampler_ctx, out_data, audio_frame.nb_samples,
                                           const_cast<const uint8_t**>(audio_frame.data), audio_frame.nb_samples);
     if (sample_count < 0)
     {
@@ -298,7 +281,8 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
 
     assert(audio_channel_count * sample_count * static_cast<int>(sizeof(sample_container)) == req_size);
 
-    audio_buffer_size += req_size;
+    audio_buffer_index = 0;
+    audio_buffer_size = req_size;
 
     return true;
 }

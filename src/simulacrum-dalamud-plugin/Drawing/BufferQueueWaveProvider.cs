@@ -21,16 +21,17 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     public int Read(byte[] buffer, int offset, int count)
     {
-        var countRead = 0;
-        while (countRead < count)
+        var nRead = 0;
+        while (nRead < count)
         {
             if (_currentNode == null && !ReadNextNode())
             {
                 break;
             }
 
-            var toRead = Math.Min(count, _currentNodeSize);
-            _currentNode?.Span.Slice(_currentNodeIndex, toRead).CopyTo(buffer.AsSpan(offset));
+            var toRead = Math.Min(count - nRead, _currentNodeSize);
+            _currentNode?.Span.Slice(_currentNodeIndex, toRead).CopyTo(buffer.AsSpan(offset + nRead));
+            nRead += toRead;
             _currentNodeIndex += toRead;
             _currentNodeSize -= toRead;
 
@@ -39,14 +40,12 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
                 _currentNode?.Dispose();
                 _currentNode = null;
             }
-
-            countRead += toRead;
         }
 
-        _totalRead += countRead;
+        _totalRead += nRead;
 
-        PluginLog.Log($"req={count} recv={countRead} total={_totalRead} buffer={_currentNodeSize}");
-        return countRead;
+        PluginLog.Log($"req={count} recv={nRead} total={_totalRead} buffer={_currentNodeSize}");
+        return nRead;
     }
 
     private bool ReadNextNode()
