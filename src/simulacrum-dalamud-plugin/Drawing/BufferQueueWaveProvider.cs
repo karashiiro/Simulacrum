@@ -110,6 +110,11 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
 
         _currentNode = _bufferQueue.Pop();
+        if (_currentNode == null)
+        {
+            return false;
+        }
+
         _currentNodeIndex = 0;
         _currentNodeSize = _currentNode.Span.Length;
 

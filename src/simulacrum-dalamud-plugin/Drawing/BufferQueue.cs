@@ -49,7 +49,7 @@ public class BufferQueue : IDisposable
         }
     }
 
-    public BufferListNode Pop()
+    public BufferListNode? Pop()
     {
         _lock.Wait();
         try
@@ -57,7 +57,7 @@ public class BufferQueue : IDisposable
             var lastTail = _tail;
             if (lastTail == null)
             {
-                throw new InvalidOperationException("No elements are remaining in the list.");
+                return null;
             }
 
             _tail = lastTail.Prev;
@@ -77,6 +77,10 @@ public class BufferQueue : IDisposable
         }
     }
 
+    /// <summary>
+    /// Check if the queue is empty. This is faster than attempting to pop and checking the result.
+    /// </summary>
+    /// <returns></returns>
     public bool IsEmpty()
     {
         // This is safe to access outside of the semaphore because it doesn't mutate the list.
