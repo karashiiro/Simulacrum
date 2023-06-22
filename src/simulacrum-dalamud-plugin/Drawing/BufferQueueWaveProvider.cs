@@ -19,7 +19,6 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
     public WaveFormat WaveFormat { get; }
 
     public TimeSpan PlaybackPosition => GetDurationForByteCount(_totalRead);
-    public double Pts { get; private set; }
 
     public BufferQueueWaveProvider(BufferQueue bufferQueue, WaveFormat waveFormat)
     {
