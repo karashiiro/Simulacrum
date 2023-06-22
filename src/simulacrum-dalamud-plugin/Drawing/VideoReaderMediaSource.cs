@@ -54,7 +54,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
         _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
             new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
-        _wavePlayer = new DirectSoundOut(40);
+        _wavePlayer = new DirectSoundOut();
         _wavePlayer.Init(_waveProvider);
 
         _unsubscribe = sync.OnPan().Subscribe(pts =>
@@ -127,7 +127,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
         var t = _sync.GetTime();
         var audioPts = _waveProvider.PlaybackPosition.TotalSeconds;
-        PluginLog.Log($"t={t} v~{Math.Round(_nextPts - t, 3)} a~{Math.Round(audioPts - t, 3)}");
+        PluginLog.Log($"t={t} dv={Math.Round(_nextPts - t, 3)} da={Math.Round(audioPts - t, 3)}");
 
         // Read frames until the pts matches the external clock, or until there are
         // no frames left to read.
