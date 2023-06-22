@@ -73,9 +73,9 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         {
             BufferAudio();
 
-            // Discard audio samples if the audio pts is ahead of the video pts, and pad
-            // silence if the audio pts is behind the video pts.
-            var audioDiff = TimeSpan.FromSeconds(_waveProvider.PlaybackPosition.TotalSeconds - _nextPts);
+            // Discard audio samples if the audio pts is ahead of the clock, and pad
+            // silence if the audio pts is behind the clock.
+            var audioDiff = TimeSpan.FromSeconds(_waveProvider.PlaybackPosition.TotalSeconds - _sync.GetTime());
             if (audioDiff > AudioSyncThreshold)
             {
                 var nPadded = _waveProvider.PadSamples(audioDiff);
