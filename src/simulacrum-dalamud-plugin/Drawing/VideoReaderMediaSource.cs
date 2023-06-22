@@ -118,14 +118,15 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     public unsafe void RenderTo(Span<byte> buffer)
     {
+        var t = _sync.GetTime();
+
         var cacheBuffer = new Span<byte>((byte*)_cacheBufferPtr, _cacheBufferRawSize);
-        if (_sync.GetTime() < _nextPts)
+        if (t < _nextPts)
         {
             cacheBuffer[.._cacheBufferSize].CopyTo(buffer);
             return;
         }
 
-        var t = _sync.GetTime();
         var audioPts = _waveProvider.PlaybackPosition.TotalSeconds;
         PluginLog.Log($"t={t} dv={Math.Round(_nextPts - t, 3)} da={Math.Round(audioPts - t, 3)}");
 
@@ -141,7 +142,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
             // TODO: Why does this need to be 2s ahead?
             _nextPts = pts - 2;
-        } while (_nextPts < _sync.GetTime());
+        } while (_nextPts < t);
     }
 
     public int PixelSize()
