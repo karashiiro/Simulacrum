@@ -1,5 +1,11 @@
-﻿namespace Simulacrum.Drawing;
+﻿using Thinktecture;
 
+namespace Simulacrum.Drawing;
+
+/// <summary>
+/// A FIFO queue of buffers, which are optionally disposable. This is intended to be
+/// used with <see cref="System.Buffers.ArrayPool{T}"/>.
+/// </summary>
 public class BufferQueue : IDisposable
 {
     private readonly Action<byte[]> _disposeBuffer;
@@ -8,10 +14,16 @@ public class BufferQueue : IDisposable
     private BufferListNode? _head;
     private BufferListNode? _tail;
 
+    public int Count { get; private set; }
+
     public BufferQueue(Action<byte[]> disposeBuffer)
     {
         _disposeBuffer = disposeBuffer;
         _lock = new SemaphoreSlim(1, 1);
+    }
+
+    public BufferQueue() : this(Empty.Action)
+    {
     }
 
     public void Push(byte[] buffer, int length)
@@ -28,6 +40,7 @@ public class BufferQueue : IDisposable
                 lastHead.Prev = _head;
             }
 
+            Count++; // Only mutated under a lock, no need to use atomics
             _tail ??= _head;
         }
         finally
@@ -48,13 +61,14 @@ public class BufferQueue : IDisposable
             }
 
             _tail = lastTail.Prev;
-
             if (_tail == null)
             {
                 _head = null;
             }
 
             lastTail.Prev = null;
+            Count--;
+
             return lastTail;
         }
         finally
@@ -71,8 +85,8 @@ public class BufferQueue : IDisposable
 
     public void Dispose()
     {
-        _head?.Dispose();
         _lock.Dispose();
+        _head?.Dispose();
         GC.SuppressFinalize(this);
     }
 

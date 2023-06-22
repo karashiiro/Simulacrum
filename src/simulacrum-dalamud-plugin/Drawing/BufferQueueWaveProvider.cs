@@ -3,6 +3,10 @@ using NAudio.Wave;
 
 namespace Simulacrum.Drawing;
 
+/// <summary>
+/// A wrapper around <see cref="BufferQueue"/> enabling wave playback through NAudio.
+/// TODO: This may need to be moved into native code, since we have 3 buffer copies between the audio frame and NAudio.
+/// </summary>
 public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 {
     private readonly BufferQueue _bufferQueue;

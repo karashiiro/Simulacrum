@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Dalamud.Logging;
 using NAudio.Wave;
 using Simulacrum.AV;
@@ -43,9 +42,9 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
         _audioBufferSize = 262144;
-        _audioBufferQueue = new BufferQueue(buffer => ArrayPool<byte>.Shared.Return(buffer));
+        _audioBufferQueue = new BufferQueue();
         _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
-            WaveFormat.CreateIeeeFloatWaveFormat(_reader.SampleRate, _reader.AudioChannelCount));
+            new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
         _soundOut = new DirectSoundOut();
         _soundOut.PlaybackStopped += (_, args) => PluginLog.Log($"Playback stopped: {args.Exception}");
         _soundOut.Init(_waveProvider);
@@ -65,11 +64,15 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     private void BufferAudio()
     {
-        var audioBuffer = ArrayPool<byte>.Shared.Rent(_audioBufferSize);
-        var audioSpan = audioBuffer.AsSpan(.._audioBufferSize);
-        audioSpan.Clear();
+        if (_audioBufferQueue.Count >= 4)
+        {
+            // Avoid having tons of large buffers in-flight all at once
+            return;
+        }
 
-        var audioBytesRead = _reader.ReadAudioStream(audioSpan);
+        // TODO: Why does this play stuttered audio when using ArrayPool (even an owned one)?
+        var audioBuffer = new byte[_audioBufferSize];
+        var audioBytesRead = _reader.ReadAudioStream(audioBuffer);
         _audioBufferQueue.Push(audioBuffer, audioBytesRead);
 
         if (_soundOut.PlaybackState == PlaybackState.Stopped)
