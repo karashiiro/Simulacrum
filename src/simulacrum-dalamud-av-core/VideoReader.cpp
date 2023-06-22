@@ -311,7 +311,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, double*
         return false;
     }
 
-    *pts = static_cast<double>(video_frame.pts) * av_q2d(time_base);
+    *pts = static_cast<double>(video_frame.best_effort_timestamp) * av_q2d(time_base);
 
     if (!sws_scaler_ctx)
     {
