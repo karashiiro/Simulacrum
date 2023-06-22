@@ -48,15 +48,14 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _cacheBufferRawSize = _cacheBufferSize + 32;
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
-        _audioBufferSize = 262144;
+        _audioBufferSize = 65536;
         _audioBufferQueue = new BufferQueue(buffer => ArrayPool<byte>.Shared.Return(buffer));
-        _audioThread = new Thread(TickAudio);
-        _audioThread.Start();
-
         _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
             new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
         _wavePlayer = new DirectSoundOut();
         _wavePlayer.Init(_waveProvider);
+        _audioThread = new Thread(TickAudio);
+        _audioThread.Start();
 
         _unsubscribe = sync.OnPan().Subscribe(pts =>
         {
