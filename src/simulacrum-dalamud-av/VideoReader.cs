@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using Simulacrum.AV.Structures;
 
 namespace Simulacrum.AV;
 
@@ -9,7 +8,6 @@ public partial class VideoReader : IDisposable
 
     public int Width => _ptr != nint.Zero ? VideoReaderGetWidth(_ptr) : 0;
     public int Height => _ptr != nint.Zero ? VideoReaderGetHeight(_ptr) : 0;
-    public AVRational TimeBase => _ptr != nint.Zero ? VideoReaderGetTimeBase(_ptr) : default;
     public bool SupportsAudio => _ptr != nint.Zero && VideoReaderSupportsAudio(_ptr);
     public int SampleRate => _ptr != nint.Zero ? VideoReaderGetSampleRate(_ptr) : 0;
     public int BitsPerSample => _ptr != nint.Zero ? VideoReaderGetBitsPerSample(_ptr) : 0;
@@ -31,15 +29,15 @@ public partial class VideoReader : IDisposable
         return _ptr != nint.Zero ? VideoReaderReadAudioStream(_ptr, audioBuffer, audioBuffer.Length) : 0;
     }
 
-    public bool ReadFrame(Span<byte> frameBuffer, out long pts)
+    public bool ReadFrame(Span<byte> frameBuffer, out double pts)
     {
         pts = 0;
         return _ptr != nint.Zero && VideoReaderReadFrame(_ptr, frameBuffer, out pts);
     }
 
-    public bool SeekFrame(long ts)
+    public bool SeekFrame(double pts)
     {
-        return _ptr != nint.Zero && VideoReaderSeekFrame(_ptr, ts);
+        return _ptr != nint.Zero && VideoReaderSeekFrame(_ptr, pts);
     }
 
     public void Close()
@@ -89,11 +87,11 @@ public partial class VideoReader : IDisposable
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderReadFrame")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool VideoReaderReadFrame(nint reader, Span<byte> frameBuffer, out long pts);
+    internal static partial bool VideoReaderReadFrame(nint reader, Span<byte> frameBuffer, out double pts);
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderSeekFrame")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool VideoReaderSeekFrame(nint reader, long ts);
+    internal static partial bool VideoReaderSeekFrame(nint reader, double pts);
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderClose")]
     internal static partial void VideoReaderClose(nint reader);
@@ -103,9 +101,6 @@ public partial class VideoReader : IDisposable
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetHeight")]
     internal static partial int VideoReaderGetHeight(nint reader);
-
-    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetTimeBase")]
-    internal static partial AVRational VideoReaderGetTimeBase(nint reader);
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetSampleRate")]
     internal static partial int VideoReaderGetSampleRate(nint reader);

@@ -287,7 +287,7 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
     return true;
 }
 
-bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t* pts)
+bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, double* pts)
 {
     AVPacket* next_packet_raw;
     if (!video_packet_queue->Pop(&next_packet_raw))
@@ -311,7 +311,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
         return false;
     }
 
-    *pts = video_frame.pts;
+    *pts = static_cast<double>(video_frame.pts) * av_q2d(time_base);
 
     if (!sws_scaler_ctx)
     {
@@ -333,7 +333,7 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, int64_t
     return true;
 }
 
-bool Simulacrum::AV::Core::VideoReader::SeekFrame(const int64_t ts) const
+bool Simulacrum::AV::Core::VideoReader::SeekFrame(const double pts) const
 {
     return true;
 }

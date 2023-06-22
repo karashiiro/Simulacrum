@@ -24,8 +24,8 @@ namespace Simulacrum::AV::Core
 
         bool Open(const char* uri);
         int ReadAudioStream(uint8_t* audio_buffer, int len);
-        bool ReadFrame(uint8_t* frame_buffer, int64_t* pts);
-        [[nodiscard]] bool SeekFrame(int64_t ts) const;
+        bool ReadFrame(uint8_t* frame_buffer, double* pts);
+        [[nodiscard]] bool SeekFrame(double pts) const;
         void Close();
 
     private:
@@ -79,7 +79,7 @@ inline DllExport int VideoReaderReadAudioStream(
 inline DllExport bool VideoReaderReadFrame(
     Simulacrum::AV::Core::VideoReader* reader,
     uint8_t* frame_buffer,
-    int64_t* pts)
+    double* pts)
 {
     return reader->ReadFrame(frame_buffer, pts);
 }
@@ -102,11 +102,6 @@ inline DllExport int VideoReaderGetWidth(const Simulacrum::AV::Core::VideoReader
 inline DllExport int VideoReaderGetHeight(const Simulacrum::AV::Core::VideoReader* reader)
 {
     return reader->height;
-}
-
-inline DllExport AVRational VideoReaderGetTimeBase(const Simulacrum::AV::Core::VideoReader* reader)
-{
-    return reader->time_base;
 }
 
 inline DllExport int VideoReaderGetSampleRate(const Simulacrum::AV::Core::VideoReader* reader)

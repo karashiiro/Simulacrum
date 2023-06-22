@@ -20,7 +20,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     private readonly IReadOnlyPlaybackTracker _sync;
     private readonly IDisposable _unsubscribe;
-    private double _ptsSeconds;
+    private double _pts;
 
     public VideoReaderMediaSource(string? uri, IReadOnlyPlaybackTracker sync)
     {
@@ -46,16 +46,12 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
             new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
         _soundOut = new DirectSoundOut();
-        _soundOut.PlaybackStopped += (_, args) => PluginLog.Log($"Playback stopped: {args.Exception}");
         _soundOut.Init(_waveProvider);
 
-        _unsubscribe = sync.OnPan().Subscribe(ts =>
+        _unsubscribe = sync.OnPan().Subscribe(pts =>
         {
-            _ptsSeconds = ts;
-
-            var timeBase = _reader.TimeBase;
-            var pts = ts * timeBase.Denominator / timeBase.Numerator;
-            if (!_reader.SeekFrame(Convert.ToInt64(pts)))
+            _pts = pts;
+            if (!_reader.SeekFrame(pts))
             {
                 PluginLog.LogWarning("Failed to seek through video");
             }
@@ -83,9 +79,11 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     public unsafe void RenderTo(Span<byte> buffer)
     {
+        BufferAudio();
+
         var cacheBuffer = new Span<byte>((byte*)_cacheBufferPtr, _cacheBufferRawSize);
 
-        if (_sync.GetTime() < _ptsSeconds)
+        if (_sync.GetTime() < _pts)
         {
             cacheBuffer[.._cacheBufferSize].CopyTo(buffer);
             return;
@@ -96,11 +94,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             return;
         }
 
-        BufferAudio();
-
-        var timeBase = _reader.TimeBase;
-        var ptsSeconds = pts * timeBase.Numerator / (double)timeBase.Denominator;
-        _ptsSeconds = ptsSeconds;
+        _pts = pts;
     }
 
     public int PixelSize()

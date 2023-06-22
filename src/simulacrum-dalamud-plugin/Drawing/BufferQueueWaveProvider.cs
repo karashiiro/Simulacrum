@@ -1,5 +1,4 @@
-﻿using Dalamud.Logging;
-using NAudio.Wave;
+﻿using NAudio.Wave;
 
 namespace Simulacrum.Drawing;
 
@@ -13,7 +12,6 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
     private BufferQueue.BufferListNode? _currentNode;
     private int _currentNodeIndex;
     private int _currentNodeSize;
-    private int _totalRead;
 
     public WaveFormat WaveFormat { get; }
 
@@ -46,9 +44,6 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
             }
         }
 
-        _totalRead += nRead;
-
-        PluginLog.Log($"req={count} recv={nRead} total={_totalRead} buffer={_currentNodeSize}");
         return nRead;
     }
 
