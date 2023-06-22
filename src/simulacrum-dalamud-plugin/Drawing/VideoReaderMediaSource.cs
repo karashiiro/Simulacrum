@@ -113,6 +113,10 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
                 _wavePlayer.Play();
             }
         }
+        else
+        {
+            ArrayPool<byte>.Shared.Return(audioBuffer);
+        }
     }
 
     public unsafe void RenderTo(Span<byte> buffer)
