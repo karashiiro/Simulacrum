@@ -122,6 +122,22 @@ public class Simulacrum : IDalamudPlugin
             tracker.Pan(tracker.GetTime() + 5);
         }));
 
+        _commandManager.AddHandler("/simback", new CommandInfo((_, arguments) =>
+        {
+            if (arguments.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            if (tracker is null)
+            {
+                return;
+            }
+
+            tracker.Pan(tracker.GetTime() - 5);
+        }));
+
         _commandManager.AddHandler("/simcreate", new CommandInfo((_, _) =>
         {
             _hostctl?.SendEvent(new HostctlEvent.MediaSourceCreateRequest
@@ -397,6 +413,7 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.RemoveHandler("/simplay");
         _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simskip");
+        _commandManager.RemoveHandler("/simback");
         _commandManager.RemoveHandler("/simplace");
         _commandManager.RemoveHandler("/simcreate");
 
