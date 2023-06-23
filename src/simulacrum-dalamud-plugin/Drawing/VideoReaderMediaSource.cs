@@ -25,6 +25,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly Thread _audioThread;
 
     private readonly IReadOnlyPlaybackTracker _sync;
+    private readonly IDisposable _unsubscribePlay;
+    private readonly IDisposable _unsubscribePause;
 
     private double _nextPts;
     private bool _done;
@@ -55,6 +57,9 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _wavePlayer.Init(_waveProvider);
         _audioThread = new Thread(TickAudio);
         _audioThread.Start();
+
+        _unsubscribePause = _sync.OnPause().Subscribe(_ => _wavePlayer.Pause());
+        _unsubscribePlay = _sync.OnPlay().Subscribe(_ => _wavePlayer.Play());
     }
 
     private void TickAudio()
@@ -157,6 +162,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     {
         _done = true;
         _audioThread.Join();
+        _unsubscribePlay.Dispose();
+        _unsubscribePause.Dispose();
         _reader.Close();
         _reader.Dispose();
         _wavePlayer.Dispose();

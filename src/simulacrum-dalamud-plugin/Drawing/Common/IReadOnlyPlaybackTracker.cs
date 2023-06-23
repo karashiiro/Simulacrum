@@ -15,4 +15,16 @@ public interface IReadOnlyPlaybackTracker
     /// </summary>
     /// <returns></returns>
     IObservable<double> OnPan();
+
+    /// <summary>
+    /// Creates an observable over plays.
+    /// </summary>
+    /// <returns></returns>
+    IObservable<double> OnPlay();
+
+    /// <summary>
+    /// Creates an observable over pauses.
+    /// </summary>
+    /// <returns></returns>
+    IObservable<double> OnPause();
 }

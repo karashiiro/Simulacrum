@@ -74,6 +74,38 @@ public class Simulacrum : IDalamudPlugin
 
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
+        _commandManager.AddHandler("/simplay", new CommandInfo((_, arguments) =>
+        {
+            if (arguments.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            if (tracker is null)
+            {
+                return;
+            }
+
+            tracker.Play();
+        }));
+
+        _commandManager.AddHandler("/simpause", new CommandInfo((_, arguments) =>
+        {
+            if (arguments.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            if (tracker is null)
+            {
+                return;
+            }
+
+            tracker.Pause();
+        }));
+
         _commandManager.AddHandler("/simskip", new CommandInfo((_, arguments) =>
         {
             if (arguments.IsNullOrEmpty())
@@ -362,6 +394,8 @@ public class Simulacrum : IDalamudPlugin
     {
         if (!disposing) return;
 
+        _commandManager.RemoveHandler("/simplay");
+        _commandManager.RemoveHandler("/simpause");
         _commandManager.RemoveHandler("/simskip");
         _commandManager.RemoveHandler("/simplace");
         _commandManager.RemoveHandler("/simcreate");
