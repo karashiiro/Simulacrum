@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using NAudio.Wave;
+﻿using NAudio.Wave;
 
 namespace Simulacrum.Drawing;
 
@@ -55,27 +54,15 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         var toDiscard = Convert.ToInt32(WaveFormat.AverageBytesPerSecond * seconds);
         var toDiscardPadded = toDiscard + toDiscard % WaveFormat.BlockAlign;
 
-        var nSkipped = 0;
         _lock.Wait();
         try
         {
-            const int discardBufferSize = 65536;
-            var discardBufferSizePadded = discardBufferSize + discardBufferSize % WaveFormat.BlockAlign;
-            using var buffer = MemoryPool<byte>.Shared.Rent(discardBufferSizePadded);
-
-            int thisSkipped;
-            do
-            {
-                thisSkipped = Read(buffer.Memory.Span[..Math.Min(discardBufferSizePadded, toDiscardPadded)]);
-                nSkipped += thisSkipped;
-            } while (thisSkipped != 0 && nSkipped < toDiscardPadded);
+            return DiscardInternal(toDiscardPadded);
         }
         finally
         {
             _lock.Release();
         }
-
-        return nSkipped;
     }
 
     public int Read(byte[] buffer, int offset, int count)
@@ -101,6 +88,33 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
 
         return ReadInternal(buffer[nSkipped..]) + nSkipped;
+    }
+
+    private int DiscardInternal(int n)
+    {
+        var nSkipped = 0;
+        while (nSkipped < n)
+        {
+            if (_currentNode == null && !ReadNextNode())
+            {
+                break;
+            }
+
+            var toRead = Math.Min(n - nSkipped, _currentNodeSize);
+            nSkipped += toRead;
+            _currentNodeIndex += toRead;
+            _currentNodeSize -= toRead;
+
+            if (_currentNodeSize == 0)
+            {
+                _currentNode?.Dispose();
+                _currentNode = null;
+            }
+        }
+
+        _totalRead += nSkipped;
+
+        return nSkipped;
     }
 
     private int ReadInternal(Span<byte> buffer)
