@@ -72,13 +72,10 @@ public class MaterialScreen : IScreen, IDisposable
         {
             unsafe
             {
-                fixed (byte* src = _buffer)
-                {
-                    var dst = (byte*)sub.PData;
-                    var pitch = sub.RowPitch;
-                    const int pixelSize = 4;
-                    TextureUtils.CopyTexture2D(src, dst, desc.Width, desc.Height, pixelSize, pitch);
-                }
+                var dst = (byte*)sub.PData;
+                var pitch = sub.RowPitch;
+                const int pixelSize = 4;
+                TextureUtils.CopyTexture2D(_buffer, dst, desc.Width, desc.Height, pixelSize, pitch);
             }
         });
     }

@@ -58,20 +58,30 @@ public static class TextureUtils
     /// <param name="pixelWidth">The pixel width of the texture.</param>
     /// <param name="rowPitch">The row pitch of the destination texture.</param>
     public static unsafe void CopyTexture2D(
-        byte* src,
+        byte[] src,
         byte* dst,
         uint width,
         uint height,
         int pixelWidth,
         uint rowPitch)
     {
-        // Perform a row-by-row copy of the source image to the destination texture
-        var rowSize = width * pixelWidth;
-        for (var i = 0; i < height; i++)
+        if (src.Length < width * height * pixelWidth)
         {
-            Buffer.MemoryCopy(src, dst, rowSize, rowSize);
-            dst += rowPitch;
-            src += rowSize;
+            throw new InvalidOperationException("The source buffer is too short to copy.");
+        }
+
+        fixed (byte* s1 = src)
+        {
+            var s2 = s1;
+
+            // Perform a row-by-row copy of the source image to the destination texture
+            var rowSize = width * pixelWidth;
+            for (var i = 0; i < height; i++)
+            {
+                Buffer.MemoryCopy(s2, dst, rowSize, rowSize);
+                dst += rowPitch;
+                s2 += rowSize;
+            }
         }
     }
 }
