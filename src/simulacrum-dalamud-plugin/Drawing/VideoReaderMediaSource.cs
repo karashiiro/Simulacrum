@@ -9,6 +9,8 @@ namespace Simulacrum.Drawing;
 
 public class VideoReaderMediaSource : IMediaSource, IDisposable
 {
+    private const int AudioBufferSize = 65536;
+
     private static readonly TimeSpan AudioSyncThreshold = TimeSpan.FromMilliseconds(100);
 
     private readonly VideoReader _reader;
@@ -17,14 +19,12 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly int _cacheBufferRawSize;
     private readonly int _cacheBufferSize;
 
-    private readonly int _audioBufferSize;
     private readonly BufferQueue _audioBufferQueue;
     private readonly BufferQueueWaveProvider _waveProvider;
     private readonly IWavePlayer _wavePlayer;
     private readonly Thread _audioThread;
 
     private readonly IReadOnlyPlaybackTracker _sync;
-    private readonly IDisposable _unsubscribe;
 
     private double _nextPts;
     private bool _done;
@@ -48,7 +48,6 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _cacheBufferRawSize = _cacheBufferSize + 32;
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
-        _audioBufferSize = 65536;
         _audioBufferQueue = new BufferQueue(buffer => ArrayPool<byte>.Shared.Return(buffer));
         _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
             new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
@@ -56,15 +55,6 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _wavePlayer.Init(_waveProvider);
         _audioThread = new Thread(TickAudio);
         _audioThread.Start();
-
-        _unsubscribe = sync.OnPan().Subscribe(pts =>
-        {
-            _nextPts = pts;
-            if (!_reader.SeekFrame(pts))
-            {
-                PluginLog.LogWarning("Failed to seek through video");
-            }
-        });
     }
 
     private void TickAudio()
@@ -110,8 +100,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     private int BufferAudio()
     {
-        var audioBuffer = ArrayPool<byte>.Shared.Rent(_audioBufferSize);
-        var audioSpan = audioBuffer.AsSpan(0, _audioBufferSize);
+        var audioBuffer = ArrayPool<byte>.Shared.Rent(AudioBufferSize);
+        var audioSpan = audioBuffer.AsSpan(0, AudioBufferSize);
 
         var audioBytesRead = _reader.ReadAudioStream(audioSpan);
         if (audioBytesRead > 0)
@@ -170,7 +160,6 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     {
         _done = true;
         _audioThread.Join();
-        _unsubscribe.Dispose();
         _reader.Close();
         _reader.Dispose();
         _wavePlayer.Dispose();

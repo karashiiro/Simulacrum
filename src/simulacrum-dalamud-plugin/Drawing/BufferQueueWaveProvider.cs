@@ -9,6 +9,7 @@ namespace Simulacrum.Drawing;
 /// </summary>
 public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 {
+    private readonly SemaphoreSlim _lock;
     private readonly BufferQueue _bufferQueue;
     private BufferQueue.BufferListNode? _currentNode;
     private int _currentNodeIndex;
@@ -22,6 +23,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     public BufferQueueWaveProvider(BufferQueue bufferQueue, WaveFormat waveFormat)
     {
+        _lock = new SemaphoreSlim(1, 1);
         _bufferQueue = bufferQueue;
         WaveFormat = waveFormat;
     }
@@ -53,13 +55,40 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         var toDiscard = Convert.ToInt32(WaveFormat.AverageBytesPerSecond * seconds);
         var toDiscardPadded = toDiscard + toDiscard % WaveFormat.BlockAlign;
 
-        using var buffer = MemoryPool<byte>.Shared.Rent(toDiscardPadded);
-        return Read(buffer.Memory.Span);
+        var nSkipped = 0;
+        _lock.Wait();
+        try
+        {
+            const int discardBufferSize = 65536;
+            var discardBufferSizePadded = discardBufferSize + discardBufferSize % WaveFormat.BlockAlign;
+            using var buffer = MemoryPool<byte>.Shared.Rent(discardBufferSizePadded);
+
+            int thisSkipped;
+            do
+            {
+                thisSkipped = Read(buffer.Memory.Span[..Math.Min(discardBufferSizePadded, toDiscardPadded)]);
+                nSkipped += thisSkipped;
+            } while (thisSkipped != 0 && nSkipped < toDiscardPadded);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+
+        return nSkipped;
     }
 
     public int Read(byte[] buffer, int offset, int count)
     {
-        return Read(buffer.AsSpan(offset, count));
+        _lock.Wait();
+        try
+        {
+            return Read(buffer.AsSpan(offset, count));
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public int Read(Span<byte> buffer)
