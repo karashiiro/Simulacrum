@@ -16,5 +16,5 @@ public interface IPlaybackTracker : IReadOnlyPlaybackTracker
     /// Pan to the specified timestamp.
     /// </summary>
     /// <param name="ts">The time to pan to.</param>
-    void Pan(double ts);
+    void Pan(TimeSpan ts);
 }

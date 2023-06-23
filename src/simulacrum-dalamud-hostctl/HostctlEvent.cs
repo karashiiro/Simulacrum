@@ -109,12 +109,12 @@ public abstract class HostctlEvent
         public double PlayheadUpdatedAt { get; init; }
 
         [JsonIgnore]
-        public double PlayheadSecondsActual
+        public TimeSpan PlayheadActual
         {
             get
             {
                 var diff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - PlayheadUpdatedAt;
-                return PlayheadSeconds + diff;
+                return TimeSpan.FromSeconds(PlayheadSeconds + diff);
             }
         }
 

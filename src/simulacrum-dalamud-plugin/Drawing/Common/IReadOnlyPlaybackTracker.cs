@@ -6,7 +6,7 @@ public interface IReadOnlyPlaybackTracker
     /// Pulls the current timestamp from the tracker.
     /// </summary>
     /// <returns></returns>
-    double GetTime();
+    TimeSpan GetTime();
 
     /// <summary>
     /// Creates an observable over pans through playback. This is used to
@@ -14,17 +14,17 @@ public interface IReadOnlyPlaybackTracker
     /// manual time changes occur.
     /// </summary>
     /// <returns></returns>
-    IObservable<double> OnPan();
+    IObservable<TimeSpan> OnPan();
 
     /// <summary>
     /// Creates an observable over plays.
     /// </summary>
     /// <returns></returns>
-    IObservable<double> OnPlay();
+    IObservable<TimeSpan> OnPlay();
 
     /// <summary>
     /// Creates an observable over pauses.
     /// </summary>
     /// <returns></returns>
-    IObservable<double> OnPause();
+    IObservable<TimeSpan> OnPause();
 }

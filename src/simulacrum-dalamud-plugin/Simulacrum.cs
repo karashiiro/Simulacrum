@@ -119,7 +119,7 @@ public class Simulacrum : IDalamudPlugin
                 return;
             }
 
-            tracker.Pan(tracker.GetTime() + 5);
+            tracker.Pan(tracker.GetTime() + TimeSpan.FromSeconds(5));
         }));
 
         _commandManager.AddHandler("/simback", new CommandInfo((_, arguments) =>
@@ -135,7 +135,7 @@ public class Simulacrum : IDalamudPlugin
                 return;
             }
 
-            tracker.Pan(tracker.GetTime() - 5);
+            tracker.Pan(tracker.GetTime() - TimeSpan.FromSeconds(5));
         }));
 
         _commandManager.AddHandler("/simcreate", new CommandInfo((_, _) =>
@@ -293,11 +293,11 @@ public class Simulacrum : IDalamudPlugin
             _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pause();
         }));
         _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(ev =>
-            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(0)));
+            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(TimeSpan.Zero)));
         _hostctlBag.Add(_hostctl.OnVideoSourceSync().Subscribe(ev =>
         {
             if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
-            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadSecondsActual);
+            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadActual);
         }));
     }
 

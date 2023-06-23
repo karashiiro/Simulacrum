@@ -28,7 +28,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly IDisposable _unsubscribePlay;
     private readonly IDisposable _unsubscribePause;
 
-    private double _nextPts;
+    private TimeSpan _nextPts;
     private bool _done;
 
     public VideoReaderMediaSource(string? uri, IReadOnlyPlaybackTracker sync)
@@ -81,7 +81,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
             // Discard audio samples if the audio pts is ahead of the clock, and pad
             // silence if the audio pts is behind the clock.
-            var audioDiff = TimeSpan.FromSeconds(_waveProvider.PlaybackPosition.TotalSeconds - _sync.GetTime());
+            var audioDiff = _waveProvider.PlaybackPosition - _sync.GetTime();
             if (audioDiff > AudioSyncThreshold)
             {
                 var nPadded = _waveProvider.PadSamples(audioDiff);
@@ -132,19 +132,19 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             return;
         }
 
-        var audioPts = _waveProvider.PlaybackPosition.TotalSeconds;
-        PluginLog.Log($"t={t} dv={Math.Round(_nextPts - t, 3)} da={Math.Round(audioPts - t, 3)}");
+        var audioPts = _waveProvider.PlaybackPosition;
+        PluginLog.Log($"t={t} dv={_nextPts - t} da={audioPts - t}");
 
         // Read frames until the pts matches the external clock, or until there are
         // no frames left to read.
         // TODO: Why does this need to be 2s ahead?
-        if (!_reader.ReadFrame(cacheBuffer, t + 2, out var pts))
+        if (!_reader.ReadFrame(cacheBuffer, t.TotalSeconds + 2, out var pts))
         {
             // Don't trust the pts if we failed to read a frame.
             return;
         }
 
-        _nextPts = pts - 2;
+        _nextPts = TimeSpan.FromSeconds(pts - 2);
     }
 
     public int PixelSize()

@@ -6,36 +6,36 @@ namespace Simulacrum.Drawing;
 
 public class TimePlaybackTracker : IPlaybackTracker
 {
-    private readonly ISubject<double> _play;
-    private readonly ISubject<double> _pause;
-    private readonly ISubject<double> _pan;
+    private readonly ISubject<TimeSpan> _play;
+    private readonly ISubject<TimeSpan> _pause;
+    private readonly ISubject<TimeSpan> _pan;
     private readonly Stopwatch _clock;
-    private double _baseSeconds;
+    private TimeSpan _baseTime;
 
     public TimePlaybackTracker()
     {
         _clock = new Stopwatch();
-        _play = new Subject<double>();
-        _pause = new Subject<double>();
-        _pan = new Subject<double>();
+        _play = new Subject<TimeSpan>();
+        _pause = new Subject<TimeSpan>();
+        _pan = new Subject<TimeSpan>();
     }
 
-    public double GetTime()
+    public TimeSpan GetTime()
     {
-        return _baseSeconds + _clock.Elapsed.TotalSeconds;
+        return _baseTime + _clock.Elapsed;
     }
 
-    public IObservable<double> OnPan()
+    public IObservable<TimeSpan> OnPan()
     {
         return _pan;
     }
 
-    public IObservable<double> OnPause()
+    public IObservable<TimeSpan> OnPause()
     {
         return _pause;
     }
 
-    public IObservable<double> OnPlay()
+    public IObservable<TimeSpan> OnPlay()
     {
         return _play;
     }
@@ -52,9 +52,9 @@ public class TimePlaybackTracker : IPlaybackTracker
         _pause.OnNext(GetTime());
     }
 
-    public void Pan(double ts)
+    public void Pan(TimeSpan ts)
     {
-        _baseSeconds += ts - GetTime();
+        _baseTime += ts - GetTime();
         _pan.OnNext(GetTime());
     }
 }
