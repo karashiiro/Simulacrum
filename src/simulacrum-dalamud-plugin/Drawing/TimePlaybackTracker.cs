@@ -38,16 +38,7 @@ public class TimePlaybackTracker : IPlaybackTracker
 
     public void Pan(double ts)
     {
-        _baseSeconds = ts;
-        if (_clock.IsRunning)
-        {
-            _clock.Restart();
-        }
-        else
-        {
-            _clock.Reset();
-        }
-
+        _baseSeconds += ts - GetTime();
         _subject.OnNext(GetTime());
     }
 }

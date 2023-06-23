@@ -74,9 +74,25 @@ public class Simulacrum : IDalamudPlugin
 
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
-        _commandManager.AddHandler("/simcreate", new CommandInfo((command, arguments) =>
+        _commandManager.AddHandler("/simskip", new CommandInfo((_, arguments) =>
         {
-            _ = _hostctl?.SendEvent(new HostctlEvent.MediaSourceCreateRequest
+            if (arguments.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            if (tracker is null)
+            {
+                return;
+            }
+
+            tracker.Pan(tracker.GetTime() + 5);
+        }));
+
+        _commandManager.AddHandler("/simcreate", new CommandInfo((_, _) =>
+        {
+            _hostctl?.SendEvent(new HostctlEvent.MediaSourceCreateRequest
             {
                 Data = new HostctlEvent.MediaSourceDto
                 {
@@ -90,7 +106,7 @@ public class Simulacrum : IDalamudPlugin
             });
         }));
 
-        _commandManager.AddHandler("/simplace", new CommandInfo((command, arguments) =>
+        _commandManager.AddHandler("/simplace", new CommandInfo((_, arguments) =>
         {
             if (_clientState.LocalPlayer is null || arguments.IsNullOrEmpty())
             {
@@ -98,7 +114,7 @@ public class Simulacrum : IDalamudPlugin
             }
 
             var position = _clientState.LocalPlayer.Position;
-            _ = _hostctl?.SendEvent(new HostctlEvent.ScreenCreateRequest
+            _hostctl?.SendEvent(new HostctlEvent.ScreenCreateRequest
             {
                 Data = new HostctlEvent.ScreenDto
                 {
@@ -346,6 +362,7 @@ public class Simulacrum : IDalamudPlugin
     {
         if (!disposing) return;
 
+        _commandManager.RemoveHandler("/simskip");
         _commandManager.RemoveHandler("/simplace");
         _commandManager.RemoveHandler("/simcreate");
 

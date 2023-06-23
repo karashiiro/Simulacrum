@@ -287,31 +287,41 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
     return true;
 }
 
-bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, double* pts)
+bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const double* target_pts, double* pts)
 {
-    AVPacket* next_packet_raw;
-    if (!video_packet_queue->Pop(&next_packet_raw))
+    double pts_pending;
+    do
     {
-        return false;
+        AVPacket* next_packet_raw;
+        if (!video_packet_queue->Pop(&next_packet_raw))
+        {
+            return false;
+        }
+
+        const std::shared_ptr<AVPacket*> next_packet(&next_packet_raw, av_packet_free);
+
+        int result = avcodec_send_packet(video_codec_ctx, *next_packet);
+        if (result < 0)
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
+            return false;
+        }
+
+        result = avcodec_receive_frame(video_codec_ctx, &video_frame);
+        if (result < 0)
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
+            return false;
+        }
+
+        pts_pending = static_cast<double>(video_frame.best_effort_timestamp) * av_q2d(time_base);
     }
+    while (target_pts != nullptr && pts_pending < *target_pts);
 
-    const std::shared_ptr<AVPacket*> next_packet(&next_packet_raw, av_packet_free);
-
-    int result = avcodec_send_packet(video_codec_ctx, *next_packet);
-    if (result < 0)
+    if (pts)
     {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
-        return false;
+        *pts = pts_pending;
     }
-
-    result = avcodec_receive_frame(video_codec_ctx, &video_frame);
-    if (result < 0)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
-        return false;
-    }
-
-    *pts = static_cast<double>(video_frame.best_effort_timestamp) * av_q2d(time_base);
 
     if (!sws_scaler_ctx)
     {

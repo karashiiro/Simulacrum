@@ -132,17 +132,14 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
         // Read frames until the pts matches the external clock, or until there are
         // no frames left to read.
-        do
+        // TODO: Why does this need to be 2s ahead?
+        if (!_reader.ReadFrame(cacheBuffer, t + 2, out var pts))
         {
-            if (!_reader.ReadFrame(cacheBuffer, out var pts))
-            {
-                // Don't trust the pts if we failed to read a frame.
-                return;
-            }
+            // Don't trust the pts if we failed to read a frame.
+            return;
+        }
 
-            // TODO: Why does this need to be 2s ahead?
-            _nextPts = pts - 2;
-        } while (_nextPts < t);
+        _nextPts = pts - 2;
     }
 
     public int PixelSize()
