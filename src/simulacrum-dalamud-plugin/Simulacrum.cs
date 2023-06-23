@@ -217,7 +217,7 @@ public class Simulacrum : IDalamudPlugin
                 }, _cts.Token);
             }
         }));
-        _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev => { InitializeMediaSource(ev.Data); }));
+        _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev => InitializeMediaSource(ev.Data)));
         _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(ev =>
         {
             PluginLog.Log($"Now playing media source \"{ev.Data?.Id}\"");
@@ -229,9 +229,7 @@ public class Simulacrum : IDalamudPlugin
             _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pause();
         }));
         _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(ev =>
-        {
-            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(0);
-        }));
+            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(0)));
         _hostctlBag.Add(_hostctl.OnVideoSourceSync().Subscribe(ev =>
         {
             if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
