@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;

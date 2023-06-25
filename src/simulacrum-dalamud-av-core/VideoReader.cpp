@@ -50,12 +50,24 @@ Simulacrum::AV::Core::VideoReader::VideoReader()
       sample_rate{},
       bits_per_sample{},
       audio_channel_count{},
+      video_frame_delay{},
       supports_audio{},
-      time_base{},
+      video_time_base{},
+      audio_time_base{},
+      audio_buffer_total_size{},
       audio_buffer_size{},
       audio_buffer_index{},
+      video_last_frame_timestamp{},
       audio_frame{},
       video_frame{},
+      audio_seek_pts{},
+      video_seek_pts{},
+      audio_seek_requested{},
+      video_seek_requested{},
+      audio_seek_flags{},
+      video_seek_flags{},
+      audio_flush_requested{},
+      video_flush_requested{},
       done{},
       av_format_ctx{},
       audio_codec_ctx{},
@@ -141,11 +153,12 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         sample_rate = audio_codec_params->sample_rate;
         bits_per_sample = out_bits_per_sample;
         audio_channel_count = out_audio_channels;
+        audio_time_base = av_format_ctx->streams[audio_stream_index]->time_base;
     }
 
     width = video_codec_params->width;
     height = video_codec_params->height;
-    time_base = av_format_ctx->streams[video_stream_index]->time_base;
+    video_time_base = av_format_ctx->streams[video_stream_index]->time_base;
 
     // Set up a codec context for the audio decoder
     audio_codec_ctx = avcodec_alloc_context3(audio_codec);
@@ -192,12 +205,32 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
     return true;
 }
 
-int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, const int len)
+int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, const int len, double* pts)
 {
+    if (audio_flush_requested || audio_buffer_size == 0)
+    {
+        // Do an initial decode in case we have no data, so the pts we return is correct
+        if (!DecodeAudioFrame())
+        {
+            // Failed to decode audio frame, nothing to do
+            return 0;
+        }
+    }
+
+    const auto block_alignment = audio_channel_count * (bits_per_sample / 8);
+    const auto average_bytes_per_second = sample_rate * block_alignment;
+    const auto pts_pending = static_cast<double>(audio_frame.best_effort_timestamp) * av_q2d(audio_time_base);
+    const auto initial_audio_buffer_index = audio_buffer_index;
+    if (pts)
+    {
+        // Return the estimated pts of the beginning of the audio buffer
+        *pts = pts_pending + initial_audio_buffer_index / static_cast<double>(average_bytes_per_second);
+    }
+
     int n_read = 0;
     while (n_read < len)
     {
-        if (audio_buffer_size == 0 && !DecodeAudioFrame())
+        if (audio_flush_requested || audio_buffer_size == 0 && !DecodeAudioFrame())
         {
             // Failed to decode audio frame, nothing to do
             break;
@@ -213,108 +246,25 @@ int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, co
     return n_read;
 }
 
-bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
-{
-    AVPacket* next_packet_raw;
-    if (!audio_packet_queue->Pop(&next_packet_raw))
-    {
-        return false;
-    }
-
-    const std::shared_ptr<AVPacket*> next_packet(&next_packet_raw, av_packet_free);
-
-    int result = avcodec_send_packet(audio_codec_ctx, *next_packet);
-    if (result < 0)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
-        return false;
-    }
-
-    result = avcodec_receive_frame(audio_codec_ctx, &audio_frame);
-    if (result < 0)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
-        return false;
-    }
-
-    if (!swr_resampler_ctx)
-    {
-        swr_resampler_ctx = swr_alloc();
-        if (!swr_resampler_ctx)
-        {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate swr context");
-            return false;
-        }
-
-        AVChannelLayout out_ch_layout;
-        av_channel_layout_default(&out_ch_layout, audio_channel_count);
-        swr_alloc_set_opts2(&swr_resampler_ctx, &out_ch_layout, out_sample_format, sample_rate,
-                            &audio_codec_ctx->ch_layout, audio_codec_ctx->sample_fmt, audio_codec_ctx->sample_rate,
-                            audio_codec_ctx->log_level_offset, nullptr);
-        swr_init(swr_resampler_ctx);
-
-        if (!swr_is_initialized(swr_resampler_ctx))
-        {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Could not initialize swr context");
-            return false;
-        }
-    }
-
-    const auto req_size = av_samples_get_buffer_size(nullptr, audio_channel_count, audio_frame.nb_samples,
-                                                     out_sample_format, 1);
-    if (req_size < 0)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not get required audio buffer size");
-        return false;
-    }
-
-    assert(max_audio_buffer_size - audio_buffer_size >= req_size);
-
-    uint8_t* out_data[8] = {audio_buffer_pending, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-    const auto sample_count = swr_convert(swr_resampler_ctx, out_data, audio_frame.nb_samples,
-                                          const_cast<const uint8_t**>(audio_frame.data), audio_frame.nb_samples);
-    if (sample_count < 0)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not rescale audio samples");
-        return false;
-    }
-
-    assert(audio_channel_count * sample_count * static_cast<int>(sizeof(sample_container)) == req_size);
-
-    audio_buffer_index = 0;
-    audio_buffer_size = req_size;
-
-    return true;
-}
-
-bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const double* target_pts, double* pts)
+bool Simulacrum::AV::Core::VideoReader::ReadVideoFrame(
+    uint8_t* frame_buffer,
+    const double* target_pts,
+    double* pts)
 {
     double pts_pending;
     do
     {
-        AVPacket* next_packet_raw;
-        if (!video_packet_queue->Pop(&next_packet_raw))
+        if (!DecodeVideoFrame())
         {
             return false;
         }
 
-        const std::shared_ptr<AVPacket*> next_packet(&next_packet_raw, av_packet_free);
+        pts_pending = static_cast<double>(video_frame.best_effort_timestamp) * av_q2d(video_time_base);
 
-        int result = avcodec_send_packet(video_codec_ctx, *next_packet);
-        if (result < 0)
-        {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
-            return false;
-        }
+        const auto pts_diff = video_frame.best_effort_timestamp - video_last_frame_timestamp;
+        video_frame_delay = static_cast<double>(pts_diff) * av_q2d(video_time_base);
 
-        result = avcodec_receive_frame(video_codec_ctx, &video_frame);
-        if (result < 0)
-        {
-            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
-            return false;
-        }
-
-        pts_pending = static_cast<double>(video_frame.best_effort_timestamp) * av_q2d(time_base);
+        video_last_frame_timestamp = video_frame.best_effort_timestamp;
     }
     while (target_pts != nullptr && pts_pending < *target_pts);
 
@@ -325,26 +275,50 @@ bool Simulacrum::AV::Core::VideoReader::ReadFrame(uint8_t* frame_buffer, const d
 
     if (!sws_scaler_ctx)
     {
+        // Initialize the scaler, now that some data has been decoded into the codec context
         const auto source_pix_fmt = correct_for_deprecated_pixel_format(video_codec_ctx->pix_fmt);
         sws_scaler_ctx = sws_getContext(width, height, source_pix_fmt,
                                         width, height, AV_PIX_FMT_BGRA,
                                         SWS_BILINEAR, nullptr, nullptr, nullptr);
-    }
-    if (!sws_scaler_ctx)
-    {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate sws context");
-        return false;
+        if (!sws_scaler_ctx)
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate sws context");
+            return false;
+        }
     }
 
-    uint8_t* dest[4] = {frame_buffer, nullptr, nullptr, nullptr};
-    int dest_linesize[4] = {width * 4, 0, 0, 0};
-    sws_scale(sws_scaler_ctx, video_frame.data, video_frame.linesize, 0, video_frame.height, dest, dest_linesize);
+    if (frame_buffer)
+    {
+        uint8_t* dest[4] = {frame_buffer, nullptr, nullptr, nullptr};
+        const int dest_linesize[4] = {width * 4, 0, 0, 0};
+
+        // Rescale the frame into our expected format
+        sws_scale(sws_scaler_ctx, video_frame.data, video_frame.linesize, 0, video_frame.height, dest, dest_linesize);
+    }
 
     return true;
 }
 
-bool Simulacrum::AV::Core::VideoReader::SeekFrame(const double pts) const
+bool Simulacrum::AV::Core::VideoReader::SeekAudioStream(const double target_pts)
 {
+    audio_seek_pts = target_pts;
+    audio_seek_requested = true;
+
+    // This may or may not cause problems
+    const auto last_pts = static_cast<double>(video_last_frame_timestamp) * av_q2d(video_time_base);
+    audio_seek_flags = target_pts - last_pts > 0 ? 0 : AVSEEK_FLAG_BACKWARD;
+
+    return true;
+}
+
+bool Simulacrum::AV::Core::VideoReader::SeekVideoFrame(const double target_pts)
+{
+    video_seek_pts = target_pts;
+    video_seek_requested = true;
+
+    const auto last_pts = static_cast<double>(video_last_frame_timestamp) * av_q2d(video_time_base);
+    video_seek_flags = target_pts - last_pts > 0 ? 0 : AVSEEK_FLAG_BACKWARD;
+
     return true;
 }
 
@@ -385,7 +359,155 @@ void Simulacrum::AV::Core::VideoReader::Close()
     }
 }
 
-void Simulacrum::AV::Core::VideoReader::Ingest() const
+bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
+{
+    if (audio_flush_requested)
+    {
+        // Handle audio stream flush requests
+        audio_flush_requested = false;
+        avcodec_flush_buffers(audio_codec_ctx);
+    }
+
+    AVPacket* next_packet_raw;
+    if (!audio_packet_queue->Pop(&next_packet_raw))
+    {
+        return false;
+    }
+
+    // Set up the packet to be disposed at the end of the scope
+    const std::shared_ptr<AVPacket*> next_packet(&next_packet_raw, av_packet_free);
+
+    int result = avcodec_send_packet(audio_codec_ctx, *next_packet);
+    if (result < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
+        return false;
+    }
+
+    result = avcodec_receive_frame(audio_codec_ctx, &audio_frame);
+    if (result < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
+        return false;
+    }
+
+    if (!swr_resampler_ctx)
+    {
+        // Initialize the resampler, now that some data has been decoded into the codec context
+        swr_resampler_ctx = swr_alloc();
+        if (!swr_resampler_ctx)
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate swr context");
+            return false;
+        }
+
+        AVChannelLayout out_ch_layout;
+        av_channel_layout_default(&out_ch_layout, audio_channel_count);
+        swr_alloc_set_opts2(&swr_resampler_ctx, &out_ch_layout, out_sample_format, sample_rate,
+                            &audio_codec_ctx->ch_layout, audio_codec_ctx->sample_fmt, audio_codec_ctx->sample_rate,
+                            audio_codec_ctx->log_level_offset, nullptr);
+        swr_init(swr_resampler_ctx);
+
+        if (!swr_is_initialized(swr_resampler_ctx))
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Could not initialize swr context");
+            return false;
+        }
+    }
+
+    const auto req_size = av_samples_get_buffer_size(nullptr, audio_channel_count, audio_frame.nb_samples,
+                                                     out_sample_format, 1);
+    if (req_size < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not get required audio buffer size");
+        return false;
+    }
+
+    assert(max_audio_buffer_size - audio_buffer_size >= req_size);
+
+    // Resample the audio into our expected format
+    uint8_t* out_data[8] = {audio_buffer_pending, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    const auto sample_count = swr_convert(swr_resampler_ctx, out_data, audio_frame.nb_samples,
+                                          const_cast<const uint8_t**>(audio_frame.data), audio_frame.nb_samples);
+    if (sample_count < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Could not resample audio samples");
+        return false;
+    }
+
+    assert(audio_channel_count * sample_count * static_cast<int>(sizeof(sample_container)) == req_size);
+
+    audio_buffer_index = 0;
+    audio_buffer_size = req_size;
+    audio_buffer_total_size = req_size;
+
+    return true;
+}
+
+bool Simulacrum::AV::Core::VideoReader::DecodeVideoFrame()
+{
+    if (video_flush_requested)
+    {
+        // Handle video stream flush requests
+        video_flush_requested = false;
+        avcodec_flush_buffers(video_codec_ctx);
+    }
+
+    AVPacket* next_packet_raw;
+    if (!video_packet_queue->Pop(&next_packet_raw))
+    {
+        return false;
+    }
+
+    // Set up the packet to be disposed at the end of the scope
+    const std::shared_ptr<AVPacket*> next_packet(&next_packet_raw, av_packet_free);
+
+    int result = avcodec_send_packet(video_codec_ctx, *next_packet);
+    if (result < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Error submitting packet for decoding: %s", av_make_error(result));
+        return false;
+    }
+
+    result = avcodec_receive_frame(video_codec_ctx, &video_frame);
+    if (result < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
+        return false;
+    }
+
+    return true;
+}
+
+bool Simulacrum::AV::Core::VideoReader::SeekAudioFrameInternal()
+{
+    const auto audio_seek_frame = static_cast<int64_t>(audio_seek_pts / av_q2d(audio_time_base));
+    if (av_seek_frame(av_format_ctx, audio_stream_index, audio_seek_frame, audio_seek_flags) < 0)
+    {
+        return false;
+    }
+
+    audio_packet_queue->Flush();
+    audio_flush_requested = true;
+
+    return true;
+}
+
+bool Simulacrum::AV::Core::VideoReader::SeekVideoFrameInternal()
+{
+    const auto video_seek_frame = static_cast<int64_t>(video_seek_pts / av_q2d(video_time_base));
+    if (av_seek_frame(av_format_ctx, video_stream_index, video_seek_frame, video_seek_flags) < 0)
+    {
+        return false;
+    }
+
+    video_packet_queue->Flush();
+    video_flush_requested = true;
+
+    return true;
+}
+
+void Simulacrum::AV::Core::VideoReader::Ingest()
 {
     AVPacket* packet = nullptr;
 
@@ -401,10 +523,30 @@ void Simulacrum::AV::Core::VideoReader::Ingest() const
             }
         }
 
+        if (audio_seek_requested)
+        {
+            if (!SeekAudioFrameInternal())
+            {
+                av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek audio stream");
+            }
+
+            audio_seek_requested = false;
+        }
+
+        if (video_seek_requested)
+        {
+            if (!SeekVideoFrameInternal())
+            {
+                av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek video stream");
+            }
+
+            video_seek_requested = false;
+        }
+
         if (av_read_frame(av_format_ctx, packet) < 0)
         {
-            // No more packets to read
-            break;
+            // No more packets to read right now, but seeking could change that
+            continue;
         }
 
         if (packet->stream_index == video_stream_index)

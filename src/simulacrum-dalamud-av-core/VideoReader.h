@@ -4,8 +4,8 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
+#include <libswscale/swscale.h>
 }
 
 #define DllExport __declspec(dllexport)
@@ -16,26 +16,38 @@ namespace Simulacrum::AV::Core
     {
     public:
         int width, height, sample_rate, bits_per_sample, audio_channel_count;
+        double video_frame_delay;
         bool supports_audio;
-        AVRational time_base;
+        AVRational video_time_base, audio_time_base;
 
         VideoReader();
         ~VideoReader();
 
         bool Open(const char* uri);
-        int ReadAudioStream(uint8_t* audio_buffer, int len);
-        bool ReadFrame(uint8_t* frame_buffer, const double* target_pts, double* pts);
-        [[nodiscard]] bool SeekFrame(double pts) const;
+        int ReadAudioStream(uint8_t* audio_buffer, int len, double* pts);
+        bool ReadVideoFrame(uint8_t* frame_buffer, const double* target_pts, double* pts);
+        bool SeekAudioStream(double target_pts);
+        bool SeekVideoFrame(double target_pts);
         void Close();
 
     private:
         PacketQueue* audio_packet_queue;
         PacketQueue* video_packet_queue;
         uint8_t* audio_buffer_pending;
+        int audio_buffer_total_size;
         int audio_buffer_size;
         int audio_buffer_index;
+        int64_t video_last_frame_timestamp;
         AVFrame audio_frame;
         AVFrame video_frame;
+        double audio_seek_pts;
+        double video_seek_pts;
+        bool audio_seek_requested;
+        bool video_seek_requested;
+        int audio_seek_flags;
+        int video_seek_flags;
+        bool audio_flush_requested;
+        bool video_flush_requested;
         std::thread ingest_thread;
         bool done;
 
@@ -48,7 +60,10 @@ namespace Simulacrum::AV::Core
         SwrContext* swr_resampler_ctx;
 
         bool DecodeAudioFrame();
-        void Ingest() const;
+        bool DecodeVideoFrame();
+        bool SeekAudioFrameInternal();
+        bool SeekVideoFrameInternal();
+        void Ingest();
     };
 }
 
@@ -71,23 +86,29 @@ inline DllExport bool VideoReaderOpen(Simulacrum::AV::Core::VideoReader* reader,
 inline DllExport int VideoReaderReadAudioStream(
     Simulacrum::AV::Core::VideoReader* reader,
     uint8_t* audio_buffer,
-    const int len)
+    const int len,
+    double* pts)
 {
-    return reader->ReadAudioStream(audio_buffer, len);
+    return reader->ReadAudioStream(audio_buffer, len, pts);
 }
 
-inline DllExport bool VideoReaderReadFrame(
+inline DllExport bool VideoReaderReadVideoFrame(
     Simulacrum::AV::Core::VideoReader* reader,
     uint8_t* frame_buffer,
     const double* target_pts,
     double* pts)
 {
-    return reader->ReadFrame(frame_buffer, target_pts, pts);
+    return reader->ReadVideoFrame(frame_buffer, target_pts, pts);
 }
 
-inline DllExport bool VideoReaderSeekFrame(const Simulacrum::AV::Core::VideoReader* reader, const int64_t ts)
+inline DllExport bool VideoReaderSeekAudioStream(Simulacrum::AV::Core::VideoReader* reader, const double target_pts)
 {
-    return reader->SeekFrame(ts);
+    return reader->SeekAudioStream(target_pts);
+}
+
+inline DllExport bool VideoReaderSeekVideoFrame(Simulacrum::AV::Core::VideoReader* reader, const double target_pts)
+{
+    return reader->SeekVideoFrame(target_pts);
 }
 
 inline DllExport void VideoReaderClose(Simulacrum::AV::Core::VideoReader* reader)
@@ -103,6 +124,11 @@ inline DllExport int VideoReaderGetWidth(const Simulacrum::AV::Core::VideoReader
 inline DllExport int VideoReaderGetHeight(const Simulacrum::AV::Core::VideoReader* reader)
 {
     return reader->height;
+}
+
+inline DllExport double VideoReaderGetVideoFrameDelay(const Simulacrum::AV::Core::VideoReader* reader)
+{
+    return reader->video_frame_delay;
 }
 
 inline DllExport int VideoReaderGetSampleRate(const Simulacrum::AV::Core::VideoReader* reader)

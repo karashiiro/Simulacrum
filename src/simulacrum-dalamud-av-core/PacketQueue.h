@@ -10,14 +10,14 @@ extern "C" {
 class PacketQueue
 {
 public:
-    PacketQueue();
+    ~PacketQueue();
 
     void Push(AVPacket* packet);
     bool Pop(AVPacket** packet);
-    [[nodiscard]] int TotalPacketSize() const;
+    void Flush();
+    size_t Size();
 
 private:
     std::queue<AVPacket*> packets;
-    int total_packet_size;
     std::mutex mtx;
 };

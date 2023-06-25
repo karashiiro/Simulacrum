@@ -26,13 +26,13 @@ public class BufferQueue : IDisposable
     {
     }
 
-    public void Push(byte[] buffer, int length)
+    public void Push(byte[] buffer, int length, double pts)
     {
         _lock.Wait();
         try
         {
             var lastHead = _head;
-            _head = new BufferListNode(buffer, length, _disposeBuffer);
+            _head = new BufferListNode(buffer, length, pts, _disposeBuffer);
 
             _head.Next = lastHead;
             if (lastHead != null)
@@ -77,6 +77,21 @@ public class BufferQueue : IDisposable
         }
     }
 
+    public void Flush()
+    {
+        _lock.Wait();
+        try
+        {
+            _head?.Dispose();
+            _head = null;
+            Count = 0;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     /// <summary>
     /// Check if the queue is empty. This is faster than attempting to pop and checking the result.
     /// </summary>
@@ -107,11 +122,16 @@ public class BufferQueue : IDisposable
 
         public ReadOnlySpan<byte> Span => _buffer.AsSpan()[.._length];
 
-        public BufferListNode(byte[] buffer, int length, Action<byte[]> dispose)
+        // TODO: Refactor this to be generic so this property doesn't need to live here
+        public double Pts { get; }
+
+        public BufferListNode(byte[] buffer, int length, double pts, Action<byte[]> dispose)
         {
             _buffer = buffer;
             _length = length;
             _dispose = dispose;
+
+            Pts = pts;
         }
 
         public void Dispose()

@@ -8,6 +8,10 @@ public partial class VideoReader : IDisposable
 
     public int Width => _ptr != nint.Zero ? VideoReaderGetWidth(_ptr) : 0;
     public int Height => _ptr != nint.Zero ? VideoReaderGetHeight(_ptr) : 0;
+
+    public TimeSpan VideoFrameDelay =>
+        _ptr != nint.Zero ? TimeSpan.FromSeconds(VideoReaderGetVideoFrameDelay(_ptr)) : TimeSpan.Zero;
+
     public bool SupportsAudio => _ptr != nint.Zero && VideoReaderSupportsAudio(_ptr);
     public int SampleRate => _ptr != nint.Zero ? VideoReaderGetSampleRate(_ptr) : 0;
     public int BitsPerSample => _ptr != nint.Zero ? VideoReaderGetBitsPerSample(_ptr) : 0;
@@ -24,20 +28,26 @@ public partial class VideoReader : IDisposable
         return _ptr != nint.Zero && VideoReaderOpen(_ptr, filename);
     }
 
-    public int ReadAudioStream(Span<byte> audioBuffer)
-    {
-        return _ptr != nint.Zero ? VideoReaderReadAudioStream(_ptr, audioBuffer, audioBuffer.Length) : 0;
-    }
-
-    public bool ReadFrame(Span<byte> frameBuffer, double targetPts, out double pts)
+    public int ReadAudioStream(Span<byte> audioBuffer, out double pts)
     {
         pts = 0;
-        return _ptr != nint.Zero && VideoReaderReadFrame(_ptr, frameBuffer, targetPts, out pts);
+        return _ptr != nint.Zero ? VideoReaderReadAudioStream(_ptr, audioBuffer, audioBuffer.Length, out pts) : 0;
     }
 
-    public bool SeekFrame(double pts)
+    public bool SeekAudioStream(double targetPts)
     {
-        return _ptr != nint.Zero && VideoReaderSeekFrame(_ptr, pts);
+        return _ptr != nint.Zero && VideoReaderSeekAudioStream(_ptr, targetPts);
+    }
+
+    public bool ReadVideoFrame(Span<byte> frameBuffer, double targetPts, out double pts)
+    {
+        pts = 0;
+        return _ptr != nint.Zero && VideoReaderReadVideoFrame(_ptr, frameBuffer, targetPts, out pts);
+    }
+
+    public bool SeekVideoFrame(double targetPts)
+    {
+        return _ptr != nint.Zero && VideoReaderSeekVideoFrame(_ptr, targetPts);
     }
 
     public void Close()
@@ -83,16 +93,21 @@ public partial class VideoReader : IDisposable
     internal static partial bool VideoReaderOpen(nint reader, [MarshalAs(UnmanagedType.LPStr)] string uri);
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderReadAudioStream")]
-    internal static partial int VideoReaderReadAudioStream(nint reader, Span<byte> audioBuffer, int len);
-
-    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderReadFrame")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool VideoReaderReadFrame(nint reader, Span<byte> frameBuffer, in double targetPts,
+    internal static partial int VideoReaderReadAudioStream(nint reader, Span<byte> audioBuffer, int len,
         out double pts);
 
-    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderSeekFrame")]
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderSeekAudioStream")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool VideoReaderSeekFrame(nint reader, double pts);
+    internal static partial bool VideoReaderSeekAudioStream(nint reader, double targetPts);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderReadVideoFrame")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool VideoReaderReadVideoFrame(nint reader, Span<byte> frameBuffer, in double targetPts,
+        out double pts);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderSeekVideoFrame")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool VideoReaderSeekVideoFrame(nint reader, double targetPts);
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderClose")]
     internal static partial void VideoReaderClose(nint reader);
@@ -102,6 +117,9 @@ public partial class VideoReader : IDisposable
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetHeight")]
     internal static partial int VideoReaderGetHeight(nint reader);
+
+    [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetVideoFrameDelay")]
+    internal static partial double VideoReaderGetVideoFrameDelay(nint reader);
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderGetSampleRate")]
     internal static partial int VideoReaderGetSampleRate(nint reader);

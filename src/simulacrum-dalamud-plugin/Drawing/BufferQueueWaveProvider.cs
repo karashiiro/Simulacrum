@@ -13,18 +13,32 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
     private BufferQueue.BufferListNode? _currentNode;
     private int _currentNodeIndex;
     private int _currentNodeSize;
-    private int _totalRead;
+    private int _currentNodeRead; // TODO: This might be redundant with _currentNodeIndex
+    private TimeSpan _currentNodePts;
     private int _silentBytes;
 
     public WaveFormat WaveFormat { get; }
 
-    public TimeSpan PlaybackPosition => GetDurationForByteCount(_totalRead);
+    public TimeSpan PlaybackPosition => _currentNodePts + GetDurationForByteCount(_currentNodeRead);
 
     public BufferQueueWaveProvider(BufferQueue bufferQueue, WaveFormat waveFormat)
     {
         _lock = new SemaphoreSlim(1, 1);
         _bufferQueue = bufferQueue;
         WaveFormat = waveFormat;
+    }
+
+    public void Flush()
+    {
+        _lock.Wait();
+        try
+        {
+            FlushInternal();
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public int PadSamples(TimeSpan duration)
@@ -90,6 +104,14 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         return ReadInternal(buffer[nSkipped..]) + nSkipped;
     }
 
+    private void FlushInternal()
+    {
+        _bufferQueue.Flush();
+        _currentNode?.Dispose();
+        _currentNode = null;
+        _silentBytes = 0;
+    }
+
     private int DiscardInternal(int n)
     {
         var nSkipped = 0;
@@ -112,7 +134,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
             }
         }
 
-        _totalRead += nSkipped;
+        _currentNodeRead += nSkipped;
 
         return nSkipped;
     }
@@ -140,7 +162,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
             }
         }
 
-        _totalRead += nRead;
+        _currentNodeRead += nRead;
 
         return nRead;
     }
@@ -158,8 +180,10 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
             return false;
         }
 
+        _currentNodeRead = 0;
         _currentNodeIndex = 0;
         _currentNodeSize = _currentNode.Span.Length;
+        _currentNodePts = TimeSpan.FromSeconds(_currentNode.Pts);
 
         return true;
     }
