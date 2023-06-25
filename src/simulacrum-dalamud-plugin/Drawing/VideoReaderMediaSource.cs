@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using Dalamud.Logging;
 using NAudio.Wave;
@@ -19,7 +20,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly int _cacheBufferRawSize;
     private readonly int _cacheBufferSize;
 
-    private readonly BufferQueue _audioBufferQueue;
+    private readonly ConcurrentQueue<BufferQueueNode> _audioBufferQueue;
     private readonly BufferQueueWaveProvider _waveProvider;
     private readonly IWavePlayer _wavePlayer;
     private readonly Thread _audioThread;
@@ -52,7 +53,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _cacheBufferRawSize = _cacheBufferSize + 32;
         _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
 
-        _audioBufferQueue = new BufferQueue(buffer => ArrayPool<byte>.Shared.Return(buffer));
+        _audioBufferQueue = new ConcurrentQueue<BufferQueueNode>();
         _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
             new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
         _wavePlayer = new DirectSoundOut();
@@ -149,7 +150,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         var audioBytesRead = _reader.ReadAudioStream(audioSpan, out var pts);
         if (audioBytesRead > 0)
         {
-            _audioBufferQueue.Push(audioBuffer, audioBytesRead, pts);
+            _audioBufferQueue.Enqueue(new BufferQueueNode(audioBuffer, audioBytesRead, pts,
+                buffer => ArrayPool<byte>.Shared.Return(buffer)));
         }
         else
         {
@@ -206,7 +208,14 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _reader.Dispose();
         _wavePlayer.Dispose();
         _waveProvider.Dispose();
-        _audioBufferQueue.Dispose();
+
+        foreach (var bufferNode in _audioBufferQueue)
+        {
+            bufferNode.Dispose();
+        }
+
+        _audioBufferQueue.Clear();
+
         Marshal.FreeHGlobal(_cacheBufferPtr);
         GC.SuppressFinalize(this);
     }

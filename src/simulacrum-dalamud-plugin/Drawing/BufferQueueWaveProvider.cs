@@ -1,27 +1,24 @@
-﻿using NAudio.Wave;
+﻿using System.Collections.Concurrent;
+using NAudio.Wave;
 
 namespace Simulacrum.Drawing;
 
-/// <summary>
-/// A wrapper around <see cref="BufferQueue"/> enabling wave playback through NAudio.
-/// TODO: This may need to be moved into native code, since we have 3 buffer copies between the audio frame and NAudio.
-/// </summary>
+// TODO: This may need to be moved into native code, since we have 3 buffer copies between the audio frame and NAudio.
 public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 {
     private readonly SemaphoreSlim _lock;
-    private readonly BufferQueue _bufferQueue;
-    private BufferQueue.BufferListNode? _currentNode;
+    private readonly ConcurrentQueue<BufferQueueNode> _bufferQueue;
+    private BufferQueueNode? _currentNode;
     private int _currentNodeIndex;
     private int _currentNodeSize;
-    private int _currentNodeRead; // TODO: This might be redundant with _currentNodeIndex
     private TimeSpan _currentNodePts;
     private int _silentBytes;
 
     public WaveFormat WaveFormat { get; }
 
-    public TimeSpan PlaybackPosition => _currentNodePts + GetDurationForByteCount(_currentNodeRead);
+    public TimeSpan PlaybackPosition => _currentNodePts + GetDurationForByteCount(_currentNodeIndex);
 
-    public BufferQueueWaveProvider(BufferQueue bufferQueue, WaveFormat waveFormat)
+    public BufferQueueWaveProvider(ConcurrentQueue<BufferQueueNode> bufferQueue, WaveFormat waveFormat)
     {
         _lock = new SemaphoreSlim(1, 1);
         _bufferQueue = bufferQueue;
@@ -106,7 +103,13 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     private void FlushInternal()
     {
-        _bufferQueue.Flush();
+        foreach (var bufferNode in _bufferQueue)
+        {
+            bufferNode.Dispose();
+        }
+
+        _bufferQueue.Clear();
+
         _currentNode?.Dispose();
         _currentNode = null;
         _silentBytes = 0;
@@ -134,8 +137,6 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
             }
         }
 
-        _currentNodeRead += nSkipped;
-
         return nSkipped;
     }
 
@@ -162,25 +163,22 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
             }
         }
 
-        _currentNodeRead += nRead;
-
         return nRead;
     }
 
     private bool ReadNextNode()
     {
-        if (_bufferQueue.IsEmpty())
+        if (_bufferQueue.IsEmpty)
         {
             return false;
         }
 
-        _currentNode = _bufferQueue.Pop();
-        if (_currentNode == null)
+        if (!_bufferQueue.TryDequeue(out _currentNode))
         {
+            _currentNode = null;
             return false;
         }
 
-        _currentNodeRead = 0;
         _currentNodeIndex = 0;
         _currentNodeSize = _currentNode.Span.Length;
         _currentNodePts = TimeSpan.FromSeconds(_currentNode.Pts);
