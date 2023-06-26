@@ -325,7 +325,10 @@ public class Simulacrum : IDalamudPlugin
             _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pause();
         }));
         _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(ev =>
-            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(TimeSpan.Zero)));
+        {
+            if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
+            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadActual);
+        }));
         _hostctlBag.Add(_hostctl.OnVideoSourceSync().Subscribe(ev =>
         {
             if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
@@ -370,14 +373,14 @@ public class Simulacrum : IDalamudPlugin
                 PluginLog.Log($"Got new video source: {video.Uri}");
 
                 var videoSync = new TimePlaybackTracker();
-                // TODO: This breaks for some reason
-                // videoSync.Pan(video.PlayheadSecondsActual);
+                var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync);
+
+                //videoSync.Pan(video.PlayheadActual);
                 if (video.State == "playing")
                 {
                     videoSync.Play();
                 }
 
-                var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync);
                 _playbackTrackers.AddPlaybackTracker(dto.Id, videoSync);
                 _mediaSources.AddMediaSource(dto.Id, videoMediaSource);
             }
