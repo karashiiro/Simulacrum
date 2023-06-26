@@ -17,9 +17,11 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     private readonly VideoReader _reader;
 
-    private readonly nint _cacheBufferPtr;
-    private readonly int _cacheBufferRawSize;
-    private readonly int _cacheBufferSize;
+    private readonly nint _videoBufferPtr;
+    private readonly int _videoBufferRawSize;
+    private readonly int _videoBufferSize;
+
+    // This needs to be a dedicated thread or else playback can get choppy randomly
     private readonly Thread _videoThread;
 
     private readonly ConcurrentQueue<BufferQueueNode> _audioBufferQueue;
@@ -36,7 +38,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private bool _audioFlushRequested;
     private bool _done;
 
-    private unsafe Span<byte> CacheBuffer => new((byte*)_cacheBufferPtr, _cacheBufferRawSize);
+    private unsafe Span<byte> VideoBuffer => new((byte*)_videoBufferPtr, _videoBufferRawSize);
 
     public VideoReaderMediaSource(string? uri, IReadOnlyPlaybackTracker sync)
     {
@@ -49,13 +51,13 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         }
 
         _sync = sync;
-        _cacheBufferSize = _reader.Width * _reader.Height * PixelSize();
+        _videoBufferSize = _reader.Width * _reader.Height * PixelSize();
 
         // For some reason, sws_scale writes 8 black pixels after the end of the buffer.
         // If video playback randomly crashes, it's probably because this needs to be
         // more specific.
-        _cacheBufferRawSize = _cacheBufferSize + 32;
-        _cacheBufferPtr = Marshal.AllocHGlobal(_cacheBufferRawSize);
+        _videoBufferRawSize = _videoBufferSize + 32;
+        _videoBufferPtr = Marshal.AllocHGlobal(_videoBufferRawSize);
 
         _videoThread = new Thread(VideoLoop);
         _videoThread.Start();
@@ -92,7 +94,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     {
         if (_sync.GetTime() < _nextPts)
         {
-            CacheBuffer[.._cacheBufferSize].CopyTo(buffer);
+            VideoBuffer[.._videoBufferSize].CopyTo(buffer);
         }
     }
 
@@ -195,7 +197,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
         // Read frames until the pts matches the external clock, or until there are
         // no frames left to read.
-        if (!_reader.ReadVideoFrame(CacheBuffer, t.TotalSeconds, out _))
+        if (!_reader.ReadVideoFrame(VideoBuffer, t.TotalSeconds, out _))
         {
             // Don't trust the pts if we failed to read a frame.
             return;
@@ -252,7 +254,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
         _audioBufferQueue.Clear();
 
-        Marshal.FreeHGlobal(_cacheBufferPtr);
+        Marshal.FreeHGlobal(_videoBufferPtr);
         GC.SuppressFinalize(this);
     }
 }
