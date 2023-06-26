@@ -3,6 +3,10 @@
 #include <windows.h>
 #include "VideoReader.h"
 
+extern "C" {
+#include <libavutil/imgutils.h>
+}
+
 typedef short sample_container;
 
 constexpr auto out_sample_format = AV_SAMPLE_FMT_S16;
@@ -44,29 +48,28 @@ static AVPixelFormat correct_for_deprecated_pixel_format(const AVPixelFormat pix
     }
 }
 
+static AVPixelFormat hw_pixel_format;
+
+static AVPixelFormat get_hardware_format([[maybe_unused]] AVCodecContext* ctx, const AVPixelFormat* pix_fmts)
+{
+    for (const AVPixelFormat* p = pix_fmts; *p != -1; p++)
+    {
+        if (*p == hw_pixel_format)
+        {
+            return *p;
+        }
+    }
+
+    av_log(nullptr, AV_LOG_ERROR, "[user] Could not get hardware surface format");
+    return AV_PIX_FMT_NONE;
+}
+
 static double pts_to_seconds(const int64_t pts_raw, const AVRational time_base)
 {
     return static_cast<double>(pts_raw) * av_q2d(time_base);
 }
 
 Simulacrum::AV::Core::VideoReader::VideoReader()
-    : width{},
-      height{},
-      sample_rate{},
-      bits_per_sample{},
-      audio_channel_count{},
-      video_frame_delay{},
-      supports_audio{},
-      audio_stream{},
-      video_stream{},
-      audio_buffer_total_size{},
-      audio_buffer_size{},
-      audio_buffer_index{},
-      video_last_frame_timestamp{},
-      done{},
-      av_format_ctx{},
-      sws_scaler_ctx{},
-      swr_resampler_ctx{}
 {
     audio_stream.packet_queue = new PacketQueue();
     video_stream.packet_queue = new PacketQueue();
@@ -131,6 +134,8 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
         return false;
     }
 
+    audio_stream.codec = audio_codec;
+
     const AVCodecParameters* video_codec_params = nullptr;
     const AVCodec* video_codec = nullptr;
     if (!FindDecoder(video_stream.stream_index, video_codec_params, video_codec))
@@ -150,6 +155,7 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
     width = video_codec_params->width;
     height = video_codec_params->height;
     video_stream.time_base = av_format_ctx->streams[video_stream.stream_index]->time_base;
+    video_stream.codec = video_codec;
 
     // Set up a codec context for the audio decoder
     if (!InitializeCodecContext(audio_stream.codec_ctx, *audio_codec_params, *audio_codec))
@@ -163,6 +169,36 @@ bool Simulacrum::AV::Core::VideoReader::Open(const char* uri)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Could not initialize video decoder context");
         return false;
+    }
+
+    if (av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_D3D11VA, nullptr, nullptr, 0) != 0)
+    {
+        av_log(nullptr, AV_LOG_WARNING, "[user] Could not initialize hardware renderer; falling back to software-only");
+        hw_resources_failed = true;
+    }
+    else
+    {
+        video_stream.codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+
+        for (auto i = 0;; i++)
+        {
+            const AVCodecHWConfig* config = avcodec_get_hw_config(video_stream.codec, i);
+            if (!config)
+            {
+                av_log(nullptr, AV_LOG_ERROR, "[user] Decoder %s does not support device type %s",
+                       video_stream.codec->name, av_hwdevice_get_type_name(AV_HWDEVICE_TYPE_D3D11VA));
+                hw_resources_failed = true;
+                break;
+            }
+            if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX &&
+                config->device_type == AV_HWDEVICE_TYPE_D3D11VA)
+            {
+                hw_pixel_format = config->pix_fmt;
+                break;
+            }
+        }
+
+        video_stream.codec_ctx->get_format = get_hardware_format;
     }
 
     ingest_thread = std::thread(&VideoReader::Ingest, this);
@@ -280,11 +316,7 @@ void Simulacrum::AV::Core::VideoReader::Close()
         sws_scaler_ctx = nullptr;
     }
 
-    if (swr_resampler_ctx)
-    {
-        swr_free(&swr_resampler_ctx);
-        swr_resampler_ctx = nullptr;
-    }
+    swr_free(&swr_resampler_ctx);
 
     if (av_format_ctx)
     {
@@ -293,17 +325,13 @@ void Simulacrum::AV::Core::VideoReader::Close()
         av_format_ctx = nullptr;
     }
 
-    if (audio_stream.codec_ctx)
-    {
-        avcodec_free_context(&audio_stream.codec_ctx);
-        audio_stream.codec_ctx = nullptr;
-    }
+    av_frame_unref(&audio_stream.current_frame);
+    av_frame_unref(&video_stream.current_frame);
 
-    if (video_stream.codec_ctx)
-    {
-        avcodec_free_context(&video_stream.codec_ctx);
-        video_stream.codec_ctx = nullptr;
-    }
+    avcodec_free_context(&audio_stream.codec_ctx);
+    avcodec_free_context(&video_stream.codec_ctx);
+
+    av_buffer_unref(&hw_device_ctx);
 }
 
 bool Simulacrum::AV::Core::VideoReader::FindDecoder(
@@ -440,11 +468,34 @@ bool Simulacrum::AV::Core::VideoReader::DecodeVideoFrame()
         return false;
     }
 
-    result = avcodec_receive_frame(video_stream.codec_ctx, &video_stream.current_frame);
-    if (result < 0)
+    if (hw_resources_failed)
     {
-        av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
-        return false;
+        result = avcodec_receive_frame(video_stream.codec_ctx, &video_stream.current_frame);
+        if (result < 0)
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding frame: %s", av_make_error(result));
+            return false;
+        }
+    }
+    else
+    {
+        result = avcodec_receive_frame(video_stream.codec_ctx, &hw_frame);
+        if (result < 0)
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding hardware frame: %s", av_make_error(result));
+            return false;
+        }
+    }
+
+    if (hw_frame.format == hw_pixel_format)
+    {
+        result = av_hwframe_transfer_data(&video_stream.current_frame, &hw_frame, 0);
+        if (result < 0)
+        {
+            av_log(nullptr, AV_LOG_ERROR, "[user] Error transferring data from hardware frame: %s",
+                   av_make_error(result));
+            return false;
+        }
     }
 
     return true;

@@ -15,9 +15,9 @@ namespace Simulacrum::AV::Core
     class VideoReader
     {
     public:
-        int width, height, sample_rate, bits_per_sample, audio_channel_count;
-        double video_frame_delay;
-        bool supports_audio;
+        int width{}, height{}, sample_rate{}, bits_per_sample{}, audio_channel_count{};
+        double video_frame_delay{};
+        bool supports_audio{};
 
         VideoReader();
         ~VideoReader();
@@ -71,30 +71,35 @@ namespace Simulacrum::AV::Core
     private:
         struct StreamInfo
         {
-            PacketQueue* packet_queue;
-            AVCodecContext* codec_ctx;
-            AVFrame current_frame;
-            AVRational time_base;
+            PacketQueue* packet_queue{};
+            AVCodecContext* codec_ctx{};
+            const AVCodec* codec{};
+            AVFrame current_frame{};
+            AVRational time_base{};
             int stream_index = -1;
-            double seek_pts;
-            bool seek_requested;
-            int seek_flags;
-            bool flush_requested;
+            double seek_pts{};
+            bool seek_requested{};
+            int seek_flags{};
+            bool flush_requested{};
         };
 
-        StreamInfo audio_stream;
-        StreamInfo video_stream;
-        uint8_t* audio_buffer_pending;
-        int audio_buffer_total_size;
-        int audio_buffer_size;
-        int audio_buffer_index;
-        int64_t video_last_frame_timestamp;
-        std::thread ingest_thread;
-        bool done;
+        StreamInfo audio_stream{};
+        StreamInfo video_stream{};
+        uint8_t* audio_buffer_pending{};
+        int audio_buffer_total_size{};
+        int audio_buffer_size{};
+        int audio_buffer_index{};
+        int64_t video_last_frame_timestamp{};
+        std::thread ingest_thread{};
+        bool done{};
 
-        AVFormatContext* av_format_ctx;
-        SwsContext* sws_scaler_ctx;
-        SwrContext* swr_resampler_ctx;
+        bool hw_resources_failed{};
+        AVFrame hw_frame{};
+        AVBufferRef* hw_device_ctx{};
+
+        AVFormatContext* av_format_ctx{};
+        SwsContext* sws_scaler_ctx{};
+        SwrContext* swr_resampler_ctx{};
 
         /**
          * \brief Finds the decoder associated with the specified stream.
