@@ -361,7 +361,7 @@ bool Simulacrum::AV::Core::VideoReader::DecodeAudioFrame()
     }
 
     AVPacket* next_packet_raw;
-    if (!audio_stream.packet_queue->Pop(&next_packet_raw))
+    if (!audio_stream.packet_queue->Pop(next_packet_raw))
     {
         return false;
     }
@@ -425,7 +425,7 @@ bool Simulacrum::AV::Core::VideoReader::DecodeVideoFrame()
     }
 
     AVPacket* next_packet_raw;
-    if (!video_stream.packet_queue->Pop(&next_packet_raw))
+    if (!video_stream.packet_queue->Pop(next_packet_raw))
     {
         return false;
     }

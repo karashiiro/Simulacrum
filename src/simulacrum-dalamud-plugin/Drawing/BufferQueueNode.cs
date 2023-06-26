@@ -6,6 +6,8 @@ public class BufferQueueNode : IDisposable
     private readonly byte[] _buffer;
     private readonly int _length;
 
+    private bool _disposed;
+
     public double Pts { get; }
 
     public Span<byte> Span => _buffer.AsSpan(0, _length);
@@ -21,6 +23,8 @@ public class BufferQueueNode : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         _onDispose(_buffer);
         GC.SuppressFinalize(this);
     }

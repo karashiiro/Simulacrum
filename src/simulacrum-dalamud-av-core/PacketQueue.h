@@ -13,7 +13,7 @@ public:
     ~PacketQueue();
 
     void Push(AVPacket* packet);
-    bool Pop(AVPacket** packet);
+    bool Pop(AVPacket*& packet);
     void Flush();
     size_t Size();
 

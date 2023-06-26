@@ -11,7 +11,7 @@ void PacketQueue::Push(AVPacket* packet)
     packets.push(packet);
 }
 
-bool PacketQueue::Pop(AVPacket** packet)
+bool PacketQueue::Pop(AVPacket*& packet)
 {
     const std::lock_guard lock(mtx);
     if (packets.empty())
@@ -21,7 +21,7 @@ bool PacketQueue::Pop(AVPacket** packet)
 
     auto* next_packet = packets.front();
     packets.pop();
-    *packet = next_packet;
+    packet = next_packet;
     return true;
 }
 

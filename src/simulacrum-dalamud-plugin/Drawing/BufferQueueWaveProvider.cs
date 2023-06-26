@@ -25,6 +25,9 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         WaveFormat = waveFormat;
     }
 
+    /// <summary>
+    /// Flush all audio data from the stream, and discard all queued buffers.
+    /// </summary>
     public void Flush()
     {
         _lock.Wait();
@@ -38,7 +41,25 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
     }
 
+    /// <summary>
+    /// Pad the current audio stream with silence for the provided duration.
+    /// </summary>
+    /// <param name="duration">The duration to pad.</param>
+    /// <returns>The number of bytes that were padded.</returns>
     public int PadSamples(TimeSpan duration)
+    {
+        _lock.Wait();
+        try
+        {
+            return PadSamplesInternal(duration);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private int PadSamplesInternal(TimeSpan duration)
     {
         if (_silentBytes > 0 || duration < TimeSpan.Zero)
         {
@@ -54,6 +75,11 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         return toPadPadded;
     }
 
+    /// <summary>
+    /// Discard samples for the provided duration.
+    /// </summary>
+    /// <param name="duration">The duration to discard samples over.</param>
+    /// <returns>The number of bytes that were discarded from the stream.</returns>
     public int DiscardSamples(TimeSpan duration)
     {
         if (duration > TimeSpan.Zero)
@@ -68,7 +94,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         _lock.Wait();
         try
         {
-            return DiscardInternal(toDiscardPadded);
+            return DiscardSamples(toDiscardPadded);
         }
         finally
         {
@@ -76,6 +102,24 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
     }
 
+    private int DiscardSamples(int bytes)
+    {
+        var nSkipped = Math.Min(bytes, _silentBytes);
+        if (nSkipped > 0)
+        {
+            _silentBytes -= nSkipped;
+        }
+
+        return DiscardSamplesInternal(bytes - nSkipped) + nSkipped;
+    }
+
+    /// <summary>
+    /// Read data from the audio stream into the provided buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to read data into.</param>
+    /// <param name="offset">The offset to write data at.</param>
+    /// <param name="count">The number of bytes that must be written.</param>
+    /// <returns>The number of bytes that were actually written to the buffer.</returns>
     public int Read(byte[] buffer, int offset, int count)
     {
         _lock.Wait();
@@ -89,7 +133,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
     }
 
-    public int Read(Span<byte> buffer)
+    private int Read(Span<byte> buffer)
     {
         var nSkipped = Math.Min(buffer.Length, _silentBytes);
         if (nSkipped > 0)
@@ -115,17 +159,17 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         _silentBytes = 0;
     }
 
-    private int DiscardInternal(int n)
+    private int DiscardSamplesInternal(int bytes)
     {
         var nSkipped = 0;
-        while (nSkipped < n)
+        while (nSkipped < bytes)
         {
             if (_currentNode == null && !ReadNextNode())
             {
                 break;
             }
 
-            var toRead = Math.Min(n - nSkipped, _currentNodeSize);
+            var toRead = Math.Min(bytes - nSkipped, _currentNodeSize);
             nSkipped += toRead;
             _currentNodeIndex += toRead;
             _currentNodeSize -= toRead;
