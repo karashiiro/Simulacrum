@@ -92,10 +92,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     public void RenderTo(Span<byte> buffer)
     {
-        if (_sync.GetTime() < _nextPts)
-        {
-            VideoBuffer[.._videoBufferSize].CopyTo(buffer);
-        }
+        VideoBuffer[.._videoBufferSize].CopyTo(buffer);
     }
 
     private void HandleAudioTick()
