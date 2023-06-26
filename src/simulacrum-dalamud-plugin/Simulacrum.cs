@@ -106,7 +106,7 @@ public class Simulacrum : IDalamudPlugin
             tracker.Pause();
         }));
 
-        _commandManager.AddHandler("/simskip", new CommandInfo((_, arguments) =>
+        _commandManager.AddHandler("/simskip3", new CommandInfo((_, arguments) =>
         {
             if (arguments.IsNullOrEmpty())
             {
@@ -119,10 +119,10 @@ public class Simulacrum : IDalamudPlugin
                 return;
             }
 
-            tracker.Pan(tracker.GetTime() + TimeSpan.FromSeconds(5));
+            tracker.Pan(tracker.GetTime() + TimeSpan.FromSeconds(3));
         }));
 
-        _commandManager.AddHandler("/simback", new CommandInfo((_, arguments) =>
+        _commandManager.AddHandler("/simback3", new CommandInfo((_, arguments) =>
         {
             if (arguments.IsNullOrEmpty())
             {
@@ -135,7 +135,39 @@ public class Simulacrum : IDalamudPlugin
                 return;
             }
 
-            tracker.Pan(tracker.GetTime() - TimeSpan.FromSeconds(5));
+            tracker.Pan(tracker.GetTime() - TimeSpan.FromSeconds(3));
+        }));
+
+        _commandManager.AddHandler("/simskip10", new CommandInfo((_, arguments) =>
+        {
+            if (arguments.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            if (tracker is null)
+            {
+                return;
+            }
+
+            tracker.Pan(tracker.GetTime() + TimeSpan.FromSeconds(10));
+        }));
+
+        _commandManager.AddHandler("/simback10", new CommandInfo((_, arguments) =>
+        {
+            if (arguments.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            if (tracker is null)
+            {
+                return;
+            }
+
+            tracker.Pan(tracker.GetTime() - TimeSpan.FromSeconds(10));
         }));
 
         _commandManager.AddHandler("/simcreate", new CommandInfo((_, _) =>
@@ -412,8 +444,10 @@ public class Simulacrum : IDalamudPlugin
 
         _commandManager.RemoveHandler("/simplay");
         _commandManager.RemoveHandler("/simpause");
-        _commandManager.RemoveHandler("/simskip");
-        _commandManager.RemoveHandler("/simback");
+        _commandManager.RemoveHandler("/simskip3");
+        _commandManager.RemoveHandler("/simback3");
+        _commandManager.RemoveHandler("/simskip10");
+        _commandManager.RemoveHandler("/simback10");
         _commandManager.RemoveHandler("/simplace");
         _commandManager.RemoveHandler("/simcreate");
 

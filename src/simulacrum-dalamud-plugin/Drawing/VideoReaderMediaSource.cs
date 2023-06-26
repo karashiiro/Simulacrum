@@ -74,19 +74,27 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _unsubscribePlay = _sync.OnPlay().Subscribe(_ => _wavePlayer.Play());
         _unsubscribePan = _sync.OnPan().Subscribe(targetPts =>
         {
-            if (!_reader.SeekAudioStream(targetPts.TotalSeconds))
+            var audioDiff = targetPts - _waveProvider.PlaybackPosition;
+            if (audioDiff < TimeSpan.Zero || audioDiff > TimeSpan.FromSeconds(5))
             {
-                PluginLog.LogWarning("Failed to seek through audio stream");
+                if (!_reader.SeekAudioStream(targetPts.TotalSeconds))
+                {
+                    PluginLog.LogWarning("Failed to seek through audio stream");
+                }
+
+                _audioFlushRequested = true;
             }
 
-            _audioFlushRequested = true;
-
-            if (!_reader.SeekVideoFrame(targetPts.TotalSeconds))
+            var videoDiff = targetPts - _nextPts;
+            if (videoDiff < TimeSpan.Zero || videoDiff > TimeSpan.FromSeconds(5))
             {
-                PluginLog.LogWarning("Failed to seek through video stream");
-            }
+                if (!_reader.SeekVideoFrame(targetPts.TotalSeconds))
+                {
+                    PluginLog.LogWarning("Failed to seek through video stream");
+                }
 
-            _nextPts = targetPts + _reader.VideoFrameDelay;
+                _nextPts = targetPts + _reader.VideoFrameDelay;
+            }
         });
     }
 
