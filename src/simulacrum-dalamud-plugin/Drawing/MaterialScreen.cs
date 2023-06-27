@@ -72,6 +72,7 @@ public class MaterialScreen : IScreen, IDisposable
         }
 
         _source.RenderTo(_buffer, out _delay);
+        _stopwatch.Restart();
 
         _texture?.Mutate((sub, desc) =>
         {
