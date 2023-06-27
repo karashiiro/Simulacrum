@@ -42,7 +42,8 @@ public partial class VideoReader : IDisposable
     public bool ReadVideoFrame(Span<byte> frameBuffer, double targetPts, out double pts)
     {
         pts = 0;
-        return _ptr != nint.Zero && VideoReaderReadVideoFrame(_ptr, frameBuffer, targetPts, out pts);
+        return _ptr != nint.Zero &&
+               VideoReaderReadVideoFrame(_ptr, frameBuffer, frameBuffer.Length, targetPts, out pts);
     }
 
     public bool SeekVideoFrame(double targetPts)
@@ -102,8 +103,8 @@ public partial class VideoReader : IDisposable
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderReadVideoFrame")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool VideoReaderReadVideoFrame(nint reader, Span<byte> frameBuffer, in double targetPts,
-        out double pts);
+    internal static partial bool VideoReaderReadVideoFrame(nint reader, Span<byte> frameBuffer, int len,
+        in double targetPts, out double pts);
 
     [LibraryImport("Simulacrum.AV.Core.dll", EntryPoint = "VideoReaderSeekVideoFrame")]
     [return: MarshalAs(UnmanagedType.Bool)]

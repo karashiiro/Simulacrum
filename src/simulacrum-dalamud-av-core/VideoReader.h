@@ -45,7 +45,7 @@ namespace Simulacrum::AV::Core
          * \param pts The timestamp of the actual frame that was read.
          * \return `true` if a frame was read successfully; otherwise `false`.
          */
-        bool ReadVideoFrame(uint8_t* frame_buffer, const double& target_pts, double& pts);
+        bool ReadVideoFrame(uint8_t* frame_buffer, int len, const double& target_pts, double& pts);
 
         /**
          * \brief Seeks to the specified position in the file's audio stream. Note that not all stream
@@ -148,7 +148,7 @@ namespace Simulacrum::AV::Core
          * \param frame_buffer The frame buffer to write output data into. It must support
          * width * height * pixel_size elements.
          */
-        void CopyScaledVideo(uint8_t* frame_buffer) const;
+        bool CopyScaledVideo(uint8_t* frame_buffer, int frame_buffer_len) const;
 
         /**
          * \brief Initializes the audio resampler context.
@@ -197,10 +197,11 @@ inline DllExport int VideoReaderReadAudioStream(
 inline DllExport bool VideoReaderReadVideoFrame(
     Simulacrum::AV::Core::VideoReader* reader,
     uint8_t* frame_buffer,
+    int len,
     const double& target_pts,
     double& pts)
 {
-    return reader->ReadVideoFrame(frame_buffer, target_pts, pts);
+    return reader->ReadVideoFrame(frame_buffer, len, target_pts, pts);
 }
 
 inline DllExport bool VideoReaderSeekAudioStream(Simulacrum::AV::Core::VideoReader* reader, const double target_pts)

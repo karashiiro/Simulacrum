@@ -10,6 +10,7 @@ extern "C" {
 typedef int sample_container;
 
 constexpr auto out_sample_format = AV_SAMPLE_FMT_S32;
+constexpr auto out_pixel_format = AV_PIX_FMT_BGRA;
 
 enum
 {
@@ -67,6 +68,11 @@ static AVPixelFormat get_hardware_format([[maybe_unused]] AVCodecContext* ctx, c
 static double pts_to_seconds(const int64_t pts_raw, const AVRational time_base)
 {
     return static_cast<double>(pts_raw) * av_q2d(time_base);
+}
+
+static int64_t seconds_to_pts(const double seconds, const AVRational time_base)
+{
+    return static_cast<int64_t>(seconds / av_q2d(time_base));
 }
 
 Simulacrum::AV::Core::VideoReader::VideoReader()
@@ -247,6 +253,7 @@ int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, co
 
 bool Simulacrum::AV::Core::VideoReader::ReadVideoFrame(
     uint8_t* frame_buffer,
+    const int len,
     const double& target_pts,
     double& pts)
 {
@@ -260,9 +267,13 @@ bool Simulacrum::AV::Core::VideoReader::ReadVideoFrame(
         const auto best_effort_timestamp = video_stream.current_frame.best_effort_timestamp;
         if (best_effort_timestamp == AV_NOPTS_VALUE)
         {
-            pts = pts_to_seconds(video_stream.codec_ctx->frame_number, video_stream.codec_ctx->framerate);
-            video_frame_delay = pts - pts_to_seconds(video_last_frame_timestamp, video_stream.codec_ctx->framerate);
-            video_last_frame_timestamp = video_stream.codec_ctx->frame_number;
+            const auto [num, den] = video_stream.codec_ctx->framerate;
+            av_log(nullptr, AV_LOG_WARNING, "[user] tb=%d/%d n=%d", num, den, video_stream.codec_ctx->frame_number);
+            const AVRational frame_time{num, video_stream.codec_ctx->frame_number * den};
+
+            pts = av_q2d(frame_time);
+            video_frame_delay = 0.04;
+            video_last_frame_timestamp = seconds_to_pts(pts, video_stream.time_base);
         }
         else
         {
@@ -280,9 +291,9 @@ bool Simulacrum::AV::Core::VideoReader::ReadVideoFrame(
         return false;
     }
 
-    if (frame_buffer)
+    if (frame_buffer && !CopyScaledVideo(frame_buffer, len))
     {
-        CopyScaledVideo(frame_buffer);
+        return false;
     }
 
     return true;
@@ -551,14 +562,33 @@ bool Simulacrum::AV::Core::VideoReader::CopyResampledAudio(uint8_t* audio_buffer
     return true;
 }
 
-void Simulacrum::AV::Core::VideoReader::CopyScaledVideo(uint8_t* frame_buffer) const
+bool Simulacrum::AV::Core::VideoReader::CopyScaledVideo(uint8_t* frame_buffer, const int frame_buffer_len) const
 {
     uint8_t* dest[4] = {frame_buffer, nullptr, nullptr, nullptr};
     const int dest_linesize[4] = {width * 4, 0, 0, 0};
 
+    const auto w = video_stream.current_frame.width;
+    const auto h = video_stream.current_frame.height;
+
+    const auto req_size = av_image_get_buffer_size(out_pixel_format, w, h, 1);
+    if (req_size < 0)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Error getting required video buffer size: %s", av_make_error(req_size));
+        return false;
+    }
+
+    if (req_size > frame_buffer_len)
+    {
+        av_log(nullptr, AV_LOG_ERROR, "[user] Video frame buffer is too small: required=%d given=%d", req_size,
+               frame_buffer_len);
+        return false;
+    }
+
     // Rescale the frame into our expected format
-    sws_scale(sws_scaler_ctx, video_stream.current_frame.data, video_stream.current_frame.linesize, 0,
-              video_stream.current_frame.height, dest, dest_linesize);
+    sws_scale(sws_scaler_ctx, video_stream.current_frame.data, video_stream.current_frame.linesize, 0, h, dest,
+              dest_linesize);
+
+    return true;
 }
 
 bool Simulacrum::AV::Core::VideoReader::InitializeAudioResampler()
@@ -588,10 +618,11 @@ bool Simulacrum::AV::Core::VideoReader::InitializeAudioResampler()
 
 bool Simulacrum::AV::Core::VideoReader::InitializeVideoScaler()
 {
-    const auto source_pix_fmt = correct_for_deprecated_pixel_format(
+    const auto source_pixel_fmt = correct_for_deprecated_pixel_format(
         static_cast<AVPixelFormat>(video_stream.current_frame.format));
     sws_scaler_ctx = sws_getContext(video_stream.current_frame.width, video_stream.current_frame.height,
-                                    source_pix_fmt, width, height, AV_PIX_FMT_BGRA, SWS_BILINEAR, nullptr, nullptr,
+                                    source_pixel_fmt, width, height, out_pixel_format, SWS_BILINEAR | SWS_PRINT_INFO,
+                                    nullptr, nullptr,
                                     nullptr);
     if (!sws_scaler_ctx)
     {
