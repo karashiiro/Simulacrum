@@ -103,6 +103,12 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         VideoBuffer[.._videoBufferSize].CopyTo(buffer);
     }
 
+    public void RenderTo(Span<byte> buffer, out TimeSpan delay)
+    {
+        RenderTo(buffer);
+        delay = _reader.VideoFrameDelay;
+    }
+
     private void HandleAudioTick()
     {
         if (_audioFlushRequested)
