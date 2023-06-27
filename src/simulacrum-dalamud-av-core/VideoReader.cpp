@@ -245,8 +245,6 @@ int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, co
     return n_read;
 }
 
-#include <d3d11.h>
-
 bool Simulacrum::AV::Core::VideoReader::ReadVideoFrame(
     uint8_t* frame_buffer,
     const double& target_pts,
@@ -276,49 +274,15 @@ bool Simulacrum::AV::Core::VideoReader::ReadVideoFrame(
     }
     while (pts < target_pts);
 
-    if (frame_buffer && !hw_resources_failed)
+    // Initialize the scaler if needed, now that some data has been decoded into the codec context
+    if (!sws_scaler_ctx && !InitializeVideoScaler())
     {
-        auto* tex = reinterpret_cast<ID3D11Texture2D*>(video_stream.current_frame.data[0]);
-
-        ID3D11Device* device;
-        tex->GetDevice(&device);
-
-        ID3D11DeviceContext* context;
-        device->GetImmediateContext(&context);
-
-        D3D11_MAPPED_SUBRESOURCE subresource;
-        if (SUCCEEDED(context->Map(tex, 0, D3D11_MAP_READ, 0, &subresource)))
-        {
-            auto src = static_cast<const uint8_t*>(subresource.pData);
-            auto dst = frame_buffer;
-
-            // Perform a row-by-row copy of the source image to the destination texture
-            const auto row_size = width * 4;
-            for (auto i = 0; i < height; i++)
-            {
-                memcpy(dst, src, row_size);
-                dst += row_size;
-                src += subresource.RowPitch;
-            }
-
-            context->Unmap(tex, 0);
-        }
-
-        context->Release();
-        device->Release();
+        return false;
     }
-    else
-    {
-        // Initialize the scaler if needed, now that some data has been decoded into the codec context
-        if (!sws_scaler_ctx && !InitializeVideoScaler())
-        {
-            return false;
-        }
 
-        if (frame_buffer)
-        {
-            CopyScaledVideo(frame_buffer);
-        }
+    if (frame_buffer)
+    {
+        CopyScaledVideo(frame_buffer);
     }
 
     return true;
@@ -624,10 +588,11 @@ bool Simulacrum::AV::Core::VideoReader::InitializeAudioResampler()
 
 bool Simulacrum::AV::Core::VideoReader::InitializeVideoScaler()
 {
-    const auto source_pix_fmt = correct_for_deprecated_pixel_format(video_stream.codec_ctx->pix_fmt);
-    sws_scaler_ctx = sws_getContext(width, height, source_pix_fmt,
-                                    width, height, AV_PIX_FMT_BGRA,
-                                    SWS_BILINEAR, nullptr, nullptr, nullptr);
+    const auto source_pix_fmt = correct_for_deprecated_pixel_format(
+        static_cast<AVPixelFormat>(video_stream.current_frame.format));
+    sws_scaler_ctx = sws_getContext(video_stream.current_frame.width, video_stream.current_frame.height,
+                                    source_pix_fmt, width, height, AV_PIX_FMT_BGRA, SWS_BILINEAR, nullptr, nullptr,
+                                    nullptr);
     if (!sws_scaler_ctx)
     {
         av_log(nullptr, AV_LOG_ERROR, "[user] Could not allocate sws context");
