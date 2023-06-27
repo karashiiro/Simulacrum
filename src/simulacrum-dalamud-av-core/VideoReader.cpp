@@ -3,9 +3,9 @@
 #include <windows.h>
 #include "VideoReader.h"
 
-typedef int sample_container;
+typedef short sample_container;
 
-constexpr auto out_sample_format = AV_SAMPLE_FMT_S32;
+constexpr auto out_sample_format = AV_SAMPLE_FMT_S16;
 
 enum
 {
