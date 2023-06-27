@@ -18,7 +18,6 @@ public class MaterialScreen : IScreen, IDisposable
     private IMediaSource? _source;
     private IntVector2 _size;
     private TimeSpan _delay;
-    private int _n;
 
     public nint MaterialPointer => _material?.Pointer ?? nint.Zero;
 
