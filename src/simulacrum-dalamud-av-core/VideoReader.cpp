@@ -7,9 +7,9 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-typedef short sample_container;
+typedef int sample_container;
 
-constexpr auto out_sample_format = AV_SAMPLE_FMT_S16;
+constexpr auto out_sample_format = AV_SAMPLE_FMT_S32;
 
 enum
 {
@@ -245,6 +245,8 @@ int Simulacrum::AV::Core::VideoReader::ReadAudioStream(uint8_t* audio_buffer, co
     return n_read;
 }
 
+#include <d3d11.h>
+
 bool Simulacrum::AV::Core::VideoReader::ReadVideoFrame(
     uint8_t* frame_buffer,
     const double& target_pts,
@@ -258,25 +260,65 @@ bool Simulacrum::AV::Core::VideoReader::ReadVideoFrame(
         }
 
         const auto best_effort_timestamp = video_stream.current_frame.best_effort_timestamp;
-
-        pts = pts_to_seconds(best_effort_timestamp, video_stream.time_base);
-
-        const auto pts_diff = best_effort_timestamp - video_last_frame_timestamp;
-        video_frame_delay = pts_to_seconds(pts_diff, video_stream.time_base);
-
-        video_last_frame_timestamp = best_effort_timestamp;
+        if (best_effort_timestamp == AV_NOPTS_VALUE)
+        {
+            pts = pts_to_seconds(video_stream.codec_ctx->frame_number, video_stream.codec_ctx->framerate);
+            video_frame_delay = pts - pts_to_seconds(video_last_frame_timestamp, video_stream.codec_ctx->framerate);
+            video_last_frame_timestamp = video_stream.codec_ctx->frame_number;
+        }
+        else
+        {
+            pts = pts_to_seconds(best_effort_timestamp, video_stream.time_base);
+            const auto pts_diff = best_effort_timestamp - video_last_frame_timestamp;
+            video_frame_delay = pts_to_seconds(pts_diff, video_stream.time_base);
+            video_last_frame_timestamp = best_effort_timestamp;
+        }
     }
     while (pts < target_pts);
 
-    // Initialize the scaler if needed, now that some data has been decoded into the codec context
-    if (!sws_scaler_ctx && !InitializeVideoScaler())
+    if (frame_buffer && !hw_resources_failed)
     {
-        return false;
-    }
+        auto* tex = reinterpret_cast<ID3D11Texture2D*>(video_stream.current_frame.data[0]);
 
-    if (frame_buffer)
+        ID3D11Device* device;
+        tex->GetDevice(&device);
+
+        ID3D11DeviceContext* context;
+        device->GetImmediateContext(&context);
+
+        D3D11_MAPPED_SUBRESOURCE subresource;
+        if (SUCCEEDED(context->Map(tex, 0, D3D11_MAP_READ, 0, &subresource)))
+        {
+            auto src = static_cast<const uint8_t*>(subresource.pData);
+            auto dst = frame_buffer;
+
+            // Perform a row-by-row copy of the source image to the destination texture
+            const auto row_size = width * 4;
+            for (auto i = 0; i < height; i++)
+            {
+                memcpy(dst, src, row_size);
+                dst += row_size;
+                src += subresource.RowPitch;
+            }
+
+            context->Unmap(tex, 0);
+        }
+
+        context->Release();
+        device->Release();
+    }
+    else
     {
-        CopyScaledVideo(frame_buffer);
+        // Initialize the scaler if needed, now that some data has been decoded into the codec context
+        if (!sws_scaler_ctx && !InitializeVideoScaler())
+        {
+            return false;
+        }
+
+        if (frame_buffer)
+        {
+            CopyScaledVideo(frame_buffer);
+        }
     }
 
     return true;
@@ -485,10 +527,8 @@ bool Simulacrum::AV::Core::VideoReader::DecodeVideoFrame()
             av_log(nullptr, AV_LOG_ERROR, "[user] Error decoding hardware frame: %s", av_make_error(result));
             return false;
         }
-    }
 
-    if (hw_frame.format == hw_pixel_format)
-    {
+        av_frame_unref(&video_stream.current_frame);
         result = av_hwframe_transfer_data(&video_stream.current_frame, &hw_frame, 0);
         if (result < 0)
         {
