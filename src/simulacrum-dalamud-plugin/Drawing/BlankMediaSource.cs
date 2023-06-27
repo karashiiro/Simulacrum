@@ -9,6 +9,12 @@ public class BlankMediaSource : IMediaSource
         buffer.Clear();
     }
 
+    public void RenderTo(Span<byte> buffer, out TimeSpan delay)
+    {
+        RenderTo(buffer);
+        delay = TimeSpan.Zero;
+    }
+
     public int PixelSize()
     {
         return 0;

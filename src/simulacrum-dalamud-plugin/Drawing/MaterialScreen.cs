@@ -1,4 +1,5 @@
-﻿using Dalamud.Interface;
+﻿using System.Diagnostics;
+using Dalamud.Interface;
 using Simulacrum.Drawing.Common;
 using Simulacrum.Game;
 
@@ -9,12 +10,15 @@ public class MaterialScreen : IScreen, IDisposable
     private readonly TextureFactory _textureFactory;
     private readonly UiBuilder _ui;
     private readonly Location _location;
+    private readonly Stopwatch _stopwatch;
 
     private byte[] _buffer;
     private Material? _material;
     private TextureBootstrap? _texture;
     private IMediaSource? _source;
     private IntVector2 _size;
+    private TimeSpan _delay;
+    private int _n;
 
     public nint MaterialPointer => _material?.Pointer ?? nint.Zero;
 
@@ -27,6 +31,8 @@ public class MaterialScreen : IScreen, IDisposable
         _textureFactory = textureFactory;
         _ui = ui;
         _location = location;
+        _stopwatch = new Stopwatch();
+        _stopwatch.Start();
 
         // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui
         _ui.Draw += Draw;
@@ -43,7 +49,7 @@ public class MaterialScreen : IScreen, IDisposable
 
     private void Draw()
     {
-        if (_source == null || _texture?.TexturePointer == nint.Zero) return;
+        if (_source == null || _texture?.TexturePointer == nint.Zero || _stopwatch.Elapsed < _delay) return;
 
         var sourceSize = _source.Size();
         if (_size != sourceSize)
@@ -66,7 +72,7 @@ public class MaterialScreen : IScreen, IDisposable
             _ = RebuildMaterial(sourceWidth, sourceHeight);
         }
 
-        _source.RenderTo(_buffer);
+        _source.RenderTo(_buffer, out _delay);
 
         _texture?.Mutate((sub, desc) =>
         {

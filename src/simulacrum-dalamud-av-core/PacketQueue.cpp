@@ -7,13 +7,13 @@ PacketQueue::~PacketQueue()
 
 void PacketQueue::Push(AVPacket* packet)
 {
-    const std::lock_guard lock(mtx);
+    const std::unique_lock lock(mtx);
     packets.push(packet);
 }
 
 bool PacketQueue::Pop(AVPacket*& packet)
 {
-    const std::lock_guard lock(mtx);
+    const std::unique_lock lock(mtx);
     if (packets.empty())
     {
         return false;
@@ -27,7 +27,7 @@ bool PacketQueue::Pop(AVPacket*& packet)
 
 void PacketQueue::Flush()
 {
-    const std::lock_guard lock(mtx);
+    const std::unique_lock lock(mtx);
     while (!packets.empty())
     {
         auto* packet = packets.front();
@@ -38,6 +38,6 @@ void PacketQueue::Flush()
 
 size_t PacketQueue::Size()
 {
-    const std::lock_guard lock(mtx);
+    const std::unique_lock lock(mtx);
     return packets.size();
 }
