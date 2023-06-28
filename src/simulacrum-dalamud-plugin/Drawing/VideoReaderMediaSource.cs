@@ -26,7 +26,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     private readonly ConcurrentQueue<BufferQueueNode> _audioBufferQueue;
     private readonly BufferQueueWaveProvider _waveProvider;
-    private readonly IWavePlayer _wavePlayer;
+    private readonly IWavePlayer _wavePlayer; // TODO: Move this into the screen class for spatial audio
     private readonly Thread _audioThread;
 
     private readonly IReadOnlyPlaybackTracker _sync;
