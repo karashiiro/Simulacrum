@@ -3,7 +3,7 @@ using NAudio.Wave;
 
 namespace Simulacrum.Drawing;
 
-// TODO: This may need to be moved into native code, since we have 3 buffer copies between the audio frame and NAudio.
+// TODO: This may need to be moved into native code, since we have at least 3 buffer copies between the audio frame and NAudio.
 public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 {
     private readonly SemaphoreSlim _lock;
@@ -18,11 +18,22 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     public TimeSpan PlaybackPosition => _currentNodePts + GetDurationForByteCount(_currentNodeIndex);
 
-    public BufferQueueWaveProvider(ConcurrentQueue<BufferQueueNode> bufferQueue, WaveFormat waveFormat)
+    public int Count => _bufferQueue.Count;
+
+    public BufferQueueWaveProvider(WaveFormat waveFormat)
     {
         _lock = new SemaphoreSlim(1, 1);
-        _bufferQueue = bufferQueue;
+        _bufferQueue = new ConcurrentQueue<BufferQueueNode>();
         WaveFormat = waveFormat;
+    }
+
+    /// <summary>
+    /// Enqueues a node for playback.
+    /// </summary>
+    /// <param name="node">The node to enqueue.</param>
+    public void Enqueue(BufferQueueNode node)
+    {
+        _bufferQueue.Enqueue(node);
     }
 
     /// <summary>
@@ -238,6 +249,14 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
     public void Dispose()
     {
         _currentNode?.Dispose();
+
+        foreach (var bufferNode in _bufferQueue)
+        {
+            bufferNode.Dispose();
+        }
+
+        _bufferQueue.Clear();
+
         GC.SuppressFinalize(this);
     }
 }

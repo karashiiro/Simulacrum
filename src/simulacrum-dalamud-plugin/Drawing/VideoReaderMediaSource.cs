@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using Dalamud.Logging;
 using NAudio.Wave;
@@ -24,7 +23,6 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     // This needs to be a dedicated thread or else playback can get choppy randomly
     private readonly Thread _videoThread;
 
-    private readonly ConcurrentQueue<BufferQueueNode> _audioBufferQueue;
     private readonly BufferQueueWaveProvider _waveProvider;
     private readonly IWavePlayer _wavePlayer; // TODO: Move this into the screen class for spatial audio
     private readonly Thread _audioThread;
@@ -62,9 +60,9 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _videoThread = new Thread(VideoLoop);
         _videoThread.Start();
 
-        _audioBufferQueue = new ConcurrentQueue<BufferQueueNode>();
-        _waveProvider = new BufferQueueWaveProvider(_audioBufferQueue,
-            new WaveFormat(_reader.SampleRate, _reader.BitsPerSample, _reader.AudioChannelCount));
+        _waveProvider =
+            new BufferQueueWaveProvider(new WaveFormat(_reader.SampleRate, _reader.BitsPerSample,
+                _reader.AudioChannelCount));
         _wavePlayer = new DirectSoundOut();
         _wavePlayer.Init(_waveProvider);
         _audioThread = new Thread(AudioLoop);
@@ -153,14 +151,14 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     private int BufferAudio()
     {
-        if (_audioBufferQueue.Count > AudioBufferQueueMaxItems)
+        if (_waveProvider.Count > AudioBufferQueueMaxItems)
         {
             // Ensure we don't have too many large buffers floating around at once
             return 0;
         }
 
         // Rent a buffer for the audio data; we want it to be larger when we have fewer buffers already
-        var audioBufferScale = Convert.ToDouble(AudioBufferQueueMaxItems) / Math.Max(_audioBufferQueue.Count, 1);
+        var audioBufferScale = Convert.ToDouble(AudioBufferQueueMaxItems) / Math.Max(_waveProvider.Count, 1);
         var audioBufferSize = Convert.ToInt32(AudioBufferMinSize * audioBufferScale);
         var audioBuffer = ArrayPool<byte>.Shared.Rent(audioBufferSize);
         var audioSpan = audioBuffer.AsSpan(0, audioBufferSize);
@@ -168,7 +166,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         var audioBytesRead = _reader.ReadAudioStream(audioSpan, out var pts);
         if (audioBytesRead > 0)
         {
-            _audioBufferQueue.Enqueue(new BufferQueueNode(audioBuffer, audioBytesRead, pts,
+            _waveProvider.Enqueue(new BufferQueueNode(audioBuffer, audioBytesRead, pts,
                 buffer => ArrayPool<byte>.Shared.Return(buffer)));
         }
         else
@@ -257,13 +255,6 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _reader.Dispose();
         _wavePlayer.Dispose();
         _waveProvider.Dispose();
-
-        foreach (var bufferNode in _audioBufferQueue)
-        {
-            bufferNode.Dispose();
-        }
-
-        _audioBufferQueue.Clear();
 
         Marshal.FreeHGlobal(_videoBufferPtr);
         GC.SuppressFinalize(this);
