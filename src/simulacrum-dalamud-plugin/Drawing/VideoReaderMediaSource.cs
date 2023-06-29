@@ -9,7 +9,7 @@ namespace Simulacrum.Drawing;
 
 public class VideoReaderMediaSource : IMediaSource, IDisposable
 {
-    private const int AudioBufferMinSize = 65536;
+    private const int AudioBufferMaxSize = 262144;
     private const int AudioBufferQueueMaxItems = 8;
 
     private static readonly TimeSpan AudioSyncThreshold = TimeSpan.FromMilliseconds(100);
@@ -157,9 +157,9 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             return 0;
         }
 
-        // Rent a buffer for the audio data; we want it to be larger when we have fewer buffers already
-        var audioBufferScale = Convert.ToDouble(AudioBufferQueueMaxItems) / Math.Max(_waveProvider.Count, 1);
-        var audioBufferSize = Convert.ToInt32(AudioBufferMinSize * audioBufferScale);
+        // Rent a buffer for the audio data; it needs to be shorter when we have fewer buffers, to resume playback ASAP
+        var audioBufferScale = Convert.ToDouble(Math.Max(_waveProvider.Count, 1)) / AudioBufferQueueMaxItems;
+        var audioBufferSize = Convert.ToInt32(AudioBufferMaxSize * audioBufferScale);
         var audioBuffer = ArrayPool<byte>.Shared.Rent(audioBufferSize);
         var audioSpan = audioBuffer.AsSpan(0, audioBufferSize);
 
@@ -186,7 +186,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
                 HandleAudioTick();
 
                 var bytesPerSecond = Convert.ToDouble(_waveProvider.WaveFormat.AverageBytesPerSecond);
-                var delay = TimeSpan.FromSeconds(AudioBufferMinSize / bytesPerSecond);
+                var audioBufferMinSize = Convert.ToDouble(AudioBufferMaxSize) / AudioBufferQueueMaxItems;
+                var delay = TimeSpan.FromSeconds(audioBufferMinSize / bytesPerSecond);
                 Thread.Sleep(delay / 2);
             }
             catch (Exception e)
