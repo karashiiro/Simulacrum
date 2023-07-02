@@ -235,7 +235,8 @@ public class AudioBufferQueue : IWaveProvider, IDisposable
 
     public void Dispose()
     {
-        _bufferQueue.Clear();
+        _bufferQueueNodes.Dispose();
+        _bufferQueue.Dispose();
 
         GC.SuppressFinalize(this);
     }
