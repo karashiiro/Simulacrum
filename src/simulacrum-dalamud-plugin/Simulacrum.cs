@@ -363,7 +363,7 @@ public class Simulacrum : IDalamudPlugin
         switch (dto.Meta)
         {
             case HostctlEvent.BlankMetadata:
-                _mediaSources.AddMediaSource(dto.Id, new BlankMediaSource());
+                _mediaSources.AddMediaSource(dto.Id, new EmptyMediaSource());
                 break;
             case HostctlEvent.ImageMetadata:
                 // TODO
