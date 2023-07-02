@@ -1,13 +1,15 @@
 ﻿using NAudio.Wave;
+using Simulacrum.AV.Buffers;
 
 namespace Simulacrum.Drawing;
 
 // TODO: This may need to be moved into native code, since we have at least 3 buffer copies between the audio frame and NAudio.
-public class BufferQueueWaveProvider : IWaveProvider, IDisposable
+public class AudioBufferQueue : IWaveProvider, IDisposable
 {
     private readonly SemaphoreSlim _lock;
-    private readonly BufferQueue<BufferQueueNode> _bufferQueue;
-    private BufferQueueNode? _currentNode;
+    private readonly StreamingQueue<AudioBufferNode> _bufferQueue;
+    private readonly IEnumerator<StreamingQueueNodeRef<AudioBufferNode>?> _bufferQueueNodes;
+    private AudioBufferNode? _currentNode;
     private int _currentNodeIndex;
     private int _currentNodeSize;
     private TimeSpan _currentNodePts;
@@ -17,12 +19,11 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     public TimeSpan PlaybackPosition => _currentNodePts + GetDurationForByteCount(_currentNodeIndex);
 
-    public int Count => _bufferQueue.Count;
-
-    public BufferQueueWaveProvider(WaveFormat waveFormat)
+    public AudioBufferQueue(WaveFormat waveFormat)
     {
         _lock = new SemaphoreSlim(1, 1);
-        _bufferQueue = new BufferQueue<BufferQueueNode>();
+        _bufferQueue = new StreamingQueue<AudioBufferNode>();
+        _bufferQueueNodes = _bufferQueue.GetEnumerator();
         WaveFormat = waveFormat;
     }
 
@@ -30,7 +31,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
     /// Enqueues a node for playback.
     /// </summary>
     /// <param name="node">The node to enqueue.</param>
-    public void Enqueue(BufferQueueNode node)
+    public void Enqueue(AudioBufferNode node)
     {
         _bufferQueue.Push(node);
     }
@@ -213,12 +214,8 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     private bool ReadNextNode()
     {
-        if (_bufferQueue.IsEmpty())
-        {
-            return false;
-        }
-
-        _currentNode = _bufferQueue.Pop();
+        _bufferQueueNodes.MoveNext();
+        _currentNode = _bufferQueueNodes.Current?.Value;
         if (_currentNode == null)
         {
             return false;

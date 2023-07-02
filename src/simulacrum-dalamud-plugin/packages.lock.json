@@ -211,7 +211,10 @@
         "contentHash": "fDkyTC4x13V5GX0HilD7ime3K/oA9edbc9+kL0zUfCt9ER3BPJevsJad6t3S1NcHG9lErrPVPsQaRWm9HJTbZQ=="
       },
       "simulacrum.av": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "System.Reactive": "[6.0.0, )"
+        }
       },
       "simulacrum.hostctl": {
         "type": "Project",

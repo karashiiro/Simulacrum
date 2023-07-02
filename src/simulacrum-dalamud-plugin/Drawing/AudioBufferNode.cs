@@ -1,6 +1,6 @@
 ﻿namespace Simulacrum.Drawing;
 
-public class BufferQueueNode
+public class AudioBufferNode
 {
     private readonly Action<byte[]> _cleanup;
     private readonly byte[] _buffer;
@@ -10,7 +10,7 @@ public class BufferQueueNode
 
     public Span<byte> Span => _buffer.AsSpan(0, _length);
 
-    public BufferQueueNode(byte[] buffer, int length, double pts, Action<byte[]> cleanup)
+    public AudioBufferNode(byte[] buffer, int length, double pts, Action<byte[]> cleanup)
     {
         _cleanup = cleanup;
         _buffer = buffer;
@@ -19,7 +19,7 @@ public class BufferQueueNode
         Pts = pts;
     }
 
-    ~BufferQueueNode()
+    ~AudioBufferNode()
     {
         _cleanup(_buffer);
     }
