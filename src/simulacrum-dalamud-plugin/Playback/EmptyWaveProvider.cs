@@ -1,6 +1,6 @@
 ﻿using NAudio.Wave;
 
-namespace Simulacrum.Drawing;
+namespace Simulacrum.Playback;
 
 public class EmptyWaveProvider : IWaveProvider
 {

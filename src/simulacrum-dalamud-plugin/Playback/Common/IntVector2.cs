@@ -1,6 +1,6 @@
 ﻿using Thinktecture;
 
-namespace Simulacrum.Drawing.Common;
+namespace Simulacrum.Playback.Common;
 
 [ValueObject]
 public readonly partial struct IntVector2

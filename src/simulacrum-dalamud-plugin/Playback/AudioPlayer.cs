@@ -1,7 +1,7 @@
 ﻿using NAudio.Wave;
-using Simulacrum.Drawing.Common;
+using Simulacrum.Playback.Common;
 
-namespace Simulacrum.Drawing;
+namespace Simulacrum.Playback;
 
 public class AudioPlayer : IDisposable
 {

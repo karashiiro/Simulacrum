@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using Dalamud.Interface;
-using Simulacrum.Drawing.Common;
 using Simulacrum.Game;
+using Simulacrum.Playback.Common;
 
-namespace Simulacrum.Drawing;
+namespace Simulacrum.Playback;
 
 public class MaterialScreen : IScreen, IDisposable
 {

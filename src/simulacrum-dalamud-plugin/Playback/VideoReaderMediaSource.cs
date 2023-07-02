@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 using Dalamud.Logging;
 using NAudio.Wave;
 using Simulacrum.AV;
-using Simulacrum.Drawing.Common;
+using Simulacrum.Playback.Common;
 
-namespace Simulacrum.Drawing;
+namespace Simulacrum.Playback;
 
 public class VideoReaderMediaSource : IMediaSource, IDisposable
 {
@@ -24,7 +24,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     // This needs to be a dedicated thread or else playback can get choppy randomly
     private readonly Thread _videoThread;
 
-    private readonly AudioBufferQueue _waveProvider;
+    private readonly StreamingWaveProvider _waveProvider;
     private readonly Subject<bool> _audioBuffered;
     private readonly Thread _audioThread;
 
@@ -60,7 +60,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _videoThread.Start();
 
         _waveProvider =
-            new AudioBufferQueue(new WaveFormat(_reader.SampleRate, _reader.BitsPerSample,
+            new StreamingWaveProvider(new WaveFormat(_reader.SampleRate, _reader.BitsPerSample,
                 _reader.AudioChannelCount));
         _audioBuffered = new Subject<bool>();
         _audioThread = new Thread(AudioLoop);
@@ -100,7 +100,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     public IWaveProvider WaveProvider()
     {
-        return _waveProvider;
+        return _waveProvider.CreateLinkedProvider();
     }
 
     public IObservable<bool> OnAudioBuffered()
@@ -165,7 +165,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         var audioBytesRead = _reader.ReadAudioStream(audioSpan, out var pts);
         if (audioBytesRead > 0)
         {
-            _waveProvider.Enqueue(new AudioBufferNode(audioBuffer, audioBytesRead, pts,
+            _waveProvider.Enqueue(new StreamingWaveNode(audioBuffer, audioBytesRead, pts,
                 buffer => ArrayPool<byte>.Shared.Return(buffer)));
         }
         else

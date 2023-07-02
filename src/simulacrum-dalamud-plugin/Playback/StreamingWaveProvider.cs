@@ -1,15 +1,15 @@
 ﻿using NAudio.Wave;
 using Simulacrum.AV.Buffers;
 
-namespace Simulacrum.Drawing;
+namespace Simulacrum.Playback;
 
 // TODO: This may need to be moved into native code, since we have at least 3 buffer copies between the audio frame and NAudio.
-public class AudioBufferQueue : IWaveProvider, IDisposable
+public class StreamingWaveProvider : IWaveProvider, IDisposable
 {
     private readonly SemaphoreSlim _lock;
-    private readonly StreamingQueue<AudioBufferNode> _bufferQueue;
-    private readonly IEnumerator<StreamingQueueNodeRef<AudioBufferNode>?> _bufferQueueNodes;
-    private AudioBufferNode? _currentNode;
+    private readonly StreamingQueue<StreamingWaveNode> _bufferQueue;
+    private readonly IEnumerator<StreamingQueueNodeRef<StreamingWaveNode>?> _bufferQueueNodes;
+    private StreamingWaveNode? _currentNode;
     private int _currentNodeIndex;
     private int _currentNodeSize;
     private TimeSpan _currentNodePts;
@@ -19,19 +19,24 @@ public class AudioBufferQueue : IWaveProvider, IDisposable
 
     public TimeSpan PlaybackPosition => _currentNodePts + GetDurationForByteCount(_currentNodeIndex);
 
-    public AudioBufferQueue(WaveFormat waveFormat)
+    public StreamingWaveProvider(WaveFormat waveFormat)
     {
         _lock = new SemaphoreSlim(1, 1);
-        _bufferQueue = new StreamingQueue<AudioBufferNode>();
+        _bufferQueue = new StreamingQueue<StreamingWaveNode>();
         _bufferQueueNodes = _bufferQueue.GetEnumerator();
         WaveFormat = waveFormat;
+    }
+
+    public IWaveProvider CreateLinkedProvider()
+    {
+        return new LinkedStreamingWaveProvider(this);
     }
 
     /// <summary>
     /// Enqueues a node for playback.
     /// </summary>
     /// <param name="node">The node to enqueue.</param>
-    public void Enqueue(AudioBufferNode node)
+    public void Enqueue(StreamingWaveNode node)
     {
         _bufferQueue.Push(node);
     }

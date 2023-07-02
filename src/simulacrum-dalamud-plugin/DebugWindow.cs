@@ -3,21 +3,21 @@ using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using ImGuiScene;
-using Simulacrum.Drawing;
+using Simulacrum.Playback;
 
 namespace Simulacrum;
 
 public class DebugWindow : Window
 {
-    private readonly MaterialScreenManager _materialScreens;
+    private readonly ScreenManager _screens;
     private readonly MediaSourceManager _mediaSources;
 
     private TextureWrap? _currentView;
 
-    public DebugWindow(MaterialScreenManager materialScreens, MediaSourceManager mediaSources) : base(
+    public DebugWindow(ScreenManager screens, MediaSourceManager mediaSources) : base(
         "Simulacrum Debug")
     {
-        _materialScreens = materialScreens;
+        _screens = screens;
         _mediaSources = mediaSources;
 
         IsOpen = true;
@@ -28,7 +28,7 @@ public class DebugWindow : Window
         ImGui.Columns(2);
 
         ImGui.Text("Screens");
-        ImGuiTable.DrawTable("Screens", _materialScreens.ScreenEntries, kvp =>
+        ImGuiTable.DrawTable("Screens", _screens.ScreenEntries, kvp =>
         {
             var (id, screen) = kvp;
 
@@ -39,9 +39,9 @@ public class DebugWindow : Window
             }
 
             ImGui.TableSetColumnIndex(1);
-            if (ImGui.Button("Show###SimulacrumShowScreen"))
+            if (screen is MaterialScreen materialScreen && ImGui.Button("Show###SimulacrumShowScreen"))
             {
-                _currentView = screen.ImGuiTextureWrap;
+                _currentView = materialScreen.ImGuiTextureWrap;
             }
 
             ImGui.TableSetColumnIndex(2);
