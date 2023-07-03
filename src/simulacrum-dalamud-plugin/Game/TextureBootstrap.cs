@@ -13,6 +13,7 @@ namespace Simulacrum.Game;
 public class TextureBootstrap : IDisposable
 {
     private readonly SigScanner _sigScanner;
+    private readonly Framework _framework;
 
     private unsafe ApricotTexture* _apricotTexture;
 
@@ -24,9 +25,10 @@ public class TextureBootstrap : IDisposable
         ? (nint)_apricotTexture->Texture
         : nint.Zero;
 
-    public TextureBootstrap(SigScanner sigScanner)
+    public TextureBootstrap(SigScanner sigScanner, Framework framework)
     {
         _sigScanner = sigScanner;
+        _framework = framework;
     }
 
     public unsafe void Mutate(Action<MappedSubresource, Texture2DDesc> mutate)
@@ -50,7 +52,7 @@ public class TextureBootstrap : IDisposable
         dxContext->Unmap(dxResource, 0);
     }
 
-    public async ValueTask Initialize(int width, int height, CancellationToken cancellationToken)
+    public async Task Initialize(int width, int height, CancellationToken cancellationToken)
     {
         // TODO: Clean up this signature
         var addr = _sigScanner.ScanText(
@@ -127,19 +129,19 @@ public class TextureBootstrap : IDisposable
         }
     }
 
-    private static async ValueTask<nint> CreateTexture(
+    private async Task<nint> CreateTexture(
         CreateApricotTextureFromTex easyCreate,
         nint texPtr,
         int texLength,
         CancellationToken cancellationToken)
     {
-        var apricotTexture = easyCreate(nint.Zero, texPtr, texLength);
+        var apricotTexture = await _framework.RunOnFrameworkThread(() => easyCreate(nint.Zero, texPtr, texLength));
 
         // If the graphics subsystem hasn't been initialized yet, easyCreate will return a null pointer.
         while (apricotTexture == nint.Zero)
         {
             await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
-            apricotTexture = easyCreate(nint.Zero, texPtr, texLength);
+            apricotTexture = await _framework.RunOnFrameworkThread(() => easyCreate(nint.Zero, texPtr, texLength));
         }
 
         return apricotTexture;

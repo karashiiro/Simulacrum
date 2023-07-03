@@ -46,6 +46,7 @@ public class Simulacrum : IDalamudPlugin
         [RequiredVersion("1.0")] ClientState clientState,
         [RequiredVersion("1.0")] CommandManager commandManager,
         [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
+        [RequiredVersion("1.0")] Framework framework,
         [RequiredVersion("1.0")] SigScanner sigScanner)
     {
         InstallAVLogHandler();
@@ -64,7 +65,7 @@ public class Simulacrum : IDalamudPlugin
         _mediaSources = new MediaSourceManager();
         _playbackTrackers = new PlaybackTrackerManager();
         _materialScreens = new MaterialScreenManager();
-        _textureFactory = new TextureFactory(sigScanner);
+        _textureFactory = new TextureFactory(sigScanner, framework);
 
         _windows = new WindowSystem("Simulacrum");
         _customizationWindow = new CustomizationWindow();
