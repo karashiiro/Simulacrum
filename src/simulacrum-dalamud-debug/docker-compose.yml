@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./devenv/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    extra_hosts:
+      # Grafana and Prometheus need to reach out to the application for stats
+      - host.docker.internal:host-gateway
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 9000:3000
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./devenv/dashboards:/etc/dashboards
+      - ./devenv/grafana:/var/lib/grafana
+      - ./devenv/grafana/provisioning:/etc/grafana/provisioning

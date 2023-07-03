@@ -1,0 +1,7 @@
+apiVersion: 1
+datasources:
+  - name: Simulacrum Prometheus
+    type: prometheus
+    access: proxy
+    uid: simulacrum-prometheus
+    url: http://host.docker.internal:9090

@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using Dalamud.Logging;
 using NAudio.Wave;
+using Prometheus;
 using Simulacrum.AV;
 using Simulacrum.Drawing.Common;
 
@@ -11,6 +12,10 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 {
     private const int AudioBufferMinSize = 65536;
     private const int AudioBufferQueueMaxItems = 8;
+
+    private static readonly IHistogram VideoReaderRenderDuration =
+        DebugMetrics.CreateHistogram("simulacrum_video_reader_render_duration",
+            "The render duration of the video reader.");
 
     private static readonly TimeSpan AudioSyncThreshold = TimeSpan.FromMilliseconds(100);
 
@@ -211,6 +216,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             // Don't trust the pts if we failed to read a frame.
             return;
         }
+
+        VideoReaderRenderDuration.Observe(_sync.GetTime().TotalSeconds - t.TotalSeconds);
 
         _nextPts = t + _reader.VideoFrameDelay;
     }

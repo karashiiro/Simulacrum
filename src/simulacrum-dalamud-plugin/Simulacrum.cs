@@ -38,6 +38,7 @@ public class Simulacrum : IDalamudPlugin
     private readonly Task _task;
 
     private IDisposable? _unsubscribe;
+    private DebugMetrics? _debugMetrics;
     private GCHandle? _logFunctionHandle;
     private HostctlClient? _hostctl;
     private IList<IDisposable> _hostctlBag;
@@ -50,6 +51,7 @@ public class Simulacrum : IDalamudPlugin
         [RequiredVersion("1.0")] SigScanner sigScanner)
     {
         InstallAVLogHandler();
+        InstallDebugMetricsServer();
 
         _clientState = clientState;
         _commandManager = commandManager;
@@ -392,6 +394,13 @@ public class Simulacrum : IDalamudPlugin
     }
 
     [Conditional("DEBUG")]
+    private void InstallDebugMetricsServer()
+    {
+        _debugMetrics = new DebugMetrics();
+        _debugMetrics.Start();
+    }
+
+    [Conditional("DEBUG")]
     private void InstallAVLogHandler()
     {
         var logFunction = new AVLog.AVLogCallback(HandleAVLog);
@@ -482,6 +491,8 @@ public class Simulacrum : IDalamudPlugin
         }
 
         _hostctl?.Dispose();
+
+        _debugMetrics?.Dispose();
 
         UninstallAVLogHandler();
     }
