@@ -13,8 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulacrum.AV", "src\simula
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulacrum.Hostctl", "src\simulacrum-dalamud-hostctl\Simulacrum.Hostctl.csproj", "{915AF81D-CFDA-4F12-8BF1-703FA4909C95}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulacrum.AV.Tests", "src\simulacrum-dalamud-av-tests\Simulacrum.AV.Tests.csproj", "{013E02E7-B7A4-410F-98A9-8224BCB83E44}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,14 +57,6 @@ Global
 		{915AF81D-CFDA-4F12-8BF1-703FA4909C95}.Release|Any CPU.Build.0 = Release|Any CPU
 		{915AF81D-CFDA-4F12-8BF1-703FA4909C95}.Release|x64.ActiveCfg = Release|Any CPU
 		{915AF81D-CFDA-4F12-8BF1-703FA4909C95}.Release|x64.Build.0 = Release|Any CPU
-		{013E02E7-B7A4-410F-98A9-8224BCB83E44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{013E02E7-B7A4-410F-98A9-8224BCB83E44}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{013E02E7-B7A4-410F-98A9-8224BCB83E44}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{013E02E7-B7A4-410F-98A9-8224BCB83E44}.Debug|x64.Build.0 = Debug|Any CPU
-		{013E02E7-B7A4-410F-98A9-8224BCB83E44}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{013E02E7-B7A4-410F-98A9-8224BCB83E44}.Release|Any CPU.Build.0 = Release|Any CPU
-		{013E02E7-B7A4-410F-98A9-8224BCB83E44}.Release|x64.ActiveCfg = Release|Any CPU
-		{013E02E7-B7A4-410F-98A9-8224BCB83E44}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

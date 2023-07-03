@@ -9,7 +9,8 @@ namespace Simulacrum.Drawing;
 
 public class VideoReaderMediaSource : IMediaSource, IDisposable
 {
-    private const int AudioBufferSize = 65536;
+    private const int AudioBufferMaxSize = 262144;
+    private const int AudioBufferQueueMaxItems = 8;
 
     private static readonly TimeSpan AudioSyncThreshold = TimeSpan.FromMilliseconds(100);
 
@@ -22,7 +23,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     // This needs to be a dedicated thread or else playback can get choppy randomly
     private readonly Thread _videoThread;
 
-    private readonly AudioBufferQueue _waveProvider;
+    private readonly BufferQueueWaveProvider _waveProvider;
     private readonly IWavePlayer _wavePlayer; // TODO: Move this into the screen class for spatial audio
     private readonly Thread _audioThread;
 
@@ -60,7 +61,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _videoThread.Start();
 
         _waveProvider =
-            new AudioBufferQueue(new WaveFormat(_reader.SampleRate, _reader.BitsPerSample,
+            new BufferQueueWaveProvider(new WaveFormat(_reader.SampleRate, _reader.BitsPerSample,
                 _reader.AudioChannelCount));
         _wavePlayer = new DirectSoundOut();
         _wavePlayer.Init(_waveProvider);
@@ -150,14 +151,22 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     private int BufferAudio()
     {
-        // Rent a buffer for the audio data
-        var audioBuffer = ArrayPool<byte>.Shared.Rent(AudioBufferSize);
-        var audioSpan = audioBuffer.AsSpan(0, AudioBufferSize);
+        if (_waveProvider.Count > AudioBufferQueueMaxItems)
+        {
+            // Ensure we don't have too many large buffers floating around at once
+            return 0;
+        }
+
+        // Rent a buffer for the audio data; it needs to be shorter when we have fewer buffers, to resume playback ASAP
+        var audioBufferScale = Convert.ToDouble(Math.Max(_waveProvider.Count, 1)) / AudioBufferQueueMaxItems;
+        var audioBufferSize = Convert.ToInt32(AudioBufferMaxSize * audioBufferScale);
+        var audioBuffer = ArrayPool<byte>.Shared.Rent(audioBufferSize);
+        var audioSpan = audioBuffer.AsSpan(0, audioBufferSize);
 
         var audioBytesRead = _reader.ReadAudioStream(audioSpan, out var pts);
         if (audioBytesRead > 0)
         {
-            _waveProvider.Enqueue(new AudioBufferNode(audioBuffer, audioBytesRead, pts,
+            _waveProvider.Enqueue(new BufferQueueNode(audioBuffer, audioBytesRead, pts,
                 buffer => ArrayPool<byte>.Shared.Return(buffer)));
         }
         else
@@ -177,7 +186,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
                 HandleAudioTick();
 
                 var bytesPerSecond = Convert.ToDouble(_waveProvider.WaveFormat.AverageBytesPerSecond);
-                var delay = TimeSpan.FromSeconds(AudioBufferSize / bytesPerSecond);
+                var audioBufferMinSize = Convert.ToDouble(AudioBufferMaxSize) / AudioBufferQueueMaxItems;
+                var delay = TimeSpan.FromSeconds(audioBufferMinSize / bytesPerSecond);
                 Thread.Sleep(delay / 2);
             }
             catch (Exception e)
