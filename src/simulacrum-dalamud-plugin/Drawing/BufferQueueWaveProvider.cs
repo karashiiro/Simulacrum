@@ -1,4 +1,5 @@
-﻿using NAudio.Wave;
+﻿using System.Collections.Concurrent;
+using NAudio.Wave;
 
 namespace Simulacrum.Drawing;
 
@@ -6,7 +7,7 @@ namespace Simulacrum.Drawing;
 public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 {
     private readonly SemaphoreSlim _lock;
-    private readonly BufferQueue<BufferQueueNode> _bufferQueue;
+    private readonly ConcurrentQueue<BufferQueueNode> _bufferQueue;
     private BufferQueueNode? _currentNode;
     private int _currentNodeIndex;
     private int _currentNodeSize;
@@ -22,7 +23,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
     public BufferQueueWaveProvider(WaveFormat waveFormat)
     {
         _lock = new SemaphoreSlim(1, 1);
-        _bufferQueue = new BufferQueue<BufferQueueNode>();
+        _bufferQueue = new ConcurrentQueue<BufferQueueNode>();
         WaveFormat = waveFormat;
     }
 
@@ -32,7 +33,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
     /// <param name="node">The node to enqueue.</param>
     public void Enqueue(BufferQueueNode node)
     {
-        _bufferQueue.Push(node);
+        _bufferQueue.Enqueue(node);
     }
 
     /// <summary>
@@ -157,7 +158,14 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     private void FlushInternal()
     {
+        foreach (var bufferNode in _bufferQueue)
+        {
+            bufferNode.Dispose();
+        }
+
         _bufferQueue.Clear();
+
+        _currentNode?.Dispose();
         _currentNode = null;
         _silentBytes = 0;
     }
@@ -179,6 +187,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
             if (_currentNodeSize == 0)
             {
+                _currentNode?.Dispose();
                 _currentNode = null;
             }
         }
@@ -204,6 +213,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
             if (_currentNodeSize == 0)
             {
+                _currentNode?.Dispose();
                 _currentNode = null;
             }
         }
@@ -213,14 +223,14 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     private bool ReadNextNode()
     {
-        if (_bufferQueue.IsEmpty())
+        if (_bufferQueue.IsEmpty)
         {
             return false;
         }
 
-        _currentNode = _bufferQueue.Pop();
-        if (_currentNode == null)
+        if (!_bufferQueue.TryDequeue(out _currentNode))
         {
+            _currentNode = null;
             return false;
         }
 
@@ -238,6 +248,13 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
 
     public void Dispose()
     {
+        _currentNode?.Dispose();
+
+        foreach (var bufferNode in _bufferQueue)
+        {
+            bufferNode.Dispose();
+        }
+
         _bufferQueue.Clear();
 
         GC.SuppressFinalize(this);
