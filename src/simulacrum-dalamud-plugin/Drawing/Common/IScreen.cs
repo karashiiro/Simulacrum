@@ -1,6 +1,7 @@
-﻿using Simulacrum.Game;
+﻿using System.Numerics;
+using Simulacrum.Game;
 
-namespace Simulacrum.Playback.Common;
+namespace Simulacrum.Drawing.Common;
 
 public interface IScreen
 {

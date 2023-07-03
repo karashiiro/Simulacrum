@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Reactive.Subjects;
-using Simulacrum.Playback.Common;
+using Simulacrum.Drawing.Common;
 
-namespace Simulacrum.Playback;
+namespace Simulacrum.Drawing;
 
 public class TimePlaybackTracker : IPlaybackTracker
 {

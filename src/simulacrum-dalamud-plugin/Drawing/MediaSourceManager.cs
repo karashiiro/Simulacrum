@@ -1,6 +1,6 @@
-﻿using Simulacrum.Playback.Common;
+﻿using Simulacrum.Drawing.Common;
 
-namespace Simulacrum.Playback;
+namespace Simulacrum.Drawing;
 
 public class MediaSourceManager : IDisposable
 {

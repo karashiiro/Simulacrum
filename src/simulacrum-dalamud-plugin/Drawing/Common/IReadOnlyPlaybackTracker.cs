@@ -1,4 +1,4 @@
-﻿namespace Simulacrum.Playback.Common;
+﻿namespace Simulacrum.Drawing.Common;
 
 public interface IReadOnlyPlaybackTracker
 {

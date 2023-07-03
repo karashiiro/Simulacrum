@@ -1,6 +1,6 @@
-﻿namespace Simulacrum.Playback;
+﻿namespace Simulacrum.Drawing;
 
-public class StreamingWaveNode
+public class AudioBufferNode
 {
     private readonly Action<byte[]> _cleanup;
     private readonly byte[] _buffer;
@@ -10,7 +10,7 @@ public class StreamingWaveNode
 
     public Span<byte> Span => _buffer.AsSpan(0, _length);
 
-    public StreamingWaveNode(byte[] buffer, int length, double pts, Action<byte[]> cleanup)
+    public AudioBufferNode(byte[] buffer, int length, double pts, Action<byte[]> cleanup)
     {
         _cleanup = cleanup;
         _buffer = buffer;
@@ -19,7 +19,7 @@ public class StreamingWaveNode
         Pts = pts;
     }
 
-    ~StreamingWaveNode()
+    ~AudioBufferNode()
     {
         _cleanup(_buffer);
     }
