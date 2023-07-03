@@ -1,6 +1,4 @@
 ﻿using System.Buffers;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
 using Dalamud.Logging;
 using NAudio.Wave;
@@ -25,10 +23,12 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly Thread _videoThread;
 
     private readonly AudioBufferQueue _waveProvider;
-    private readonly Subject<bool> _audioBuffered;
+    private readonly IWavePlayer _wavePlayer; // TODO: Move this into the screen class for spatial audio
     private readonly Thread _audioThread;
 
     private readonly IReadOnlyPlaybackTracker _sync;
+    private readonly IDisposable _unsubscribePlay;
+    private readonly IDisposable _unsubscribePause;
     private readonly IDisposable _unsubscribePan;
 
     private TimeSpan _nextPts;
@@ -62,10 +62,13 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _waveProvider =
             new AudioBufferQueue(new WaveFormat(_reader.SampleRate, _reader.BitsPerSample,
                 _reader.AudioChannelCount));
-        _audioBuffered = new Subject<bool>();
+        _wavePlayer = new DirectSoundOut();
+        _wavePlayer.Init(_waveProvider);
         _audioThread = new Thread(AudioLoop);
         _audioThread.Start();
 
+        _unsubscribePause = _sync.OnPause().Subscribe(_ => _wavePlayer.Pause());
+        _unsubscribePlay = _sync.OnPlay().Subscribe(_ => _wavePlayer.Play());
         _unsubscribePan = _sync.OnPan().Subscribe(targetPts =>
         {
             var audioDiff = targetPts - _waveProvider.PlaybackPosition;
@@ -92,30 +95,15 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         });
     }
 
-    public void RenderTo(Span<byte> buffer, out TimeSpan delay)
+    public void RenderTo(Span<byte> buffer)
     {
         VideoBuffer[.._videoBufferSize].CopyTo(buffer);
+    }
+
+    public void RenderTo(Span<byte> buffer, out TimeSpan delay)
+    {
+        RenderTo(buffer);
         delay = _reader.VideoFrameDelay;
-    }
-
-    public IWaveProvider WaveProvider()
-    {
-        return _waveProvider;
-    }
-
-    public IObservable<bool> OnAudioBuffered()
-    {
-        return _audioBuffered;
-    }
-
-    public IObservable<bool> OnAudioPlay()
-    {
-        return _sync.OnPlay().Select(_ => true);
-    }
-
-    public IObservable<bool> OnAudioPause()
-    {
-        return _sync.OnPause().Select(_ => true);
     }
 
     private void HandleAudioTick()
@@ -128,9 +116,13 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
         if (BufferAudio() > 0)
         {
-            _audioBuffered.OnNext(true);
+            if (_wavePlayer.PlaybackState == PlaybackState.Stopped)
+            {
+                _wavePlayer.Play();
+            }
         }
-        else
+
+        if (_wavePlayer.PlaybackState == PlaybackState.Stopped)
         {
             return;
         }
@@ -247,12 +239,13 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _audioThread.Join();
         _videoThread.Join();
 
+        _unsubscribePlay.Dispose();
+        _unsubscribePause.Dispose();
         _unsubscribePan.Dispose();
         _reader.Close();
         _reader.Dispose();
+        _wavePlayer.Dispose();
         _waveProvider.Dispose();
-
-        _audioBuffered.Dispose();
 
         Marshal.FreeHGlobal(_videoBufferPtr);
         GC.SuppressFinalize(this);

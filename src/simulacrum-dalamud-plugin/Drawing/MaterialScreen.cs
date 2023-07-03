@@ -13,7 +13,6 @@ public class MaterialScreen : IScreen, IDisposable
     private readonly Stopwatch _stopwatch;
 
     private byte[] _buffer;
-    private AudioPlayer? _audioPlayer;
     private Material? _material;
     private TextureBootstrap? _texture;
     private IMediaSource? _source;
@@ -90,9 +89,6 @@ public class MaterialScreen : IScreen, IDisposable
     public void Show(IMediaSource source)
     {
         _source = source;
-
-        _audioPlayer?.Dispose();
-        _audioPlayer = new AudioPlayer(source);
     }
 
     public float GetAspectRatio()
@@ -114,7 +110,6 @@ public class MaterialScreen : IScreen, IDisposable
     public void Dispose()
     {
         _ui.Draw -= Draw;
-        _audioPlayer?.Dispose();
         _material?.Dispose();
         GC.SuppressFinalize(this);
     }
