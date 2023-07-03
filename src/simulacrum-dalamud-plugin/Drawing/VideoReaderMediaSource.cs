@@ -17,6 +17,10 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         DebugMetrics.CreateHistogram("simulacrum_video_reader_render_duration",
             "The render duration of the video reader.");
 
+    private static readonly IHistogram VideoReaderAudioBufferDuration =
+        DebugMetrics.CreateHistogram("simulacrum_video_reader_audio_buffer_duration",
+            "The audio chunk buffering duration.");
+
     private static readonly TimeSpan AudioSyncThreshold = TimeSpan.FromMilliseconds(100);
 
     private readonly VideoReader _reader;
@@ -168,7 +172,18 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         var audioBuffer = ArrayPool<byte>.Shared.Rent(audioBufferSize);
         var audioSpan = audioBuffer.AsSpan(0, audioBufferSize);
 
-        var audioBytesRead = _reader.ReadAudioStream(audioSpan, out var pts);
+        int audioBytesRead;
+        double pts;
+        var startTime = _sync.GetTime();
+        try
+        {
+            audioBytesRead = _reader.ReadAudioStream(audioSpan, out pts);
+        }
+        finally
+        {
+            VideoReaderAudioBufferDuration.Observe((_sync.GetTime() - startTime).TotalSeconds);
+        }
+
         if (audioBytesRead > 0)
         {
             _waveProvider.Enqueue(new BufferQueueNode(audioBuffer, audioBytesRead, pts,
@@ -211,13 +226,18 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
         // Read frames until the pts matches the external clock, or until there are
         // no frames left to read.
-        if (!_reader.ReadVideoFrame(VideoBuffer, t.TotalSeconds, out _))
+        try
         {
-            // Don't trust the pts if we failed to read a frame.
-            return;
+            if (!_reader.ReadVideoFrame(VideoBuffer, t.TotalSeconds, out _))
+            {
+                // Don't trust the pts if we failed to read a frame.
+                return;
+            }
         }
-
-        VideoReaderRenderDuration.Observe(_sync.GetTime().TotalSeconds - t.TotalSeconds);
+        finally
+        {
+            VideoReaderRenderDuration.Observe((_sync.GetTime() - t).TotalSeconds);
+        }
 
         _nextPts = t + _reader.VideoFrameDelay;
     }
