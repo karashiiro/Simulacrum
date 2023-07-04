@@ -1,11 +1,16 @@
-﻿using Dalamud.Logging;
+﻿using System.Diagnostics.CodeAnalysis;
+
+#if DEBUG
+using Dalamud.Logging;
 using Prometheus;
+#endif
 
-namespace Simulacrum;
+namespace Simulacrum.Monitoring;
 
-// TODO: Exclude this from release builds entirely somehow
+[SuppressMessage("ReSharper", "UnusedParameter.Global")]
 public class DebugMetrics : IDisposable
 {
+#if DEBUG
     private const int Port = 7231;
 
     private readonly IMetricServer _server;
@@ -14,9 +19,11 @@ public class DebugMetrics : IDisposable
     {
         _server = new MetricServer(port: Port);
     }
+#endif
 
     public void Start()
     {
+#if DEBUG
         try
         {
             _server.Start();
@@ -29,16 +36,27 @@ public class DebugMetrics : IDisposable
                                   "if not running as Administrator:\n" +
                                   $"netsh http add urlacl url=http://+:{Port}/metrics user=[DOMAIN\\]<user>");
         }
+#endif
     }
 
-    public static IHistogram CreateHistogram(string name, string help)
+    [SuppressMessage("ReSharper", "ReturnTypeCanBeNotNullable")]
+    public static IHistogram? CreateHistogram(string name, string help)
     {
-        return Metrics.CreateHistogram(name, help);
+#if DEBUG
+        return new Histogram
+        {
+            Inner = Metrics.CreateHistogram(name, help),
+        };
+#else
+        return null;
+#endif
     }
 
     public void Dispose()
     {
+#if DEBUG
         _server.Dispose();
+#endif
         GC.SuppressFinalize(this);
     }
 }

@@ -2,9 +2,9 @@
 using System.Runtime.InteropServices;
 using Dalamud.Logging;
 using NAudio.Wave;
-using Prometheus;
 using Simulacrum.AV;
 using Simulacrum.Drawing.Common;
+using Simulacrum.Monitoring;
 
 namespace Simulacrum.Drawing;
 
@@ -13,11 +13,11 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private const int AudioBufferMinSize = 65536;
     private const int AudioBufferQueueMaxItems = 8;
 
-    private static readonly IHistogram VideoReaderRenderDuration =
+    private static readonly IHistogram? VideoReaderRenderDuration =
         DebugMetrics.CreateHistogram("simulacrum_video_reader_render_duration",
             "The render duration of the video reader.");
 
-    private static readonly IHistogram VideoReaderAudioBufferDuration =
+    private static readonly IHistogram? VideoReaderAudioBufferDuration =
         DebugMetrics.CreateHistogram("simulacrum_video_reader_audio_buffer_duration",
             "The audio chunk buffering duration.");
 
@@ -181,7 +181,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         }
         finally
         {
-            VideoReaderAudioBufferDuration.Observe((_sync.GetTime() - startTime).TotalSeconds);
+            VideoReaderAudioBufferDuration?.Observe((_sync.GetTime() - startTime).TotalSeconds);
         }
 
         if (audioBytesRead > 0)
@@ -236,7 +236,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         }
         finally
         {
-            VideoReaderRenderDuration.Observe((_sync.GetTime() - t).TotalSeconds);
+            VideoReaderRenderDuration?.Observe((_sync.GetTime() - t).TotalSeconds);
         }
 
         _nextPts = t + _reader.VideoFrameDelay;

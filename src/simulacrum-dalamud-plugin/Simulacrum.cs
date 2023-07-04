@@ -15,6 +15,7 @@ using Simulacrum.Drawing;
 using Simulacrum.Game;
 using Simulacrum.Game.Structures;
 using Simulacrum.Hostctl;
+using Simulacrum.Monitoring;
 
 namespace Simulacrum;
 
