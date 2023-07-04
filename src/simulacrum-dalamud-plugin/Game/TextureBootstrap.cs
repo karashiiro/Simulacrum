@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Logging;
@@ -7,11 +8,15 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Simulacrum.Game.Structures;
+using Simulacrum.Monitoring;
 
 namespace Simulacrum.Game;
 
 public class TextureBootstrap : IDisposable
 {
+    private static readonly IHistogram? TextureMutateDuration =
+        DebugMetrics.CreateHistogram("simulacrum_texture_mutate_duration", "The DX11 texture mutation duration.");
+
     private readonly SigScanner _sigScanner;
     private readonly Framework _framework;
 
@@ -33,6 +38,9 @@ public class TextureBootstrap : IDisposable
 
     public unsafe void Mutate(Action<MappedSubresource, Texture2DDesc> mutate)
     {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
         var dxContext = (ID3D11DeviceContext*)Device.Instance()->D3D11DeviceContext;
         var dxTexture = (ID3D11Texture2D*)_apricotTexture->Texture->D3D11Texture2D;
         var dxTextureDesc = new Texture2DDesc();
@@ -50,6 +58,8 @@ public class TextureBootstrap : IDisposable
         mutate(dxMappedSubresource, dxTextureDesc);
 
         dxContext->Unmap(dxResource, 0);
+
+        TextureMutateDuration?.Observe(stopwatch.Elapsed.TotalSeconds);
     }
 
     public async Task Initialize(int width, int height, CancellationToken cancellationToken)
@@ -60,8 +70,9 @@ public class TextureBootstrap : IDisposable
         var easyCreate = Marshal.GetDelegateForFunctionPointer<CreateApricotTextureFromTex>(addr);
         PluginLog.Log($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr - _sigScanner.Module.BaseAddress:X}");
 
-        await using var texFile = Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.bootstrap_rgba.tex") ??
-                                  throw new InvalidOperationException("Could not find embedded file.");
+        await using var texFile =
+            Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.bootstrap_rgba.tex") ??
+            throw new InvalidOperationException("Could not find embedded file.");
 
         // Allocate a pinned array and get a stable pointer to it in a safe context so
         // we can await the graphics subsystem initialization later (can't use async in

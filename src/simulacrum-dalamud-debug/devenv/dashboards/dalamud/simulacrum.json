@@ -362,7 +362,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 8,
         "x": 0,
         "y": 8
       },
@@ -370,12 +370,12 @@
       "options": {
         "legend": {
           "calcs": ["mean", "max", "min", "lastNotNull"],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
@@ -385,15 +385,54 @@
             "type": "prometheus",
             "uid": "simulacrum-prometheus"
           },
-          "editorMode": "builder",
+          "editorMode": "code",
           "expr": "histogram_quantile(0.95, sum by(le) (rate(simulacrum_video_reader_render_duration_bucket[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "P95 Render Duration",
+          "legendFormat": "P95",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.9, sum by(le) (rate(simulacrum_video_reader_render_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P90",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.75, sum by(le) (rate(simulacrum_video_reader_render_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P75",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.5, sum by(le) (rate(simulacrum_video_reader_render_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P50",
+          "range": true,
+          "refId": "D"
         }
       ],
-      "title": "Video Reader Render Duration",
+      "title": "Video Render Duration",
       "type": "timeseries"
     },
     {
@@ -456,20 +495,20 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 8,
+        "x": 8,
         "y": 8
       },
       "id": 4,
       "options": {
         "legend": {
           "calcs": ["mean", "max", "min", "lastNotNull"],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
@@ -479,15 +518,188 @@
             "type": "prometheus",
             "uid": "simulacrum-prometheus"
           },
-          "editorMode": "builder",
+          "editorMode": "code",
           "expr": "histogram_quantile(0.95, sum by(le) (rate(simulacrum_video_reader_audio_buffer_duration_bucket[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "P95 Buffering Duration",
+          "legendFormat": "P95",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.9, sum by(le) (rate(simulacrum_video_reader_audio_buffer_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P90",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.75, sum by(le) (rate(simulacrum_video_reader_audio_buffer_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P75",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.5, sum by(le) (rate(simulacrum_video_reader_audio_buffer_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P50",
+          "range": true,
+          "refId": "D"
         }
       ],
       "title": "Audio Buffering Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "simulacrum-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "min", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by(le) (rate(simulacrum_texture_mutate_duration_bucket[$__rate_interval])))",
+          "instant": false,
+          "key": "Q-b4f2fb20-ea3e-4126-b146-a02ba05ec0bf-0",
+          "legendFormat": "P95",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.9, sum by(le) (rate(simulacrum_texture_mutate_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P90",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.75, sum by(le) (rate(simulacrum_texture_mutate_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P75",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "simulacrum-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.5, sum by(le) (rate(simulacrum_texture_mutate_duration_bucket[$__rate_interval])))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "P50",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Texture Mutate Duration",
       "type": "timeseries"
     }
   ],
@@ -506,6 +718,6 @@
   "timezone": "",
   "title": "Simulacrum",
   "uid": "c36aa980-20a5-4541-a66b-1240d277e17e",
-  "version": 11,
+  "version": 12,
   "weekStart": ""
 }
