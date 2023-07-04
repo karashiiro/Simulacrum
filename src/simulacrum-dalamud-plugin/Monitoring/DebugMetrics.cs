@@ -31,10 +31,10 @@ public class DebugMetrics : IDisposable
         }
         catch (Exception e)
         {
-            PluginLog.LogError(e, "Failed to start debug metrics server.\n" +
-                                  "You may need to grant permissions to your user account " +
-                                  "if not running as Administrator:\n" +
-                                  $"netsh http add urlacl url=http://+:{Port}/metrics user=[DOMAIN\\]<user>");
+            PluginLog.LogWarning(e, "Failed to start debug metrics server.\n" +
+                                    "You may need to grant permissions to your user account " +
+                                    "if not running as Administrator:\n" +
+                                    $"netsh http add urlacl url=http://+:{Port}/metrics user=[DOMAIN\\]<user>");
         }
 #endif
     }
