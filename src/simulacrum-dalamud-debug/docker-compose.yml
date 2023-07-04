@@ -3,6 +3,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     volumes:
+      - ./devenv/prometheus/data:/prometheus
       - ./devenv/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - 9090:9090
