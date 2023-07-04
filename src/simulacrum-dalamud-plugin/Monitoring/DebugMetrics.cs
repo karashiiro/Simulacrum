@@ -55,6 +55,7 @@ public class DebugMetrics : IDisposable
     public void Dispose()
     {
 #if DEBUG
+        _server.Stop();
         _server.Dispose();
 #endif
         GC.SuppressFinalize(this);
