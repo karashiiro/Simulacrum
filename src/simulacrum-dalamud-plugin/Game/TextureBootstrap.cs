@@ -15,7 +15,7 @@ namespace Simulacrum.Game;
 public class TextureBootstrap : IDisposable
 {
     private static readonly IHistogram? TextureMutateDuration =
-        DebugMetrics.CreateHistogram("simulacrum_texture_mutate_duration", "The DX11 texture mutation duration.");
+        DebugMetrics.CreateHistogram("simulacrum_texture_mutate_duration", "The DX11 texture mutation duration (ms).");
 
     private readonly SigScanner _sigScanner;
     private readonly Framework _framework;
@@ -59,7 +59,7 @@ public class TextureBootstrap : IDisposable
 
         dxContext->Unmap(dxResource, 0);
 
-        TextureMutateDuration?.Observe(stopwatch.Elapsed.TotalSeconds);
+        TextureMutateDuration?.Observe(stopwatch.Elapsed.TotalMilliseconds);
     }
 
     public async Task Initialize(int width, int height, CancellationToken cancellationToken)

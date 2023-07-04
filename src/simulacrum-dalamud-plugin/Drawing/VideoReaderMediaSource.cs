@@ -15,11 +15,11 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
 
     private static readonly IHistogram? VideoReaderRenderDuration =
         DebugMetrics.CreateHistogram("simulacrum_video_reader_render_duration",
-            "The render duration of the video reader.");
+            "The render duration of the video reader (s).");
 
     private static readonly IHistogram? VideoReaderAudioBufferDuration =
         DebugMetrics.CreateHistogram("simulacrum_video_reader_audio_buffer_duration",
-            "The audio chunk buffering duration.");
+            "The audio chunk buffering duration (ms).");
 
     private static readonly TimeSpan AudioSyncThreshold = TimeSpan.FromMilliseconds(100);
 
@@ -181,7 +181,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         }
         finally
         {
-            VideoReaderAudioBufferDuration?.Observe((_sync.GetTime() - startTime).TotalSeconds);
+            VideoReaderAudioBufferDuration?.Observe((_sync.GetTime() - startTime).TotalMilliseconds);
         }
 
         if (audioBytesRead > 0)

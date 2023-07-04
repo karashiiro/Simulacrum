@@ -489,7 +489,7 @@
               }
             ]
           },
-          "unit": "s"
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -622,7 +622,7 @@
               }
             ]
           },
-          "unit": "s"
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -711,13 +711,13 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Simulacrum",
   "uid": "c36aa980-20a5-4541-a66b-1240d277e17e",
-  "version": 12,
+  "version": 13,
   "weekStart": ""
 }
