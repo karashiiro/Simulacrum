@@ -52,6 +52,19 @@ public class DebugMetrics : IDisposable
 #endif
     }
 
+    [SuppressMessage("ReSharper", "ReturnTypeCanBeNotNullable")]
+    public static ICounter? CreateCounter(string name, string help)
+    {
+#if DEBUG
+        return new Counter
+        {
+            Inner = Metrics.CreateCounter(name, help),
+        };
+#else
+        return null;
+#endif
+    }
+
     public void Dispose()
     {
 #if DEBUG

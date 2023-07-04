@@ -21,6 +21,12 @@ namespace Simulacrum;
 
 public class Simulacrum : IDalamudPlugin
 {
+    private static readonly ICounter? PluginStart =
+        DebugMetrics.CreateCounter("simulacrum_start", "The plugin start count.");
+
+    private static readonly ICounter? PluginShutdown =
+        DebugMetrics.CreateCounter("simulacrum_shutdown", "The plugin shutdown count.");
+
     public string Name => "Simulacrum";
 
     private readonly ClientState _clientState;
@@ -51,8 +57,8 @@ public class Simulacrum : IDalamudPlugin
         [RequiredVersion("1.0")] Framework framework,
         [RequiredVersion("1.0")] SigScanner sigScanner)
     {
-        InstallAVLogHandler();
         InstallDebugMetricsServer();
+        InstallAVLogHandler();
 
         _clientState = clientState;
         _commandManager = commandManager;
@@ -399,6 +405,15 @@ public class Simulacrum : IDalamudPlugin
     {
         _debugMetrics = new DebugMetrics();
         _debugMetrics.Start();
+        PluginStart?.Inc();
+    }
+
+    [Conditional("DEBUG")]
+    private void UninstallDebugMetricsServer()
+    {
+        // TODO: This can be missed if Prometheus doesn't catch it soon enough, fix this
+        PluginShutdown?.Inc();
+        _debugMetrics?.Dispose();
     }
 
     [Conditional("DEBUG")]
@@ -493,8 +508,7 @@ public class Simulacrum : IDalamudPlugin
 
         _hostctl?.Dispose();
 
-        _debugMetrics?.Dispose();
-
+        UninstallDebugMetricsServer();
         UninstallAVLogHandler();
     }
 
