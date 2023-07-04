@@ -68,7 +68,7 @@ public class MaterialScreen : IScreen, IDisposable
             }
 
             // Rebuild the render surface; this doesn't need to happen immediately
-            _ = RebuildMaterial(sourceWidth, sourceHeight);
+            RebuildMaterial(sourceWidth, sourceHeight).FireAndForget();
         }
 
         _source.RenderTo(_buffer, out _delay);

@@ -187,7 +187,7 @@ public class Simulacrum : IDalamudPlugin
                         State = "playing",
                     }),
                 },
-            });
+            }).FireAndForget();
         }));
 
         _commandManager.AddHandler("/simplace", new CommandInfo((_, arguments) =>
@@ -211,7 +211,7 @@ public class Simulacrum : IDalamudPlugin
                     },
                     MediaSourceId = arguments,
                 },
-            });
+            }).FireAndForget();
         }));
 
         // Continue initialization in a separate task which will be rejoined on dispose
@@ -311,10 +311,10 @@ public class Simulacrum : IDalamudPlugin
             foreach (var mediaSource in ev.Data)
             {
                 InitializeMediaSource(mediaSource);
-                _ = _hostctl.SendEvent(new HostctlEvent.MediaSourceListScreensRequest
+                _hostctl.SendEvent(new HostctlEvent.MediaSourceListScreensRequest
                 {
                     MediaSourceId = mediaSource.Id,
-                }, _cts.Token);
+                }, _cts.Token).FireAndForget();
             }
         }));
         _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev => InitializeMediaSource(ev.Data)));
