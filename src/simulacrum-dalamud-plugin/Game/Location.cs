@@ -4,5 +4,7 @@ public class Location
 {
     public int Territory { get; init; }
 
-    public Position Position { get; set; }
+    public int World { get; init; }
+
+    public Position Position { get; init; }
 }

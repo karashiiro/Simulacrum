@@ -220,6 +220,7 @@ export class DynamoDbService implements DbAccessService {
   ): Promise<ScreenDto> {
     const screen = new Screen();
     screen.territory = dto.territory;
+    screen.world = dto.world;
     screen.position = dto.position;
     screen.mediaSourceId = dto.mediaSourceId;
 

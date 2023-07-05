@@ -209,6 +209,7 @@ public class Simulacrum : IDalamudPlugin
                 Data = new HostctlEvent.ScreenDto
                 {
                     Territory = _clientState.TerritoryType,
+                    World = Convert.ToInt32(_clientState.LocalPlayer.CurrentWorld.Id),
                     Position = new HostctlEvent.PositionDto
                     {
                         X = position.X,
@@ -245,6 +246,7 @@ public class Simulacrum : IDalamudPlugin
             // TODO: Add safety checks
             foreach (var screen in _materialScreens.Screens
                          .Where(s => s.MaterialPointer != nint.Zero)
+                         .Where(s => s.GetLocation().World == _clientState.LocalPlayer.CurrentWorld.Id)
                          .Where(s => s.GetLocation().Territory == _clientState.TerritoryType))
             {
                 // TODO: There's a 1px texture wraparound on all sides of the primitive, possibly due to UV/command type
@@ -353,6 +355,7 @@ public class Simulacrum : IDalamudPlugin
         var materialScreen = new MaterialScreen(_textureFactory, _pluginInterface.UiBuilder, new Location
         {
             Territory = dto.Territory,
+            World = dto.World,
             Position = Position.FromCoordinates(dto.Position.X, dto.Position.Y, dto.Position.Z),
         });
 

@@ -50,11 +50,14 @@ public class DebugWindow : Window
             var location = screen.GetLocation();
 
             ImGui.TableSetColumnIndex(3);
-            ImGui.Text($"{location.Territory}");
+            ImGui.Text($"{location.World}");
 
             ImGui.TableSetColumnIndex(4);
+            ImGui.Text($"{location.Territory}");
+
+            ImGui.TableSetColumnIndex(5);
             ImGui.Text($"{location.Position.ToVector3()}");
-        }, ImGuiTableFlags.Resizable, "", "", "ID", "Territory", "Position");
+        }, ImGuiTableFlags.Resizable, "", "", "ID", "World", "Territory", "Position");
 
         ImGui.Spacing();
 

@@ -33,6 +33,7 @@ export interface Position {
 export interface ScreenDto {
   id: string;
   territory: number;
+  world: number;
   position: Position;
   mediaSourceId?: string;
   updatedAt: number;

@@ -164,6 +164,8 @@ public abstract class HostctlEvent
 
         [JsonPropertyName("territory")] public int Territory { get; init; }
 
+        [JsonPropertyName("world")] public int World { get; init; }
+
         [JsonPropertyName("position")] public PositionDto? Position { get; init; }
 
         [JsonPropertyName("mediaSourceId")] public string? MediaSourceId { get; init; }

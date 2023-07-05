@@ -31,6 +31,9 @@ export class Screen implements ScreenDto {
   territory: number;
 
   @Attribute()
+  world: number;
+
+  @Attribute()
   position: Position;
 
   @Attribute()
