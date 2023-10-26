@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 using System.Runtime.InteropServices;
-using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using NAudio.Wave;
 using Simulacrum.AV;
 using Simulacrum.Drawing.Common;
@@ -41,14 +41,18 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly IDisposable _unsubscribePause;
     private readonly IDisposable _unsubscribePan;
 
+    private readonly IPluginLog _log;
+
     private TimeSpan _nextPts;
     private bool _audioFlushRequested;
     private bool _done;
 
     private unsafe Span<byte> VideoBuffer => new((byte*)_videoBufferPtr, _videoBufferRawSize);
 
-    public VideoReaderMediaSource(string? uri, IReadOnlyPlaybackTracker sync)
+    public VideoReaderMediaSource(string? uri, IReadOnlyPlaybackTracker sync, IPluginLog log)
     {
+        _log = log;
+
         ArgumentNullException.ThrowIfNull(uri);
 
         _reader = new VideoReader();
@@ -86,7 +90,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             {
                 if (!_reader.SeekAudioStream(targetPts.TotalSeconds))
                 {
-                    PluginLog.LogWarning("Failed to seek through audio stream");
+                    _log.Warning("Failed to seek through audio stream");
                 }
 
                 _audioFlushRequested = true;
@@ -97,7 +101,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             {
                 if (!_reader.SeekVideoFrame(targetPts.TotalSeconds))
                 {
-                    PluginLog.LogWarning("Failed to seek through video stream");
+                    _log.Warning("Failed to seek through video stream");
                 }
 
                 _nextPts = targetPts + _reader.VideoFrameDelay;
@@ -145,7 +149,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             var nPadded = _waveProvider.PadSamples(audioDiff);
             if (nPadded > 0)
             {
-                PluginLog.LogWarning($"Audio stream was ahead of clock, padded {nPadded} bytes of data");
+                _log.Warning($"Audio stream was ahead of clock, padded {nPadded} bytes of data");
             }
         }
         else if (audioDiff < -AudioSyncThreshold)
@@ -153,7 +157,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             var nDiscarded = _waveProvider.DiscardSamples(audioDiff);
             if (nDiscarded > 0)
             {
-                PluginLog.LogWarning($"Audio stream was behind clock, discarded {nDiscarded} bytes of data");
+                _log.Warning($"Audio stream was behind clock, discarded {nDiscarded} bytes of data");
             }
         }
     }
@@ -211,7 +215,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             }
             catch (Exception e)
             {
-                PluginLog.LogError(e, "Error in audio loop");
+                _log.Error(e, "Error in audio loop");
             }
         }
     }
@@ -253,7 +257,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             }
             catch (Exception e)
             {
-                PluginLog.LogError(e, "Error in video loop");
+                _log.Error(e, "Error in video loop");
             }
         }
     }

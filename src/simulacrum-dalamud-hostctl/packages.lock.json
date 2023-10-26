@@ -10,21 +10,21 @@
       },
       "Thinktecture.Runtime.Extensions": {
         "type": "Direct",
-        "requested": "[6.2.0, )",
-        "resolved": "6.2.0",
-        "contentHash": "KWgN9/BUlDEwMaJM+pP4qhKiVvRcRRSebInWRxjoIul6oM1gawC8o3R0eGyINPfzN6cIqmCcV/I1lIoXGd1RNQ==",
+        "requested": "[6.4.0, )",
+        "resolved": "6.4.0",
+        "contentHash": "lZ5DdOQt+NAEFbhBqPSQmPd+Vq//+HFZ8Eig9LC8Tb8gqXYhvLZfZAtZ12lpSKAuYgvxYd3z526dHT/w5pZrXw==",
         "dependencies": {
-          "Thinktecture.Runtime.Extensions.SourceGenerator": "6.2.0"
+          "Thinktecture.Runtime.Extensions.SourceGenerator": "6.4.0"
         }
       },
       "Thinktecture.Runtime.Extensions.Json": {
         "type": "Direct",
-        "requested": "[6.2.0, )",
-        "resolved": "6.2.0",
-        "contentHash": "70u2anJGbSZZ519FB4ytXnIearANB1BqGBbByUyX2QjEKjR89RaiOK5PvUv9ULQWsDvmfOFJPRxX/L6cdixvFg==",
+        "requested": "[6.4.0, )",
+        "resolved": "6.4.0",
+        "contentHash": "AqqNe/4qoFe4X0SxrE+ipobhLFPDjrxbfbWEYjHip7mfz7kIFWuqqDFNuVg8qcxRISo4C88T28N/g3A/hfHRHg==",
         "dependencies": {
-          "System.Text.Json": "7.0.2",
-          "Thinktecture.Runtime.Extensions": "6.2.0"
+          "System.Text.Json": "7.0.3",
+          "Thinktecture.Runtime.Extensions": "6.4.0"
         }
       },
       "System.Text.Encodings.Web": {
@@ -34,16 +34,16 @@
       },
       "System.Text.Json": {
         "type": "Transitive",
-        "resolved": "7.0.2",
-        "contentHash": "/LZf/JrGyilojqwpaywb+sSz8Tew7ij4K/Sk+UW8AKfAK7KRhR6mKpKtTm06cYA7bCpGTWfYksIW+mVsdxPegQ==",
+        "resolved": "7.0.3",
+        "contentHash": "AyjhwXN1zTFeIibHimfJn6eAsZ7rTBib79JQpzg8WAuR/HKDu9JGNHTuu3nbbXQ/bgI+U4z6HtZmCHNXB1QXrQ==",
         "dependencies": {
           "System.Text.Encodings.Web": "7.0.0"
         }
       },
       "Thinktecture.Runtime.Extensions.SourceGenerator": {
         "type": "Transitive",
-        "resolved": "6.2.0",
-        "contentHash": "fDkyTC4x13V5GX0HilD7ime3K/oA9edbc9+kL0zUfCt9ER3BPJevsJad6t3S1NcHG9lErrPVPsQaRWm9HJTbZQ=="
+        "resolved": "6.4.0",
+        "contentHash": "9pXWSaYKJ9xR8ilJq0ylFSRRSrT2vwg9W9uxPnStLuQCGJCtt+VByaUURMbhiLbwgPfSCOMORernV8yvwQ43zw=="
       }
     }
   }

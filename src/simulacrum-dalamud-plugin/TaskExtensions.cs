@@ -1,15 +1,15 @@
-﻿using Dalamud.Logging;
+﻿using Dalamud.Plugin.Services;
 
 namespace Simulacrum;
 
 public static class TaskExtensions
 {
-    public static void FireAndForget(this Task task)
+    public static void FireAndForget(this Task task, IPluginLog log)
     {
-        _ = FireAndForgetInternal(task);
+        _ = FireAndForgetInternal(task, log);
     }
 
-    private static async Task FireAndForgetInternal(Task task)
+    private static async Task FireAndForgetInternal(Task task, IPluginLog log)
     {
         try
         {
@@ -17,7 +17,7 @@ public static class TaskExtensions
         }
         catch (Exception e)
         {
-            PluginLog.LogError(e, "Exception thrown in dispatched task");
+            log.Error(e, "Exception thrown in dispatched task");
         }
     }
 }

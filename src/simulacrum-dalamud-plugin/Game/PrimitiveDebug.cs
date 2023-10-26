@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
-using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
 
 namespace Simulacrum.Game;
@@ -12,7 +12,8 @@ public class PrimitiveDebug : Primitive, IDisposable
 
     private readonly nint _vertexDeclarationBuffer;
 
-    public PrimitiveDebug(SigScanner sigScanner) : base(sigScanner)
+    public PrimitiveDebug(ISigScanner sigScanner, IGameInteropProvider gameInteropProvider, IPluginLog log) : base(
+        sigScanner, gameInteropProvider, log)
     {
         _vertexDeclarationBuffer =
             Marshal.AllocHGlobal(VertexDeclarationBufferElements * Marshal.SizeOf<InputElement>());
@@ -32,13 +33,13 @@ public class PrimitiveDebug : Primitive, IDisposable
             new Span<InputElement>((InputElement*)_vertexDeclarationBuffer, VertexDeclarationBufferElements);
         SetVertexDeclarationOptions(vertexDeclarationElements);
 
-        PluginLog.Log("Executing CallKernelDeviceCreateVertexDeclaration");
+        Log.Info("Executing CallKernelDeviceCreateVertexDeclaration");
         var vertexDecl = CallKernelDeviceCreateVertexDeclaration(
             (nint)Device.Instance(),
             _vertexDeclarationBuffer,
             VertexDeclarationBufferElements);
 
-        PluginLog.Log("Executing CallPrimitiveServer");
+        Log.Info("Executing CallPrimitiveServer");
         CallPrimitiveServerCtor(PrimitiveServer);
 
         var initializeSettings = new byte[24];
@@ -48,17 +49,17 @@ public class PrimitiveDebug : Primitive, IDisposable
             Marshal.WriteInt64((nint)initializeSettingsPtr + 8, 0x00000000_00280000);
             Marshal.WriteInt64((nint)initializeSettingsPtr + 16, 0x00000000_000A0000);
 
-            PluginLog.Log("Executing CallPrimitiveServerInitialize");
+            Log.Info("Executing CallPrimitiveServerInitialize");
             CallPrimitiveServerInitialize(PrimitiveServer, 0x01, 0x1E, 0x0C, 0x0F, 0, 24, vertexDecl,
                 (nint)initializeSettingsPtr);
         }
 
-        PluginLog.Log("Executing CallPrimitiveServerLoadResource");
+        Log.Info("Executing CallPrimitiveServerLoadResource");
         CallPrimitiveServerLoadResource(PrimitiveServer);
 
         PrimitiveContext = Marshal.ReadIntPtr(PrimitiveServer + 0xB8);
 
-        PluginLog.Log("Initialized PrimitiveContext");
+        Log.Info("Initialized PrimitiveContext");
     }
 
     private static void SetVertexDeclarationOptions(Span<InputElement> elements)

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Dalamud.Interface;
+using Dalamud.Plugin.Services;
 using Simulacrum.Drawing.Common;
 using Simulacrum.Game;
 
@@ -11,6 +12,7 @@ public class MaterialScreen : IScreen, IDisposable
     private readonly UiBuilder _ui;
     private readonly Location _location;
     private readonly Stopwatch _stopwatch;
+    private readonly IPluginLog _log;
 
     private byte[] _buffer;
     private Material? _material;
@@ -23,10 +25,11 @@ public class MaterialScreen : IScreen, IDisposable
 
     public GameTextureWrap? ImGuiTextureWrap => _texture != null ? new(_texture.TexturePointer) : null;
 
-    public MaterialScreen(TextureFactory textureFactory, UiBuilder ui, Location location)
+    public MaterialScreen(TextureFactory textureFactory, UiBuilder ui, Location location, IPluginLog log)
     {
         _buffer = Array.Empty<byte>();
 
+        _log = log;
         _textureFactory = textureFactory;
         _ui = ui;
         _location = location;
@@ -68,7 +71,7 @@ public class MaterialScreen : IScreen, IDisposable
             }
 
             // Rebuild the render surface; this doesn't need to happen immediately
-            RebuildMaterial(sourceWidth, sourceHeight).FireAndForget();
+            RebuildMaterial(sourceWidth, sourceHeight).FireAndForget(_log);
         }
 
         _source.RenderTo(_buffer, out _delay);

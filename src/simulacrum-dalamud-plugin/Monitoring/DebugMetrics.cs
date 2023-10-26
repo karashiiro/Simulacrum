@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
 #if DEBUG
-using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using Prometheus;
 #endif
 
@@ -14,10 +14,12 @@ public class DebugMetrics : IDisposable
     private const int Port = 7231;
 
     private readonly IMetricServer _server;
+    private readonly IPluginLog _log;
 
-    public DebugMetrics()
+    public DebugMetrics(IPluginLog log)
     {
         _server = new MetricServer(port: Port);
+        _log = log;
     }
 #endif
 
@@ -27,14 +29,14 @@ public class DebugMetrics : IDisposable
         try
         {
             _server.Start();
-            PluginLog.Log($"Debug metrics server started on port {Port}");
+            _log.Info($"Debug metrics server started on port {Port}");
         }
         catch (Exception e)
         {
-            PluginLog.LogWarning(e, "Failed to start debug metrics server.\n" +
-                                    "You may need to grant permissions to your user account " +
-                                    "if not running as Administrator:\n" +
-                                    $"netsh http add urlacl url=http://+:{Port}/metrics user=[DOMAIN\\]<user>");
+            _log.Warning(e, "Failed to start debug metrics server.\n" +
+                            "You may need to grant permissions to your user account " +
+                            "if not running as Administrator:\n" +
+                            $"netsh http add urlacl url=http://+:{Port}/metrics user=[DOMAIN\\]<user>");
         }
 #endif
     }

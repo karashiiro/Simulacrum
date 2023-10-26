@@ -3,12 +3,12 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Dalamud.Game;
-using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using Simulacrum.AV;
 using Simulacrum.Drawing;
@@ -29,8 +29,9 @@ public class Simulacrum : IDalamudPlugin
 
     public string Name => "Simulacrum";
 
-    private readonly ClientState _clientState;
-    private readonly CommandManager _commandManager;
+    private readonly IClientState _clientState;
+    private readonly ICommandManager _commandManager;
+    private readonly IPluginLog _log;
     private readonly CustomizationWindow _customizationWindow;
     private readonly DalamudPluginInterface _pluginInterface;
     private readonly MediaSourceManager _mediaSources;
@@ -51,12 +52,16 @@ public class Simulacrum : IDalamudPlugin
     private IList<IDisposable> _hostctlBag;
 
     public Simulacrum(
-        [RequiredVersion("1.0")] ClientState clientState,
-        [RequiredVersion("1.0")] CommandManager commandManager,
+        [RequiredVersion("1.0")] IClientState clientState,
+        [RequiredVersion("1.0")] ICommandManager commandManager,
         [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
-        [RequiredVersion("1.0")] Framework framework,
-        [RequiredVersion("1.0")] SigScanner sigScanner)
+        [RequiredVersion("1.0")] IFramework framework,
+        [RequiredVersion("1.0")] ISigScanner sigScanner,
+        [RequiredVersion("1.0")] IGameInteropProvider gameInteropProvider,
+        [RequiredVersion("1.0")] IPluginLog log)
     {
+        _log = log;
+
         InstallDebugMetricsServer();
         InstallAVLogHandler();
 
@@ -67,14 +72,14 @@ public class Simulacrum : IDalamudPlugin
         _config = (PluginConfiguration?)pluginInterface.GetPluginConfig() ?? new PluginConfiguration();
         _config.Initialize(pluginInterface);
 
-        _primitive = new PrimitiveDebug(sigScanner);
+        _primitive = new PrimitiveDebug(sigScanner, gameInteropProvider, log);
 
         _hostctlBag = new List<IDisposable>();
 
         _mediaSources = new MediaSourceManager();
         _playbackTrackers = new PlaybackTrackerManager();
         _materialScreens = new MaterialScreenManager();
-        _textureFactory = new TextureFactory(sigScanner, framework);
+        _textureFactory = new TextureFactory(sigScanner, framework, log);
 
         _windows = new WindowSystem("Simulacrum");
         _customizationWindow = new CustomizationWindow();
@@ -193,7 +198,7 @@ public class Simulacrum : IDalamudPlugin
                         State = "playing",
                     }),
                 },
-            }).FireAndForget();
+            }).FireAndForget(_log);
         }));
 
         _commandManager.AddHandler("/simplace", new CommandInfo((_, arguments) =>
@@ -218,7 +223,7 @@ public class Simulacrum : IDalamudPlugin
                     },
                     MediaSourceId = arguments,
                 },
-            }).FireAndForget();
+            }).FireAndForget(_log);
         }));
 
         // Continue initialization in a separate task which will be rejoined on dispose
@@ -231,7 +236,7 @@ public class Simulacrum : IDalamudPlugin
         await Connect(cancellationToken);
         await _hostctl!.SendEvent(new HostctlEvent.MediaSourceListRequest(), cancellationToken);
 
-        PluginLog.Log("Initializing PrimitiveDebug");
+        _log.Info("Initializing PrimitiveDebug");
         _primitive.Initialize();
         _unsubscribe = _primitive.Subscribe(() =>
         {
@@ -303,7 +308,7 @@ public class Simulacrum : IDalamudPlugin
     {
         var hostctlUri = new Uri("ws://localhost:3000");
 
-        _hostctl = await HostctlClient.FromUri(hostctlUri, (e, m) => PluginLog.LogError(e, m), cancellationToken);
+        _hostctl = await HostctlClient.FromUri(hostctlUri, (e, m) => _log.Error(e, m), cancellationToken);
         _hostctlBag.Add(_hostctl.OnScreenCreate().Subscribe(ev => { InitializeScreen(ev.Data); }));
         _hostctlBag.Add(_hostctl.OnMediaSourceListScreens().Subscribe(ev =>
         {
@@ -322,18 +327,18 @@ public class Simulacrum : IDalamudPlugin
                 _hostctl.SendEvent(new HostctlEvent.MediaSourceListScreensRequest
                 {
                     MediaSourceId = mediaSource.Id,
-                }, _cts.Token).FireAndForget();
+                }, _cts.Token).FireAndForget(_log);
             }
         }));
         _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev => InitializeMediaSource(ev.Data)));
         _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(ev =>
         {
-            PluginLog.Log($"Now playing media source \"{ev.Data?.Id}\"");
+            _log.Info($"Now playing media source \"{ev.Data?.Id}\"");
             _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Play();
         }));
         _hostctlBag.Add(_hostctl.OnVideoSourcePause().Subscribe(ev =>
         {
-            PluginLog.Log($"Now pausing media source \"{ev.Data?.Id}\"");
+            _log.Info($"Now pausing media source \"{ev.Data?.Id}\"");
             _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pause();
         }));
         _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(ev =>
@@ -357,7 +362,7 @@ public class Simulacrum : IDalamudPlugin
             Territory = dto.Territory,
             World = dto.World,
             Position = Position.FromCoordinates(dto.Position.X, dto.Position.Y, dto.Position.Z),
-        });
+        }, _log);
 
         _materialScreens.AddScreen(dto.Id, materialScreen);
 
@@ -383,10 +388,10 @@ public class Simulacrum : IDalamudPlugin
                 break;
             case HostctlEvent.VideoMetadata video:
             {
-                PluginLog.Log($"Got new video source: {video.Uri}");
+                _log.Info($"Got new video source: {video.Uri}");
 
                 var videoSync = new TimePlaybackTracker();
-                var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync);
+                var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync, _log);
 
                 //videoSync.Pan(video.PlayheadActual);
                 if (video.State == "playing")
@@ -406,7 +411,7 @@ public class Simulacrum : IDalamudPlugin
     [Conditional("DEBUG")]
     private void InstallDebugMetricsServer()
     {
-        _debugMetrics = new DebugMetrics();
+        _debugMetrics = new DebugMetrics(_log);
         _debugMetrics.Start();
         PluginStart?.Inc();
     }
@@ -436,6 +441,7 @@ public class Simulacrum : IDalamudPlugin
 
     private static void HandleAVLog(AVLogLevel level, string? message)
     {
+        // TODO: Make this non-static (does it segfault?)
         message = $"[libav] {message}";
         switch (level)
         {
@@ -490,7 +496,7 @@ public class Simulacrum : IDalamudPlugin
         }
         catch (Exception e)
         {
-            PluginLog.LogWarning(e, "The main task completed with an exception");
+            _log.Warning(e, "The main task completed with an exception");
         }
 
         _cts.Dispose();

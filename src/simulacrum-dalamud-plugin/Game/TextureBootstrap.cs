@@ -2,9 +2,8 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Dalamud.Game;
-using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D11;
 using Simulacrum.Game.Structures;
@@ -17,8 +16,9 @@ public class TextureBootstrap : IDisposable
     private static readonly IHistogram? TextureMutateDuration =
         DebugMetrics.CreateHistogram("simulacrum_texture_mutate_duration", "The DX11 texture mutation duration (ms).");
 
-    private readonly SigScanner _sigScanner;
-    private readonly Framework _framework;
+    private readonly ISigScanner _sigScanner;
+    private readonly IFramework _framework;
+    private readonly IPluginLog _log;
 
     private unsafe ApricotTexture* _apricotTexture;
 
@@ -30,10 +30,11 @@ public class TextureBootstrap : IDisposable
         ? (nint)_apricotTexture->Texture
         : nint.Zero;
 
-    public TextureBootstrap(SigScanner sigScanner, Framework framework)
+    public TextureBootstrap(ISigScanner sigScanner, IFramework framework, IPluginLog log)
     {
         _sigScanner = sigScanner;
         _framework = framework;
+        _log = log;
     }
 
     public unsafe void Mutate(Action<MappedSubresource, Texture2DDesc> mutate)
@@ -68,7 +69,7 @@ public class TextureBootstrap : IDisposable
         var addr = _sigScanner.ScanText(
             "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 40 48 8b f2 41 8b e8 45 33 c0 33 ff 44");
         var easyCreate = Marshal.GetDelegateForFunctionPointer<CreateApricotTextureFromTex>(addr);
-        PluginLog.Log($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr - _sigScanner.Module.BaseAddress:X}");
+        _log.Info($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr - _sigScanner.Module.BaseAddress:X}");
 
         await using var texFile =
             Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.bootstrap_rgba.tex") ??
@@ -98,7 +99,7 @@ public class TextureBootstrap : IDisposable
         {
             _apricotTexture = (ApricotTexture*)apricotTexture;
 
-            TextureUtils.DescribeTexture(_apricotTexture->Texture);
+            TextureUtils.DescribeTexture(_log, _apricotTexture->Texture);
 
             // Swap the texture for a mutable one
             var dxDevice = (ID3D11Device*)Device.Instance()->D3D11Forwarder;
@@ -132,7 +133,7 @@ public class TextureBootstrap : IDisposable
             _apricotTexture->Texture->MipLevel = Convert.ToByte(dxTextureDesc.MipLevels);
             _apricotTexture->Texture->D3D11Texture2D = dxNewTexture;
             _apricotTexture->Texture->D3D11ShaderResourceView = dxNewShaderView;
-            TextureUtils.DescribeTexture(_apricotTexture->Texture);
+            TextureUtils.DescribeTexture(_log, _apricotTexture->Texture);
 
             // Release the original resources
             dxTexture->Release();

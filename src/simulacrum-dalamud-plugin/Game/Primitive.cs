@@ -2,13 +2,16 @@
 using Dalamud.Game;
 using Dalamud.Hooking;
 using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using static Simulacrum.Game.GameFunctions;
 
 namespace Simulacrum.Game;
 
 public abstract class Primitive
 {
-    protected readonly SigScanner Scanner;
+    protected readonly ISigScanner Scanner;
+    protected readonly IGameInteropProvider GameInteropProvider;
+    protected readonly IPluginLog Log;
 
     protected nint PrimitiveServer;
     protected nint PrimitiveContext;
@@ -24,9 +27,11 @@ public abstract class Primitive
     protected KernelEnd? CallKernelEnd;
     protected nint KernelEndFunc;
 
-    protected Primitive(SigScanner sigScanner)
+    protected Primitive(ISigScanner sigScanner, IGameInteropProvider gameInteropProvider, IPluginLog log)
     {
         Scanner = sigScanner;
+        GameInteropProvider = gameInteropProvider;
+        Log = log;
     }
 
     public virtual void Initialize()
@@ -60,7 +65,7 @@ public abstract class Primitive
     {
         Hook<KernelEnd>? hook = null;
 
-        hook = Hook<KernelEnd>.FromAddress(KernelEndFunc, (thisPtr, unk1) =>
+        hook = GameInteropProvider.HookFromAddress<KernelEnd>(KernelEndFunc, (thisPtr, unk1) =>
         {
             // ReSharper disable once AccessToModifiedClosure
             var ret = hook!.Original(thisPtr, unk1);
@@ -72,7 +77,7 @@ public abstract class Primitive
             }
             catch (Exception e)
             {
-                PluginLog.LogError(e, "Failed to call subscribe function");
+                Log.Error(e, "Failed to call subscribe function");
             }
             finally
             {
@@ -110,7 +115,7 @@ public abstract class Primitive
     private T ScanFunc<T>(string signature)
     {
         var addr = Scanner.ScanText(signature);
-        PluginLog.Log($"{typeof(T).Name}: ffxiv_dx11.exe+{addr - Scanner.Module.BaseAddress:X}");
+        Log.Info($"{typeof(T).Name}: ffxiv_dx11.exe+{addr - Scanner.Module.BaseAddress:X}");
         return Marshal.GetDelegateForFunctionPointer<T>(addr);
     }
 }

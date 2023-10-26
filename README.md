@@ -13,9 +13,9 @@ This section is a work in progress
 ### NUKE
 
 Simulacrum uses NUKE as a build script manager. It is strongly recommended to install the
-[global tool](https://nuke.build/docs/getting-started/installation/) and IDE extension ([Rider](https://nuke.build/docs/ide/rider/),
-[ReSharper](https://nuke.build/docs/ide/resharper/), [Visual Studio](https://nuke.build/docs/ide/visual-studio/),
-[Visual Studio Code](https://nuke.build/docs/ide/vscode/)) when developing Simulacrum.
+[global tool](https://nuke.build/docs/getting-started/installation/) when developing Simulacrum.
+
+Run `nuke Compile` to build the project.
 
 Run `nuke YarnInstall` (or `yarn install`) to install the Node.js package dependencies.
 
