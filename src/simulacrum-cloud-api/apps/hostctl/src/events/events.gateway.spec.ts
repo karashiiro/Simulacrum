@@ -193,4 +193,62 @@ describe("EventsGateway", () => {
       expect.assertions(4);
     });
   });
+
+  describe("syncVideoSource", () => {
+    it("returns the current state of the video source", async () => {
+      // Arrange: Mock a video source
+      const dto = {
+        id: "0",
+        meta: { type: "video", uri: "something" },
+        updatedAt: 1705333950,
+      };
+
+      db.findMediaSource.mockResolvedValueOnce(dto);
+
+      // Act: Call method
+      const result = await gateway.syncVideoSource({
+        id: "0",
+      });
+
+      // Assert: Result is expected
+      expect(result).toStrictEqual({
+        event: "VIDEO_SOURCE_SYNC",
+        data: {
+          mediaSource: dto,
+        },
+      });
+    });
+
+    it("throws an error when the target media source could not be found", async () => {
+      // Arrange: Mock an empty response
+      db.findMediaSource.mockResolvedValueOnce(undefined);
+
+      // Act: Call method
+      // Assert: Method throws an error
+      await expect(
+        gateway.syncVideoSource({
+          id: "0",
+        })
+      ).rejects.toThrowError();
+    });
+
+    it("throws an error when the target media source is not a video", async () => {
+      // Arrange: Mock an image source
+      const dto = {
+        id: "0",
+        meta: { type: "image", uri: "something" },
+        updatedAt: 1705333950,
+      };
+
+      db.findMediaSource.mockResolvedValueOnce(dto);
+
+      // Act: Call method
+      // Assert: Method throws an error
+      await expect(
+        gateway.syncVideoSource({
+          id: "0",
+        })
+      ).rejects.toThrowError();
+    });
+  });
 });
