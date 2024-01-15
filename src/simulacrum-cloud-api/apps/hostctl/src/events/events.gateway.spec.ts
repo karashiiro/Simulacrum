@@ -394,4 +394,77 @@ describe("EventsGateway", () => {
       expect(broadcast).toHaveBeenCalledTimes(0);
     });
   });
+
+  describe("panVideoSource", () => {
+    it("changes the playhead state of the video source and broadcasts the update", async () => {
+      // Arrange: Mock a video source
+      const dto = {
+        id: "0",
+        meta: { type: "video", uri: "something" },
+        updatedAt: 1705333950,
+      };
+
+      db.findMediaSource.mockResolvedValueOnce(dto);
+
+      db.updateMediaSource.mockResolvedValueOnce({
+        id: "0",
+        meta: { type: "video", uri: "something", playheadSeconds: 23 },
+        updatedAt: 1705333950,
+      });
+
+      // Act: Call method
+      await gateway.panVideoSource({
+        id: "0",
+        playheadSeconds: 23,
+      });
+
+      // Assert: State was updated
+      expect(db.updateMediaSource).toHaveBeenCalledWith("0", {
+        meta: { type: "video", playheadSeconds: 23 },
+      });
+
+      // Assert: broadcast was called
+      expect(broadcast).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws an error when the target media source could not be found", async () => {
+      // Arrange: Mock an empty response
+      db.findMediaSource.mockResolvedValueOnce(undefined);
+
+      // Act: Call method
+      // Assert: Method throws an error
+      await expect(
+        gateway.panVideoSource({
+          id: "0",
+          playheadSeconds: 23,
+        })
+      ).rejects.toThrowError();
+
+      // Assert: broadcast was not called
+      expect(broadcast).toHaveBeenCalledTimes(0);
+    });
+
+    it("throws an error when the target media source is not a video", async () => {
+      // Arrange: Mock an image source
+      const dto = {
+        id: "0",
+        meta: { type: "image", uri: "something" },
+        updatedAt: 1705333950,
+      };
+
+      db.findMediaSource.mockResolvedValueOnce(dto);
+
+      // Act: Call method
+      // Assert: Method throws an error
+      await expect(
+        gateway.panVideoSource({
+          id: "0",
+          playheadSeconds: 23,
+        })
+      ).rejects.toThrowError();
+
+      // Assert: broadcast was not called
+      expect(broadcast).toHaveBeenCalledTimes(0);
+    });
+  });
 });
