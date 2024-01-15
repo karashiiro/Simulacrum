@@ -1,5 +1,8 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
+  Connection,
+  EntityManager,
+  ScanManager,
   createConnection,
   getEntityManager,
   getScanManager,
@@ -15,18 +18,6 @@ import {
 } from "../common";
 import { MediaSource } from "./entity/media-source.entity";
 import { Screen } from "./entity/screen.entity";
-
-const documentClient = new DocumentClientV3(
-  new DynamoDBClient({
-    endpoint: "http://localhost:8000",
-  })
-);
-
-createConnection({
-  table: table,
-  entities: [MediaSource, Screen],
-  documentClient,
-});
 
 type UnknownMediaSourceDto =
   | MediaSourceDto
@@ -156,8 +147,33 @@ function mediaSourceUpdateFromDynamo(
 
 @Injectable()
 export class DynamoDbService implements DbAccessService {
-  private readonly entityManager = getEntityManager();
-  private readonly scanManager = getScanManager();
+  private readonly entityManager: EntityManager;
+  private readonly scanManager: ScanManager;
+
+  static client: DynamoDBClient;
+  static connection: Connection;
+
+  constructor() {
+    if (DynamoDbService.connection === undefined) {
+      const ddbClient = new DynamoDBClient({
+        endpoint: `${
+          process.env.SIMULACRUM_DDB_ENDPOINT || "http://localhost:8000"
+        }`,
+      });
+
+      const documentClient = new DocumentClientV3(ddbClient);
+
+      DynamoDbService.client = ddbClient;
+      DynamoDbService.connection = createConnection({
+        table: table,
+        entities: [MediaSource, Screen],
+        documentClient,
+      });
+    }
+
+    this.entityManager = getEntityManager();
+    this.scanManager = getScanManager();
+  }
 
   async findMediaSource(id: string): Promise<MediaSourceDto | undefined> {
     const mediaSource = await this.entityManager.findOne(MediaSource, { id });
