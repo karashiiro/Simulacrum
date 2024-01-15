@@ -217,6 +217,9 @@ describe("EventsGateway", () => {
           mediaSource: dto,
         },
       });
+
+      // Assert: broadcast was not called
+      expect(broadcast).toHaveBeenCalledTimes(0);
     });
 
     it("throws an error when the target media source could not be found", async () => {
@@ -249,6 +252,76 @@ describe("EventsGateway", () => {
           id: "0",
         })
       ).rejects.toThrowError();
+    });
+  });
+
+  describe("playVideoSource", () => {
+    it("sets the state of the video source to playing and broadcasts the update", async () => {
+      // Arrange: Mock a video source
+      const dto = {
+        id: "0",
+        meta: { type: "video", uri: "something" },
+        updatedAt: 1705333950,
+      };
+
+      db.findMediaSource.mockResolvedValueOnce(dto);
+
+      db.updateMediaSource.mockResolvedValueOnce({
+        id: "0",
+        meta: { type: "video", uri: "something", state: "playing" },
+        updatedAt: 1705333950,
+      });
+
+      // Act: Call method
+      await gateway.playVideoSource({
+        id: "0",
+      });
+
+      // Assert: State was updated
+      expect(db.updateMediaSource).toHaveBeenCalledWith("0", {
+        meta: { type: "video", state: "playing" },
+      });
+
+      // Assert: broadcast was called
+      expect(broadcast).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws an error when the target media source could not be found", async () => {
+      // Arrange: Mock an empty response
+      db.findMediaSource.mockResolvedValueOnce(undefined);
+
+      // Act: Call method
+      // Assert: Method throws an error
+      await expect(
+        gateway.playVideoSource({
+          id: "0",
+        })
+      ).rejects.toThrowError();
+
+      // Assert: broadcast was not called
+      expect(broadcast).toHaveBeenCalledTimes(0);
+    });
+
+    it("throws an error when the target media source is not a video", async () => {
+      // Arrange: Mock an image source
+      const dto = {
+        id: "0",
+        meta: { type: "image", uri: "something" },
+        updatedAt: 1705333950,
+      };
+
+      db.findMediaSource.mockResolvedValueOnce(dto);
+
+      // Act: Call method
+      // Assert: Method throws an error
+      await expect(
+        gateway.playVideoSource({
+          id: "0",
+        })
+      ).rejects.toThrowError();
+
+      // Assert: broadcast was not called
+      expect(broadcast).toHaveBeenCalledTimes(0);
     });
   });
 });
