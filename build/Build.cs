@@ -14,7 +14,7 @@ using Serilog;
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
 [GitHubActions("build", GitHubActionsImage.WindowsLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild) })] // TODO: Enable plugin builds in CI
+    InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) })] // TODO: Enable plugin builds in CI
 class Build : NukeBuild
 {
     /// Support plugins are available for:
@@ -56,6 +56,10 @@ class Build : NukeBuild
     Target YarnDev => _ => _
         .Description("Runs the development servers using yarn.")
         .Executes(() => { Yarn("dev", exitHandler: _ => { }); });
+
+    Target YarnTest => _ => _
+        .Description("Runs tests for workspace packages using yarn.")
+        .Executes(() => { Yarn("test", exitHandler: _ => { }); });
 
     Target YarnBuild => _ => _
         .Description("Builds the Node.js packages in the monorepo using yarn.")

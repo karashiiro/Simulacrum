@@ -22,6 +22,8 @@ Run `nuke YarnInstall` (or `yarn install`) to install the Node.js package depend
 Running `nuke YarnDev` (or `yarn dev`, or `turbo dev`, if you have the appropriate tools installed already) will run the development
 servers.
 
+Running `nuke YarnTest` (or `yarn test`, or `turbo test`) will run tests for all workspace packages.
+
 ### Repository structure
 
 All project components are stored in the `src` directory. Their purposes are listed below:

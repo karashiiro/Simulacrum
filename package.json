@@ -5,6 +5,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "format": "turbo format",
+    "test": "turbo test",
     "postinstall": "manypkg check"
   },
   "dependencies": {

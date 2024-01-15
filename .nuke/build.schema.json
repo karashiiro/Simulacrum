@@ -82,7 +82,8 @@
               "YarnAssertRoot",
               "YarnBuild",
               "YarnDev",
-              "YarnInstall"
+              "YarnInstall",
+              "YarnTest"
             ]
           }
         },
@@ -106,7 +107,8 @@
               "YarnAssertRoot",
               "YarnBuild",
               "YarnDev",
-              "YarnInstall"
+              "YarnInstall",
+              "YarnTest"
             ]
           }
         },
