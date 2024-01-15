@@ -11,7 +11,7 @@ import {
 } from "@nestjs/websockets";
 import { DbService } from "@simulacrum/db";
 import { MediaSourceDto, ScreenDto } from "@simulacrum/db/common";
-import { Observable, bufferCount, from, map } from "rxjs";
+import { Observable, from, map } from "rxjs";
 import { WebSocketServer as Server } from "ws";
 import { broadcast } from "../utils/ws";
 
@@ -76,6 +76,12 @@ interface VideoSourcePanBroadcast {
   mediaSource: MediaSourceDto;
 }
 
+function batchArray<T>(arr: T[], batchSize: number): T[][] {
+  return new Array(Math.ceil(arr.length / batchSize))
+    .fill(undefined)
+    .map((_, i) => arr.slice(i * batchSize, (i + 1) * batchSize));
+}
+
 @WebSocketGateway()
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(EventsGateway.name);
@@ -108,9 +114,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async listScreensForMediaSource(
     @MessageBody() ev: MediaSourceListScreensEvent
   ): Promise<Observable<WsResponse<MediaSourceListScreensResponse>>> {
+    // TODO: Don't load this as a single array (can optimize it later)
     const dtos = await this.db.findScreensByMediaSourceId(ev.mediaSourceId);
-    return from(dtos).pipe(
-      bufferCount(10),
+    const paged = batchArray(dtos, 10);
+    return from(paged).pipe(
       map((dtos) => ({
         event: "MEDIA_SOURCE_LIST_SCREENS",
         data: {
@@ -124,9 +131,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async listMediaSources(): Promise<
     Observable<WsResponse<MediaSourceListResponse>>
   > {
+    // TODO: Don't load this as a single array (can optimize it later)
     const dtos = await this.db.findAllMediaSources();
-    return from(dtos).pipe(
-      bufferCount(10),
+    const paged = batchArray(dtos, 10);
+    return from(paged).pipe(
       map((dtos) => ({
         event: "MEDIA_SOURCE_LIST",
         data: {

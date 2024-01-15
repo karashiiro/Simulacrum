@@ -1,6 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { EventsGateway } from "./events.gateway";
-import { DbAccessService, ScreenDto } from "@simulacrum/db/common";
+import {
+  DbAccessService,
+  MediaSourceDto,
+  ScreenDto,
+} from "@simulacrum/db/common";
 import { DbService } from "@simulacrum/db";
 import { broadcast } from "../utils/ws";
 
@@ -112,31 +116,18 @@ describe("EventsGateway", () => {
 
   describe("listScreensForMediaSource", () => {
     it("returns the list of created screens for the media source to the caller", async () => {
-      // Arrange: Mock some media sources
-      const dtos: ScreenDto[] = [
-        {
-          id: "0",
-          territory: 7,
-          world: 74,
-          position: {
-            x: 20,
-            y: 21,
-            z: 22,
-          },
-          updatedAt: 1705284275,
+      // Arrange: Mock some screens
+      const dtos: ScreenDto[] = new Array(21).fill(undefined).map((_, i) => ({
+        id: i.toString(),
+        territory: 7,
+        world: 74 + i,
+        position: {
+          x: 20,
+          y: 21,
+          z: 22,
         },
-        {
-          id: "1",
-          territory: 7,
-          world: 75,
-          position: {
-            x: 22,
-            y: 23,
-            z: 24,
-          },
-          updatedAt: 1705284367,
-        },
-      ];
+        updatedAt: 1705284275,
+      }));
 
       db.findScreensByMediaSourceId.mockImplementationOnce(() => dtos);
 
@@ -145,12 +136,15 @@ describe("EventsGateway", () => {
         mediaSourceId: "0",
       });
 
-      // Assert: Result pages include screens
+      // Assert: Result pages include screens, batched into pages of 10
       results.forEach((page) => {
         expect(page).toStrictEqual({
           event: "MEDIA_SOURCE_LIST_SCREENS",
           data: {
-            screens: dtos,
+            screens: new Array(10)
+              .fill(undefined)
+              .map(() => dtos.shift())
+              .filter((dto) => dto),
           },
         });
       });
@@ -159,7 +153,44 @@ describe("EventsGateway", () => {
       expect(broadcast).toHaveBeenCalledTimes(0);
 
       // Assert: All assertions occurred (pseudo-length check on results)
-      expect.assertions(2);
+      expect.assertions(4);
+    });
+  });
+
+  describe("listMediaSources", () => {
+    it("returns the list of created media sources to the caller", async () => {
+      // Arrange: Mock some media sources
+      const dtos: MediaSourceDto[] = new Array(21)
+        .fill(undefined)
+        .map((_, i) => ({
+          id: i.toString(),
+          meta: { type: "image", uri: "something" },
+          updatedAt: 1705333950,
+        }));
+
+      db.findAllMediaSources.mockImplementationOnce(() => dtos);
+
+      // Act: Call method
+      const results = await gateway.listMediaSources();
+
+      // Assert: Result pages include media sources, batched into pages of 10
+      results.forEach((page) => {
+        expect(page).toStrictEqual({
+          event: "MEDIA_SOURCE_LIST",
+          data: {
+            mediaSources: new Array(10)
+              .fill(undefined)
+              .map(() => dtos.shift())
+              .filter((dto) => dto),
+          },
+        });
+      });
+
+      // Assert: broadcast was not called
+      expect(broadcast).toHaveBeenCalledTimes(0);
+
+      // Assert: All assertions occurred (pseudo-length check on results)
+      expect.assertions(4);
     });
   });
 });
