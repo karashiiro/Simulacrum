@@ -115,9 +115,8 @@ describe("EventsGateway", () => {
   });
 
   describe("listScreensForMediaSource", () => {
-    it("returns the list of created screens for the media source to the caller", async () => {
-      // Arrange: Mock some screens
-      const dtos: ScreenDto[] = new Array(21).fill(undefined).map((_, i) => ({
+    const createScreens = (amount: number): ScreenDto[] => {
+      return new Array(amount).fill(undefined).map((_, i) => ({
         id: i.toString(),
         territory: 7,
         world: 74 + i,
@@ -128,6 +127,11 @@ describe("EventsGateway", () => {
         },
         updatedAt: 1705284275,
       }));
+    };
+
+    it("returns the list of created screens for the media source to the caller", async () => {
+      // Arrange: Mock some screens
+      const dtos = createScreens(21);
 
       db.findScreensByMediaSourceId.mockImplementationOnce(() => dtos);
 
@@ -158,15 +162,17 @@ describe("EventsGateway", () => {
   });
 
   describe("listMediaSources", () => {
+    const createMediaSources = (amount: number): MediaSourceDto[] => {
+      return new Array(amount).fill(undefined).map((_, i) => ({
+        id: i.toString(),
+        meta: { type: "image", uri: "something" },
+        updatedAt: 1705333950,
+      }));
+    };
+
     it("returns the list of created media sources to the caller", async () => {
       // Arrange: Mock some media sources
-      const dtos: MediaSourceDto[] = new Array(21)
-        .fill(undefined)
-        .map((_, i) => ({
-          id: i.toString(),
-          meta: { type: "image", uri: "something" },
-          updatedAt: 1705333950,
-        }));
+      const dtos = createMediaSources(21);
 
       db.findAllMediaSources.mockImplementationOnce(() => dtos);
 
@@ -197,7 +203,7 @@ describe("EventsGateway", () => {
   describe("syncVideoSource", () => {
     it("returns the current state of the video source", async () => {
       // Arrange: Mock a video source
-      const dto = {
+      const dto: MediaSourceDto = {
         id: "0",
         meta: { type: "video", uri: "something" },
         updatedAt: 1705333950,
@@ -237,7 +243,7 @@ describe("EventsGateway", () => {
 
     it("throws an error when the target media source is not a video", async () => {
       // Arrange: Mock an image source
-      const dto = {
+      const dto: MediaSourceDto = {
         id: "0",
         meta: { type: "image", uri: "something" },
         updatedAt: 1705333950,
@@ -258,7 +264,7 @@ describe("EventsGateway", () => {
   describe("playVideoSource", () => {
     it("sets the state of the video source to playing and broadcasts the update", async () => {
       // Arrange: Mock a video source
-      const dto = {
+      const dto: MediaSourceDto = {
         id: "0",
         meta: { type: "video", uri: "something" },
         updatedAt: 1705333950,
@@ -304,7 +310,7 @@ describe("EventsGateway", () => {
 
     it("throws an error when the target media source is not a video", async () => {
       // Arrange: Mock an image source
-      const dto = {
+      const dto: MediaSourceDto = {
         id: "0",
         meta: { type: "image", uri: "something" },
         updatedAt: 1705333950,
@@ -328,7 +334,7 @@ describe("EventsGateway", () => {
   describe("pauseVideoSource", () => {
     it("sets the state of the video source to paused and broadcasts the update", async () => {
       // Arrange: Mock a video source
-      const dto = {
+      const dto: MediaSourceDto = {
         id: "0",
         meta: { type: "video", uri: "something" },
         updatedAt: 1705333950,
@@ -374,7 +380,7 @@ describe("EventsGateway", () => {
 
     it("throws an error when the target media source is not a video", async () => {
       // Arrange: Mock an image source
-      const dto = {
+      const dto: MediaSourceDto = {
         id: "0",
         meta: { type: "image", uri: "something" },
         updatedAt: 1705333950,
@@ -398,7 +404,7 @@ describe("EventsGateway", () => {
   describe("panVideoSource", () => {
     it("changes the playhead state of the video source and broadcasts the update", async () => {
       // Arrange: Mock a video source
-      const dto = {
+      const dto: MediaSourceDto = {
         id: "0",
         meta: { type: "video", uri: "something" },
         updatedAt: 1705333950,
@@ -446,7 +452,7 @@ describe("EventsGateway", () => {
 
     it("throws an error when the target media source is not a video", async () => {
       // Arrange: Mock an image source
-      const dto = {
+      const dto: MediaSourceDto = {
         id: "0",
         meta: { type: "image", uri: "something" },
         updatedAt: 1705333950,
