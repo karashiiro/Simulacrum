@@ -179,7 +179,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage("VIDEO_SOURCE_PLAY")
-  async playMediaSource(
+  async playVideoSource(
     @MessageBody() ev: VideoSourcePlayRequest
   ): Promise<void> {
     // TODO: Combine these into a more efficient "update when" operation
@@ -207,7 +207,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage("VIDEO_SOURCE_PAUSE")
-  async pauseMediaSource(
+  async pauseVideoSource(
     @MessageBody() ev: VideoSourcePauseRequest
   ): Promise<void> {
     const dtoInitial = await this.db.findMediaSource(ev.id);
@@ -234,7 +234,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage("VIDEO_SOURCE_PAN")
-  async panMediaSource(
+  async panVideoSource(
     @MessageBody() ev: VideoSourcePanRequest
   ): Promise<void> {
     const dtoInitial = await this.db.findMediaSource(ev.id);
