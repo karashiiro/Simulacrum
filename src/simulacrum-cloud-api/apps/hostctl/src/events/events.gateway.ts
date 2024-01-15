@@ -166,6 +166,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException("Could not find media source.");
     }
 
+    if (dto.meta.type !== "video") {
+      throw new WsException("Media source is not a video.");
+    }
+
     return {
       event: "VIDEO_SOURCE_SYNC",
       data: {
@@ -178,6 +182,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async playMediaSource(
     @MessageBody() ev: VideoSourcePlayRequest
   ): Promise<void> {
+    // TODO: Combine these into a more efficient "update when" operation
+    const dtoInitial = await this.db.findMediaSource(ev.id);
+    if (dtoInitial?.meta.type !== "video") {
+      throw new WsException("Media source is not a video.");
+    }
+
     const dto = await this.db.updateMediaSource(ev.id, {
       meta: {
         type: "video",
@@ -200,6 +210,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async pauseMediaSource(
     @MessageBody() ev: VideoSourcePauseRequest
   ): Promise<void> {
+    const dtoInitial = await this.db.findMediaSource(ev.id);
+    if (dtoInitial?.meta.type !== "video") {
+      throw new WsException("Media source is not a video.");
+    }
+
     const dto = await this.db.updateMediaSource(ev.id, {
       meta: {
         type: "video",
@@ -222,6 +237,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async panMediaSource(
     @MessageBody() ev: VideoSourcePanRequest
   ): Promise<void> {
+    const dtoInitial = await this.db.findMediaSource(ev.id);
+    if (dtoInitial?.meta.type !== "video") {
+      throw new WsException("Media source is not a video.");
+    }
+
     const dto = await this.db.updateMediaSource(ev.id, {
       meta: {
         type: "video",
