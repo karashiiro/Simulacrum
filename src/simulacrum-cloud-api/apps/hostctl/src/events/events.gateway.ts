@@ -12,8 +12,8 @@ import {
 import { DbService } from "@simulacrum/db";
 import { MediaSourceDto, ScreenDto } from "@simulacrum/db/common";
 import { Observable, bufferCount, from, map } from "rxjs";
-import * as WebSocket from "ws";
 import { WebSocketServer as Server } from "ws";
+import { broadcast } from "../utils/ws";
 
 interface ScreenCreateEvent {
   screen: Omit<ScreenDto, "id" | "updatedAt">;
@@ -74,14 +74,6 @@ interface VideoSourcePauseBroadcast {
 
 interface VideoSourcePanBroadcast {
   mediaSource: MediaSourceDto;
-}
-
-function broadcast<T>(server: Server, message: WsResponse<T>) {
-  server.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(message));
-    }
-  });
 }
 
 @WebSocketGateway()
