@@ -6,6 +6,7 @@ import {
   CreateTableCommandInput,
   KeyType,
 } from "@aws-sdk/client-dynamodb";
+import { MediaSourceDto, ScreenDto } from "../common";
 
 const tableParams: CreateTableCommandInput = {
   TableName: "Simulacrum",
@@ -124,7 +125,7 @@ describe("DynamoDbService", () => {
   describe("createScreen", () => {
     it("creates a screen in the database and returns the result", async () => {
       // Act: Create a screen
-      const screen = {
+      const screen: Omit<ScreenDto, "id" | "updatedAt"> = {
         territory: 7,
         world: 74,
         position: {
@@ -144,6 +145,138 @@ describe("DynamoDbService", () => {
           ...screen,
         })
       );
+    });
+  });
+
+  describe("createMediaSource", () => {
+    describe("blank", () => {
+      it("creates a blank media source in the database and returns the result", async () => {
+        // Act: Create a media source
+        const mediaSource: Omit<MediaSourceDto, "id" | "updatedAt"> = {
+          meta: {
+            type: "blank",
+          },
+        };
+
+        const result = await service.createMediaSource(mediaSource);
+
+        // Assert: The result was created with an ID and updatedAt
+        expect(result).toEqual(
+          expect.objectContaining({
+            id: expectUUIDv4(),
+            updatedAt: expect.any(Number),
+            ...mediaSource,
+          })
+        );
+      });
+    });
+
+    describe("image", () => {
+      describe("without a URI", () => {
+        it("creates an image media source in the database and returns the result", async () => {
+          // Act: Create a media source
+          const mediaSource: Omit<MediaSourceDto, "id" | "updatedAt"> = {
+            meta: {
+              type: "image",
+            },
+          };
+
+          const result = await service.createMediaSource(mediaSource);
+
+          // Assert: The result was created with an ID and updatedAt
+          expect(result).toEqual(
+            expect.objectContaining({
+              id: expectUUIDv4(),
+              updatedAt: expect.any(Number),
+              meta: {
+                uri: "",
+                ...mediaSource.meta,
+              },
+            })
+          );
+        });
+      });
+
+      describe("with a URI", () => {
+        it("creates an image media source in the database and returns the result", async () => {
+          // Act: Create a media source
+          const mediaSource: Omit<MediaSourceDto, "id" | "updatedAt"> = {
+            meta: {
+              type: "image",
+              uri: "http://something.local",
+            },
+          };
+
+          const result = await service.createMediaSource(mediaSource);
+
+          // Assert: The result was created with an ID and updatedAt
+          expect(result).toEqual(
+            expect.objectContaining({
+              id: expectUUIDv4(),
+              updatedAt: expect.any(Number),
+              ...mediaSource,
+            })
+          );
+        });
+      });
+    });
+
+    describe("video", () => {
+      describe("without a URI", () => {
+        it("creates a video media source in the database and returns the result", async () => {
+          // Act: Create a media source
+          const mediaSource: Omit<MediaSourceDto, "id" | "updatedAt"> = {
+            meta: {
+              type: "video",
+            },
+          };
+
+          const result = await service.createMediaSource(mediaSource);
+
+          // Assert: The result was created
+          expect(result).toEqual(
+            expect.objectContaining({
+              id: expectUUIDv4(),
+              updatedAt: expect.any(Number),
+              meta: {
+                playheadSeconds: 0,
+                playheadUpdatedAt: expect.any(Number),
+                state: "paused",
+                uri: "",
+                ...mediaSource.meta,
+              },
+            })
+          );
+        });
+      });
+
+      describe("with a URI", () => {
+        it("creates a video media source in the database and returns the result", async () => {
+          // Act: Create a media source
+          const mediaSource: Omit<MediaSourceDto, "id" | "updatedAt"> = {
+            meta: {
+              type: "video",
+              uri: "http://something.local",
+            },
+          };
+
+          const result = await service.createMediaSource(mediaSource);
+
+          // Assert: The result was created
+          expect(result).toEqual(
+            expect.objectContaining({
+              id: expectUUIDv4(),
+              updatedAt: expect.any(Number),
+              meta: {
+                playheadSeconds: 0,
+                playheadUpdatedAt: expect.any(Number),
+                state: "paused",
+                ...mediaSource.meta,
+              },
+            })
+          );
+        });
+      });
     });
   });
 });
