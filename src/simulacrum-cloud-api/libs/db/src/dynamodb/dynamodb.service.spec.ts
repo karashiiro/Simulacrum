@@ -7,6 +7,7 @@ import {
   KeyType,
 } from "@aws-sdk/client-dynamodb";
 import { MediaSourceDto, ScreenDto } from "../common";
+import * as assert from "assert";
 
 const tableParams: CreateTableCommandInput = {
   TableName: "Simulacrum",
@@ -275,6 +276,123 @@ describe("DynamoDbService", () => {
               },
             })
           );
+        });
+      });
+    });
+  });
+
+  describe("updateMediaSource", () => {
+    describe("image", () => {
+      let mediaSource: MediaSourceDto;
+
+      beforeEach(async () => {
+        // Arrange: Create an image
+        mediaSource = await service.createMediaSource({
+          meta: {
+            type: "image",
+            uri: "http://something.local",
+          },
+        });
+      });
+
+      it("updates the image URI when requested to", async () => {
+        // Act: Update the image URI
+        const result = await service.updateMediaSource(mediaSource.id, {
+          meta: {
+            type: "image",
+            uri: "http://never.local",
+          },
+        });
+
+        // Assert: The result has the new URI
+        expect(result).toEqual({
+          ...mediaSource,
+          meta: {
+            ...mediaSource.meta,
+            uri: "http://never.local",
+          },
+        });
+      });
+    });
+
+    describe("video", () => {
+      let mediaSource: MediaSourceDto;
+
+      beforeEach(async () => {
+        // Arrange: Create a video
+        mediaSource = await service.createMediaSource({
+          meta: {
+            type: "video",
+            uri: "http://something.local",
+          },
+        });
+      });
+
+      it("updates the video URI when requested to", async () => {
+        // Act: Update the video URI
+        const result = await service.updateMediaSource(mediaSource.id, {
+          meta: {
+            type: "video",
+            uri: "http://never.local",
+          },
+        });
+
+        // Assert: The result has the new URI
+        expect(result).toEqual({
+          ...mediaSource,
+          meta: {
+            ...mediaSource.meta,
+            uri: "http://never.local",
+          },
+        });
+      });
+
+      it("updates the playhead when requested to", async () => {
+        // Act: Update the video playhead
+        const result = await service.updateMediaSource(mediaSource.id, {
+          meta: {
+            type: "video",
+            playheadSeconds: 20.42,
+          },
+        });
+
+        // Assert: The result has the new playhead
+        expect(result).toEqual({
+          ...mediaSource,
+          meta: {
+            ...mediaSource.meta,
+            playheadSeconds: 20.42,
+            // When updating the playhead, the playhead update timestamp should also update
+            playheadUpdatedAt: expect.any(Number),
+          },
+        });
+
+        // Dummy asserts for type narrowing
+        assert(result?.meta.type === "video");
+        assert(mediaSource.meta.type === "video");
+
+        // Assert: The new playhead update timestamp is greater than the original one
+        expect(result.meta.playheadUpdatedAt).toBeGreaterThan(
+          mediaSource.meta.playheadUpdatedAt ?? Infinity
+        );
+      });
+
+      it("updates the play state when requested to", async () => {
+        // Act: Update the video play state
+        const result = await service.updateMediaSource(mediaSource.id, {
+          meta: {
+            type: "video",
+            state: "playing",
+          },
+        });
+
+        // Assert: The result has the new play state
+        expect(result).toEqual({
+          ...mediaSource,
+          meta: {
+            ...mediaSource.meta,
+            state: "playing",
+          },
         });
       });
     });

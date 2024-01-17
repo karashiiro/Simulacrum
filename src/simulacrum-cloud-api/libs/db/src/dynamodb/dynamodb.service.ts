@@ -206,7 +206,7 @@ export class DynamoDbService implements DbAccessService {
   ): Promise<MediaSourceDto | undefined> {
     // Set the update timestamp for the playhead in milliseconds for sync precision
     const meta = dto.meta;
-    if (meta?.type === "video") {
+    if (meta?.type === "video" && meta?.playheadSeconds !== undefined) {
       meta.playheadUpdatedAt = new Date().valueOf();
     }
 
