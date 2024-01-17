@@ -209,10 +209,12 @@ export class DynamoDbService implements DbAccessService {
 
     if (meta?.type === "video") {
       if (meta?.uri !== undefined) {
+        // If the URI changes, the playhead should reset
         meta.playheadSeconds = 0;
       }
 
       if (meta?.playheadSeconds !== undefined) {
+        // If the playhead changes, the playhead update timestamp should be updated
         meta.playheadUpdatedAt = new Date().valueOf();
       }
     }
