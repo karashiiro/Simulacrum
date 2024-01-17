@@ -343,8 +343,21 @@ describe("DynamoDbService", () => {
           meta: {
             ...mediaSource.meta,
             uri: "http://never.local",
+            // When updating the URI, the playhead should return to 0 automatically
+            playheadSeconds: 0,
+            // When updating the playhead, the playhead update timestamp should also update
+            playheadUpdatedAt: expect.any(Number),
           },
         });
+
+        // Dummy asserts for type narrowing
+        assert(result?.meta.type === "video");
+        assert(mediaSource.meta.type === "video");
+
+        // Assert: The new playhead update timestamp is greater than the original one
+        expect(result.meta.playheadUpdatedAt).toBeGreaterThan(
+          mediaSource.meta.playheadUpdatedAt ?? Infinity
+        );
       });
 
       it("updates the playhead when requested to", async () => {
