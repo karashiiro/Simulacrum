@@ -410,4 +410,34 @@ describe("DynamoDbService", () => {
       });
     });
   });
+
+  describe("findMediaSource", () => {
+    let mediaSource: MediaSourceDto;
+
+    beforeEach(async () => {
+      // Arrange: Create a media source
+      mediaSource = await service.createMediaSource({
+        meta: {
+          type: "image",
+          uri: "http://something.local",
+        },
+      });
+    });
+
+    it("returns a media source if it exists", async () => {
+      // Act: Retrieve the media source
+      const result = await service.findMediaSource(mediaSource.id);
+
+      // Assert: The media source is exactly what we created
+      expect(result).toEqual(mediaSource);
+    });
+
+    it("returns undefined if it does not exist", async () => {
+      // Act: Retrieve the media source
+      const result = await service.findMediaSource("some-random-id");
+
+      // Assert: The media source is undefined
+      expect(result).toBeUndefined();
+    });
+  });
 });
