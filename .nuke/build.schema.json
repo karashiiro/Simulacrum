@@ -73,7 +73,6 @@
             "type": "string",
             "enum": [
               "CdkDiff",
-              "CheckDeps",
               "Clean",
               "Compile",
               "CompileD17",
@@ -98,7 +97,6 @@
             "type": "string",
             "enum": [
               "CdkDiff",
-              "CheckDeps",
               "Clean",
               "Compile",
               "CompileD17",

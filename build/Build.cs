@@ -37,14 +37,6 @@ class Build : NukeBuild
 
     [PathVariable] readonly Tool Yarn;
 
-    [LocalPath("./src/simulacrum-depcheck/depcheck.cmd")]
-    readonly Tool DepCheck;
-
-    Target CheckDeps => _ => _
-        .Description("Checks for the required dependencies in the environment.")
-        .DependentFor(YarnInstall, YarnDev, YarnBuild, CdkDiff)
-        .Executes(() => { DepCheck(""); });
-
     Target YarnAssertRoot => _ => _
         .Unlisted()
         .DependentFor(YarnInstall, YarnDev, YarnBuild, CdkDiff)
