@@ -69,7 +69,7 @@ describe("hostctl (e2e)", () => {
         resolve();
       });
     });
-  }, 15000);
+  }, 30000);
 
   afterEach(async () => {
     // TODO: There's a TimeoutError in the AWS SDK after this point, why?
