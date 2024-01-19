@@ -19,12 +19,8 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@simulacrum/db": [
-        "libs/db/src"
-      ],
-      "@simulacrum/db/*": [
-        "libs/db/src/*"
-      ]
+      "@simulacrum/db": ["libs/db/src"],
+      "@simulacrum/db/*": ["libs/db/src/*"]
     }
   }
 }

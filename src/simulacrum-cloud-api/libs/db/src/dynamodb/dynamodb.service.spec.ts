@@ -1,118 +1,30 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { StartedTestContainer, GenericContainer, Wait } from "testcontainers";
+import { StartedTestContainer } from "testcontainers";
 import { DynamoDbService } from "./dynamodb.service";
-import {
-  CreateTableCommand,
-  CreateTableCommandInput,
-  KeyType,
-} from "@aws-sdk/client-dynamodb";
+import { CreateTableCommand } from "@aws-sdk/client-dynamodb";
 import { MediaSourceDto, ScreenDto } from "../common";
 import * as assert from "assert";
-
-const tableParams: CreateTableCommandInput = {
-  TableName: "Simulacrum",
-  KeySchema: [
-    {
-      AttributeName: "PK",
-      KeyType: KeyType.HASH,
-    },
-    {
-      AttributeName: "SK",
-      KeyType: KeyType.RANGE,
-    },
-  ],
-  AttributeDefinitions: [
-    {
-      AttributeName: "PK",
-      AttributeType: "S",
-    },
-    {
-      AttributeName: "SK",
-      AttributeType: "S",
-    },
-    {
-      AttributeName: "LSI1SK",
-      AttributeType: "S",
-    },
-    {
-      AttributeName: "GSI1PK",
-      AttributeType: "S",
-    },
-    {
-      AttributeName: "GSI1SK",
-      AttributeType: "S",
-    },
-  ],
-  LocalSecondaryIndexes: [
-    {
-      IndexName: "LSI1",
-      KeySchema: [
-        { AttributeName: "PK", KeyType: "HASH" },
-        { AttributeName: "LSI1SK", KeyType: "RANGE" },
-      ],
-      Projection: { ProjectionType: "ALL" },
-    },
-  ],
-  GlobalSecondaryIndexes: [
-    {
-      IndexName: "GSI1",
-      KeySchema: [
-        { AttributeName: "GSI1PK", KeyType: "HASH" },
-        { AttributeName: "GSI1SK", KeyType: "RANGE" },
-      ],
-      Projection: { ProjectionType: "ALL" },
-      ProvisionedThroughput: {
-        ReadCapacityUnits: 10,
-        WriteCapacityUnits: 5,
-      },
-    },
-  ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 10,
-    WriteCapacityUnits: 5,
-  },
-};
+import {
+  createDdbLocalTestContainer,
+  ddbLocalTableParams,
+  expectUUIDv4,
+  getDdbLocalProcessEnv,
+} from "../test";
 
 describe("DynamoDbService", () => {
   let service: DynamoDbService;
   let container: StartedTestContainer;
   let env: typeof process.env;
 
-  const expectUUIDv4 = () => {
-    // https://github.com/afram/is-uuid/blob/master/lib/is-uuid.js
-    return expect.stringMatching(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    );
-  };
-
   beforeEach(async () => {
     // Save environment
     env = { ...process.env };
 
     // Spin up a DDB local instance
-    container = await new GenericContainer("amazon/dynamodb-local:latest")
-      .withExposedPorts({
-        // I keep getting errors like "Error: connect ECONNREFUSED ::1:32845" with no useful
-        // stack trace after a couple of tests unless I use a fixed host port.
-        container: 8000,
-        host: 4397,
-      })
-      .withWaitStrategy(
-        Wait.forAll([
-          Wait.forListeningPorts(),
-          Wait.forLogMessage(
-            "Initializing DynamoDB Local with the following configuration:"
-          ),
-        ])
-      )
-      .start();
+    container = await createDdbLocalTestContainer(4397).start();
 
     // Update the environment with the container access config
-    process.env.SIMULACRUM_DDB_ENDPOINT = "http://localhost:4397";
-    process.env.AWS_REGION = "us-east-1";
-    process.env.AWS_ACCESS_KEY_ID = "AccessKeyId";
-    process.env.AWS_SECRET_ACCESS_KEY = "SecretAccessKey";
-    process.env.AWS_SESSION_TOKEN = "SessionToken";
+    Object.assign(process.env, getDdbLocalProcessEnv(container));
 
     // Create service testing module
     const module: TestingModule = await Test.createTestingModule({
@@ -122,8 +34,10 @@ describe("DynamoDbService", () => {
     // Create a service instance
     service = module.get<DynamoDbService>(DynamoDbService);
 
-    // Create the table
-    await DynamoDbService.client.send(new CreateTableCommand(tableParams));
+    // Create a table for testing
+    await DynamoDbService.client.send(
+      new CreateTableCommand(ddbLocalTableParams)
+    );
   }, 15000);
 
   afterEach(async () => {
@@ -138,7 +52,7 @@ describe("DynamoDbService", () => {
     expect(service).toBeDefined();
   });
 
-  describe.only("createScreen", () => {
+  describe("createScreen", () => {
     it("creates a screen in the database and returns the result", async () => {
       // Act: Create a screen
       const screen: Omit<ScreenDto, "id" | "updatedAt"> = {
@@ -164,7 +78,7 @@ describe("DynamoDbService", () => {
     });
   });
 
-  describe.only("createMediaSource", () => {
+  describe("createMediaSource", () => {
     describe("blank", () => {
       it("creates a blank media source in the database and returns the result", async () => {
         // Act: Create a media source

@@ -1,4 +1,4 @@
-import { Position, ScreenDto } from "@simulacrum/db/common";
+import { Position, ScreenDto } from "@simulacrum/db";
 import {
   AUTO_GENERATE_ATTRIBUTE_STRATEGY,
   Attribute,

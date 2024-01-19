@@ -1,4 +1,4 @@
-import { MediaSourceType, PlaybackState } from "@simulacrum/db/common";
+import { MediaSourceType, PlaybackState } from "@simulacrum/db";
 import {
   AUTO_GENERATE_ATTRIBUTE_STRATEGY,
   Attribute,

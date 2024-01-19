@@ -1,10 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { EventsGateway } from "./events.gateway";
-import {
-  DbAccessService,
-  MediaSourceDto,
-  ScreenDto,
-} from "@simulacrum/db/common";
+import { DbAccessService, MediaSourceDto, ScreenDto } from "@simulacrum/db";
 import { DbService } from "@simulacrum/db";
 import { broadcast } from "../utils/ws";
 

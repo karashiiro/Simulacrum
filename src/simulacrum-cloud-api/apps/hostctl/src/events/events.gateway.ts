@@ -9,8 +9,7 @@ import {
   WsException,
   WsResponse,
 } from "@nestjs/websockets";
-import { DbService } from "@simulacrum/db";
-import { MediaSourceDto, ScreenDto } from "@simulacrum/db/common";
+import { DbService, MediaSourceDto, ScreenDto } from "@simulacrum/db";
 import { Observable, from, map } from "rxjs";
 import { WebSocketServer as Server } from "ws";
 import { broadcast } from "../utils/ws";
