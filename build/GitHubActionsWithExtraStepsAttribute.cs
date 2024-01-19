@@ -13,8 +13,10 @@ using Nuke.Common.Utilities.Collections;
 /// set up the correct versions of dependencies like Node.js.
 /// 
 /// The <c>Setup</c> property takes an array of declarations for steps to be inserted
-/// before the first <c>run</c> step. Currently, only <c>uses</c> is supported. The
-/// syntax is <c>uses(action-name[@version], attribute=value, ...)</c>.
+/// before the first <c>run</c> step.
+/// 
+/// The syntax for <c>uses</c> is <c>uses(action-name[@version], attribute=value[, ...])</c>.
+/// The syntax for <c>run</c> is <c>run(command)</c>.
 /// </summary>
 partial class GithubActionsWithExtraStepsAttribute : GitHubActionsAttribute
 {
@@ -22,6 +24,9 @@ partial class GithubActionsWithExtraStepsAttribute : GitHubActionsAttribute
 
     [GeneratedRegex(@"uses\((?<Uses>[^,]+),\s*(?<With>.+)\s*\)", RegexOptions.IgnoreCase, "en-US")]
     private static partial Regex UsesRegex();
+
+    [GeneratedRegex(@"run\((?<Run>.+)\)", RegexOptions.IgnoreCase, "en-US")]
+    private static partial Regex RunRegex();
 
     public GithubActionsWithExtraStepsAttribute(string name, GitHubActionsImage image, params GitHubActionsImage[] images) : base(name, image, images)
     {
@@ -34,7 +39,12 @@ partial class GithubActionsWithExtraStepsAttribute : GitHubActionsAttribute
 
         // Splice our setup steps before the first run step
         var firstRunStepIdx = steps.FindIndex((step) => step is GitHubActionsRunStep);
-        Setup.ForEach(setupClause =>
+        if (firstRunStepIdx == -1)
+        {
+            firstRunStepIdx = 0;
+        }
+
+        Setup.Reverse().ForEach((setupClause, i) =>
         {
             steps.Insert(firstRunStepIdx, ParseStep(setupClause));
         });
@@ -47,9 +57,15 @@ partial class GithubActionsWithExtraStepsAttribute : GitHubActionsAttribute
     private static GitHubActionsStep ParseStep(string enc)
     {
         var usesMatch = UsesRegex().Match(enc);
-        if (usesMatch != null)
+        if (usesMatch.Success)
         {
             return new GitHubActionsUsesStep { Uses = usesMatch.Groups["Uses"].Value, With = ParseWith(usesMatch.Groups["With"].Value) };
+        }
+
+        var runMatch = RunRegex().Match(enc);
+        if (runMatch.Success)
+        {
+            return new GitHubActionsSimpleRunStep { Command = runMatch.Groups["Run"].Value };
         }
 
         throw new InvalidOperationException($"Unknown step syntax: {enc}");
