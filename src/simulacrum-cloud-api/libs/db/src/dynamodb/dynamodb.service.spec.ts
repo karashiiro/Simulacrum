@@ -311,7 +311,13 @@ describe("DynamoDbService", () => {
             ...mediaSource.meta,
             uri: "http://never.local",
           },
+          updatedAt: expect.any(Number),
         });
+
+        // Assert: The new update timestamp is greater than or equal to the original one
+        expect(result?.updatedAt).toBeGreaterThanOrEqual(
+          mediaSource.updatedAt ?? Infinity
+        );
       });
     });
 
@@ -348,15 +354,21 @@ describe("DynamoDbService", () => {
             // When updating the playhead, the playhead update timestamp should also update
             playheadUpdatedAt: expect.any(Number),
           },
+          updatedAt: expect.any(Number),
         });
 
         // Dummy asserts for type narrowing
         assert(result?.meta.type === "video");
         assert(mediaSource.meta.type === "video");
 
-        // Assert: The new playhead update timestamp is greater than the original one
-        expect(result.meta.playheadUpdatedAt).toBeGreaterThan(
+        // Assert: The new playhead update timestamp is at least the original one
+        expect(result.meta.playheadUpdatedAt).toBeGreaterThanOrEqual(
           mediaSource.meta.playheadUpdatedAt ?? Infinity
+        );
+
+        // Assert: The new update timestamp is greater than or equal to the original one
+        expect(result?.updatedAt).toBeGreaterThanOrEqual(
+          mediaSource.updatedAt ?? Infinity
         );
       });
 
@@ -378,15 +390,21 @@ describe("DynamoDbService", () => {
             // When updating the playhead, the playhead update timestamp should also update
             playheadUpdatedAt: expect.any(Number),
           },
+          updatedAt: expect.any(Number),
         });
 
         // Dummy asserts for type narrowing
         assert(result?.meta.type === "video");
         assert(mediaSource.meta.type === "video");
 
-        // Assert: The new playhead update timestamp is greater than the original one
-        expect(result.meta.playheadUpdatedAt).toBeGreaterThan(
+        // Assert: The new playhead update timestamp is at least the original one
+        expect(result.meta.playheadUpdatedAt).toBeGreaterThanOrEqual(
           mediaSource.meta.playheadUpdatedAt ?? Infinity
+        );
+
+        // Assert: The new update timestamp is greater than or equal to the original one
+        expect(result?.updatedAt).toBeGreaterThanOrEqual(
+          mediaSource.updatedAt ?? Infinity
         );
       });
 
@@ -406,7 +424,13 @@ describe("DynamoDbService", () => {
             ...mediaSource.meta,
             state: "playing",
           },
+          updatedAt: expect.any(Number),
         });
+
+        // Assert: The new update timestamp is at least the original one
+        expect(result?.updatedAt).toBeGreaterThanOrEqual(
+          mediaSource.updatedAt ?? Infinity
+        );
       });
     });
   });
@@ -438,6 +462,59 @@ describe("DynamoDbService", () => {
 
       // Assert: The media source is undefined
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("findAllMediaSources", () => {
+    const getRandomMediaSource = (): Omit<
+      MediaSourceDto,
+      "id" | "updatedAt"
+    > => {
+      switch (Math.floor(Math.random() * 3)) {
+        case 0:
+          return { meta: { type: "blank" } };
+        case 1:
+          return {
+            meta: {
+              type: "image",
+              uri: "http://something.local",
+            },
+          };
+        case 2:
+          return {
+            meta: {
+              type: "video",
+              uri: "http://something.local",
+            },
+          };
+        default:
+          throw new Error("Out of range.");
+      }
+    };
+
+    it("returns all media sources", async () => {
+      // Arrange: Create some media sources
+      const mediaSources = await Promise.all(
+        new Array(37)
+          .fill(undefined)
+          .map(() => service.createMediaSource(getRandomMediaSource()))
+      ).then((arr) => arr.sort((a, b) => a.id.localeCompare(b.id)));
+
+      // Act: Retrieve all media sources
+      const result = await service
+        .findAllMediaSources()
+        .then((arr) => arr.sort((a, b) => a.id.localeCompare(b.id)));
+
+      // Assert: We got all of the media sources we created
+      expect(result).toEqual(mediaSources);
+    });
+
+    it("returns an empty array if there are no media sources", async () => {
+      // Act: Retrieve all media sources
+      const result = await service.findAllMediaSources();
+
+      // Assert: There are no media sources
+      expect(result).toHaveLength(0);
     });
   });
 });

@@ -206,12 +206,15 @@ export class DynamoDbService implements DbAccessService {
   ): Promise<MediaSourceDto | undefined> {
     // Set the update timestamp for the playhead in milliseconds for sync precision
     const meta = dto.meta;
-
     if (meta?.type === "video") {
       if (meta?.uri !== undefined) {
         // If the URI changes, the playhead should reset
         meta.playheadSeconds = 0;
       }
+
+      // TODO: Do we also need to update this when the play state changes?
+      // If so, we need to update the playhead too, but this might cause client-side
+      // jitter since the client may have desynced by this point.
 
       if (meta?.playheadSeconds !== undefined) {
         // If the playhead changes, the playhead update timestamp should be updated
