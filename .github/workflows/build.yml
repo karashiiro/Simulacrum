@@ -5,7 +5,7 @@
 #
 #     - To turn off auto-generation set:
 #
-#         [GitHubActions (AutoGenerate = false)]
+#         [GithubActionsWithExtraSteps (AutoGenerate = false)]
 #
 #     - To trigger manual generation invoke:
 #
@@ -32,5 +32,9 @@ jobs:
             ~/.nuget/packages
             **/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/package.json', '**/yarn.lock') }}
+      - name: 'Setup: actions/setup-node@v4'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
       - name: 'Run: EnableCorepack, YarnInstall, YarnBuild, YarnTest'
         run: ./build.cmd EnableCorepack YarnInstall YarnBuild YarnTest
