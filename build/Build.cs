@@ -12,7 +12,7 @@ using Serilog;
 [SuppressMessage("ReSharper", "UnusedMember.Local")]
 [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
-[GithubActionsWithExtraSteps("build", GitHubActionsImage.WindowsLatest,
+[GithubActionsWithExtraSteps("build", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
     InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) }, // TODO: Enable plugin builds in CI
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
