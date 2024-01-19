@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { StartedTestContainer, GenericContainer } from "testcontainers";
+import { StartedTestContainer, GenericContainer, Wait } from "testcontainers";
 import { DynamoDbService } from "./dynamodb.service";
 import {
   CreateTableCommand,
@@ -91,13 +91,24 @@ describe("DynamoDbService", () => {
 
     // Spin up a DDB local instance
     container = await new GenericContainer("amazon/dynamodb-local:latest")
-      .withExposedPorts(8000)
+      .withExposedPorts({
+        // I keep getting errors like "Error: connect ECONNREFUSED ::1:32845" with no useful
+        // stack trace after a couple of tests unless I use a fixed host port.
+        container: 8000,
+        host: 4397,
+      })
+      .withWaitStrategy(
+        Wait.forAll([
+          Wait.forListeningPorts(),
+          Wait.forLogMessage(
+            "Initializing DynamoDB Local with the following configuration:"
+          ),
+        ])
+      )
       .start();
 
-    // Update the environment with the container address
-    process.env.SIMULACRUM_DDB_ENDPOINT = `http://localhost:${container.getMappedPort(
-      8000
-    )}`;
+    // Update the environment with the container access config
+    process.env.SIMULACRUM_DDB_ENDPOINT = "http://localhost:4397";
     process.env.AWS_REGION = "us-east-1";
     process.env.AWS_ACCESS_KEY_ID = "AccessKeyId";
     process.env.AWS_SECRET_ACCESS_KEY = "SecretAccessKey";
@@ -127,7 +138,7 @@ describe("DynamoDbService", () => {
     expect(service).toBeDefined();
   });
 
-  describe("createScreen", () => {
+  describe.only("createScreen", () => {
     it("creates a screen in the database and returns the result", async () => {
       // Act: Create a screen
       const screen: Omit<ScreenDto, "id" | "updatedAt"> = {
@@ -153,7 +164,7 @@ describe("DynamoDbService", () => {
     });
   });
 
-  describe("createMediaSource", () => {
+  describe.only("createMediaSource", () => {
     describe("blank", () => {
       it("creates a blank media source in the database and returns the result", async () => {
         // Act: Create a media source

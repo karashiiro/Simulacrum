@@ -156,9 +156,8 @@ export class DynamoDbService implements DbAccessService {
   constructor() {
     if (DynamoDbService.connection === undefined) {
       const ddbClient = new DynamoDBClient({
-        endpoint: `${
-          process.env.SIMULACRUM_DDB_ENDPOINT || "http://localhost:8000"
-        }`,
+        endpoint:
+          process.env.SIMULACRUM_DDB_ENDPOINT || "http://localhost:8000",
       });
 
       const documentClient = new DocumentClientV3(ddbClient);
