@@ -10,7 +10,7 @@ import {
 } from "@simulacrum/db/test";
 import { DynamoDbService } from "@simulacrum/db";
 import { StartedTestContainer } from "testcontainers";
-import { WebSocket } from "ws";
+import { RawData, WebSocket } from "ws";
 import { WsResponse } from "@nestjs/websockets";
 import { WsAdapter } from "@nestjs/platform-ws";
 
@@ -88,39 +88,56 @@ describe("hostctl (e2e)", () => {
     process.env = env;
   }, 15000);
 
-  it("works", async () => {
-    // Arrange: Create a screen
-    const screen = {
-      territory: 7,
-      world: 74,
-      position: {
-        x: 20,
-        y: 21,
-        z: 22,
-      },
-    };
+  describe("playhead syncing", () => {
+    // TODO: Finish this test case
+    it("works", async () => {
+      // Arrange: Create a screen
+      const screen = {
+        territory: 7,
+        world: 74,
+        position: {
+          x: 20,
+          y: 21,
+          z: 22,
+        },
+      };
 
-    // Arrange: Prepare an event handler
-    client.once("message", (data) => {
-      const message = JSON.parse(data.toString());
+      await new Promise<void>(async (resolve, reject) => {
+        // Arrange: Prepare an event handler
+        const onmessage = (data: RawData) => {
+          try {
+            const message = JSON.parse(data.toString());
 
-      // Assert: The message is a SCREEN_CREATE
-      expect(message.event).toEqual("SCREEN_CREATE");
+            // Assert: The message is a SCREEN_CREATE and has the created screen
+            expect(message).toEqual({
+              event: "SCREEN_CREATE",
+              data: {
+                screen: {
+                  ...screen,
+                  id: expectUUIDv4(),
+                  updatedAt: expect.any(Number),
+                },
+              },
+            });
 
-      // Assert: The message has the created screen
-      expect(message.data).toEqual({
-        ...screen,
-        id: expectUUIDv4(),
-        updatedAt: expect.any(Number),
+            client.removeListener("message", onmessage);
+
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        };
+
+        client.on("message", onmessage);
+
+        // Act: Send a message to create a screen
+        await sendMessage({
+          event: "SCREEN_CREATE",
+          data: {
+            screen: screen,
+          },
+        });
       });
-    });
-
-    // Act: Send a message to create a screen
-    await sendMessage({
-      event: "SCREEN_CREATE",
-      data: {
-        screen: screen,
-      },
     });
   });
 });
