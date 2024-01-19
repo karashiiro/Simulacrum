@@ -91,7 +91,7 @@ describe("DynamoDbService", () => {
 
     // Spin up a DDB local instance
     container = await new GenericContainer("amazon/dynamodb-local:latest")
-      .withExposedPorts({ container: 8000, host: 8000 })
+      .withExposedPorts(8000)
       .start();
 
     // Update the environment with the container address
@@ -99,6 +99,9 @@ describe("DynamoDbService", () => {
       8000
     )}`;
     process.env.AWS_REGION = "us-east-1";
+    process.env.AWS_ACCESS_KEY_ID = "AccessKeyId";
+    process.env.AWS_SECRET_ACCESS_KEY = "SecretAccessKey";
+    process.env.AWS_SESSION_TOKEN = "SessionToken";
 
     // Create service testing module
     const module: TestingModule = await Test.createTestingModule({
