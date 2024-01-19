@@ -54,7 +54,7 @@ class Build : NukeBuild
 
     Target YarnTest => _ => _
         .Description("Runs tests for workspace packages using yarn.")
-        .Executes(() => { Yarn("test", exitHandler: _ => { }); });
+        .Executes(() => { Yarn("test"); });
 
     Target YarnBuild => _ => _
         .Description("Builds the Node.js packages in the monorepo using yarn.")
