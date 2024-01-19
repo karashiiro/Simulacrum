@@ -72,16 +72,17 @@ describe("hostctl (e2e)", () => {
   }, 30000);
 
   afterEach(async () => {
-    // TODO: There's a TimeoutError in the AWS SDK after this point, why?
-
     // Disconnect the client
     client.close();
 
-    // Stop the container
-    await container.stop();
-
     // Stop the application
     await app.close();
+
+    // Wait a bit so that the AWS SDK can do its thing and we don't get a TimeoutError in the logs
+    await new Promise<void>((resolve) => setTimeout(resolve, 5000));
+
+    // Stop the container
+    await container.stop();
 
     // Restore environment
     process.env = env;
