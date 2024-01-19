@@ -10,6 +10,8 @@ Don't
 
 This section is a work in progress
 
+Use Corepack, it's just `corepack enable`
+
 ### NUKE
 
 Simulacrum uses NUKE as a build script manager. It is strongly recommended to install the
