@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@manypkg/cli": "latest",
+    "esbuild": "^0.19.11",
     "turbo": "^1.10.3"
   },
   "workspaces": [
