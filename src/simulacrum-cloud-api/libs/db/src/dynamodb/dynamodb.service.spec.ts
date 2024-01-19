@@ -517,4 +517,62 @@ describe("DynamoDbService", () => {
       expect(result).toHaveLength(0);
     });
   });
+
+  describe("findScreensByMediaSourceId", () => {
+    let mediaSource: MediaSourceDto;
+
+    beforeEach(async () => {
+      // Arrange: Create a media source
+      mediaSource = await service.createMediaSource({
+        meta: {
+          type: "image",
+          uri: "http://something.local",
+        },
+      });
+    });
+
+    it("returns screens linked to the media source if there are any", async () => {
+      // Arrange: Create some screens linked to the media source, and some not
+      const screensCount = 24;
+      const screens = await Promise.all(
+        new Array(screensCount).fill(undefined).map((_, i) =>
+          service.createScreen({
+            territory: 7,
+            world: 74,
+            position: {
+              x: 20,
+              y: 21,
+              z: 22,
+            },
+            mediaSourceId: i % 2 === 0 ? mediaSource.id : undefined,
+          })
+        )
+      ).then((arr) =>
+        arr
+          .filter((screen) => screen.mediaSourceId)
+          .sort((a, b) => a.id.localeCompare(b.id))
+      );
+
+      // Validate number of linked screens
+      expect(screens).toHaveLength(screensCount / 2);
+
+      // Act: Retrieve all screens linked to the media source
+      const result = await service
+        .findScreensByMediaSourceId(mediaSource.id)
+        .then((arr) => arr.sort((a, b) => a.id.localeCompare(b.id)));
+
+      // Assert: The returned screens are only the ones linked to the media source
+      expect(result).toEqual(screens);
+    });
+
+    it("returns an empty array if there are no screens for the media source", async () => {
+      // Act: Retrieve all screens linked to the media source
+      const result = await service
+        .findScreensByMediaSourceId(mediaSource.id)
+        .then((arr) => arr.sort((a, b) => a.id.localeCompare(b.id)));
+
+      // Assert: The result is empty
+      expect(result).toHaveLength(0);
+    });
+  });
 });
