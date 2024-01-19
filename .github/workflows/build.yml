@@ -24,12 +24,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - name: 'Cache: .nuke/temp, ~/.nuget/packages'
+      - name: 'Cache: .nuke/temp, ~/.nuget/packages, **/node_modules'
         uses: actions/cache@v3
         with:
           path: |
             .nuke/temp
             ~/.nuget/packages
-          key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
-      - name: 'Run: YarnInstall, YarnBuild, YarnTest'
-        run: ./build.cmd YarnInstall YarnBuild YarnTest
+            **/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/package.json', '**/yarn.lock') }}
+      - name: 'Run: EnableCorepack, YarnInstall, YarnBuild, YarnTest'
+        run: ./build.cmd EnableCorepack YarnInstall YarnBuild YarnTest

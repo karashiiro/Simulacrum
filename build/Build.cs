@@ -14,7 +14,9 @@ using Serilog;
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
 [GitHubActions("build", GitHubActionsImage.WindowsLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) })] // TODO: Enable plugin builds in CI
+    InvokedTargets = new[] { nameof(EnableCorepack), nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) }, // TODO: Enable plugin builds in CI
+    CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
+    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
@@ -32,10 +34,17 @@ class Build : NukeBuild
 
     [Solution] readonly Solution Solution;
 
+    [PathVariable] readonly Tool Corepack;
+
     [PathVariable] readonly Tool Yarn;
 
     [LocalPath("./src/simulacrum-depcheck/depcheck.cmd")]
     readonly Tool DepCheck;
+
+    Target EnableCorepack => _ => _
+        .Description("Enables corepack for the current Node.js installation.")
+        .DependentFor(YarnInstall)
+        .Executes(() => { Corepack("enable"); });
 
     Target CheckDeps => _ => _
         .Description("Checks for the required dependencies in the environment.")
