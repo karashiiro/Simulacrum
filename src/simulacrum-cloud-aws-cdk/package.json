@@ -2,9 +2,7 @@
   "name": "simulacrum-cloud-aws-cdk",
   "private": true,
   "version": "0.1.0",
-  "bin": {
-    "simulacrum-cloud-aws-cdk": "bin/simulacrum-cloud-aws-cdk.js"
-  },
+  "bin": "bin/simulacrum-cloud-aws-cdk.js",
   "scripts": {
     "build": "cdk synth --quiet",
     "format": "prettier --write \"bin/**/*.ts\" \"lib/**/*.ts\"",
