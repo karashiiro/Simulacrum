@@ -38,7 +38,7 @@ describe("DynamoDbService", () => {
     await DynamoDbService.client.send(
       new CreateTableCommand(ddbLocalTableParams)
     );
-  }, 15000);
+  }, 30000);
 
   afterEach(async () => {
     // Stop the container
