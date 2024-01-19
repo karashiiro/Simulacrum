@@ -42,8 +42,8 @@ class Build : NukeBuild
     readonly Tool DepCheck;
 
     Target EnableCorepack => _ => _
-        .Description("Enables corepack for the current Node.js installation.")
-        .DependentFor(YarnInstall)
+        .Unlisted()
+        .Before(CheckDeps)
         .Executes(() => { Corepack("enable"); });
 
     Target CheckDeps => _ => _
