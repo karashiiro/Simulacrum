@@ -98,6 +98,7 @@ describe("DynamoDbService", () => {
     process.env.SIMULACRUM_DDB_ENDPOINT = `http://localhost:${container.getMappedPort(
       8000
     )}`;
+    process.env.AWS_REGION = "us-east-1";
 
     // Create service testing module
     const module: TestingModule = await Test.createTestingModule({
