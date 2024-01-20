@@ -13,6 +13,7 @@ import { StartedTestContainer } from "testcontainers";
 import { RawData, WebSocket } from "ws";
 import { WsResponse } from "@nestjs/websockets";
 import { WsAdapter } from "@nestjs/platform-ws";
+import * as assert from "assert";
 
 describe("hostctl (e2e)", () => {
   let container: StartedTestContainer;
@@ -111,8 +112,7 @@ describe("hostctl (e2e)", () => {
   };
 
   describe("playhead syncing", () => {
-    // TODO: Finish this test case
-    it("works", async () => {
+    it("syncs correctly for a single client", async () => {
       // Create a video source
       const videoSource = {
         meta: {
@@ -171,7 +171,6 @@ describe("hostctl (e2e)", () => {
       };
 
       // Send a message to create the screen
-      // let screenComplete: ScreenDto;
       await communicate(
         {
           event: "SCREEN_CREATE",
@@ -191,9 +190,169 @@ describe("hostctl (e2e)", () => {
               },
             },
           });
+        }
+      );
 
-          // screenComplete = (res as WsResponse<{ screen: ScreenDto }>).data
-          //   .screen;
+      // Dummy assertions to narrow the type
+      assert(videoSourceComplete.meta.type === "video");
+      assert(videoSourceComplete.meta.state);
+      assert(videoSourceComplete.meta.playheadUpdatedAt);
+      assert(videoSourceComplete.meta.playheadSeconds !== undefined);
+
+      // Set up some "local" state for the video
+      const localVideo = {
+        playheadSeconds: videoSourceComplete.meta.playheadSeconds,
+        playheadSync: videoSourceComplete.meta.playheadUpdatedAt,
+        playState: videoSourceComplete.meta.state,
+      };
+
+      expect(localVideo.playState).toEqual("paused");
+
+      // Play the video
+      await communicate(
+        {
+          event: "VIDEO_SOURCE_PLAY",
+          data: {
+            id: videoSourceComplete.id,
+          },
+        },
+        (res) => {
+          // Assert: The response is a VIDEO_SOURCE_PLAY and is now playing
+          expect(res).toEqual({
+            event: "VIDEO_SOURCE_PLAY",
+            data: {
+              mediaSource: expect.objectContaining({
+                id: videoSourceComplete.id,
+                meta: expect.objectContaining({
+                  type: "video",
+                  playheadSeconds: localVideo.playheadSeconds,
+                  state: "playing",
+                }),
+              }),
+            },
+          });
+
+          // Type narrowing
+          const resTyped = res as WsResponse<{ mediaSource: MediaSourceDto }>;
+          assert(resTyped.data.mediaSource.meta.type === "video");
+          assert(resTyped.data.mediaSource.meta.state);
+          assert(resTyped.data.mediaSource.meta.playheadUpdatedAt);
+          assert(resTyped.data.mediaSource.meta.playheadSeconds !== undefined);
+
+          // Update local state
+          localVideo.playheadSeconds =
+            resTyped.data.mediaSource.meta.playheadSeconds;
+          localVideo.playheadSync =
+            resTyped.data.mediaSource.meta.playheadUpdatedAt;
+          localVideo.playState = resTyped.data.mediaSource.meta.state;
+        }
+      );
+
+      // Pan forward a few seconds
+      await communicate(
+        {
+          event: "VIDEO_SOURCE_PAN",
+          data: {
+            id: videoSourceComplete.id,
+            playheadSeconds: localVideo.playheadSeconds + 6,
+          },
+        },
+        (res) => {
+          // Assert: The response is a VIDEO_SOURCE_PAN and had its playhead updated
+          expect(res).toEqual({
+            event: "VIDEO_SOURCE_PAN",
+            data: {
+              mediaSource: expect.objectContaining({
+                id: videoSourceComplete.id,
+                meta: expect.objectContaining({
+                  type: "video",
+                  playheadSeconds: localVideo.playheadSeconds + 6,
+                  state: localVideo.playState,
+                }),
+              }),
+            },
+          });
+
+          // Type narrowing
+          const resTyped = res as WsResponse<{ mediaSource: MediaSourceDto }>;
+          assert(resTyped.data.mediaSource.meta.type === "video");
+          assert(resTyped.data.mediaSource.meta.state);
+          assert(resTyped.data.mediaSource.meta.playheadUpdatedAt);
+          assert(resTyped.data.mediaSource.meta.playheadSeconds !== undefined);
+
+          // Update local state
+          localVideo.playheadSeconds =
+            resTyped.data.mediaSource.meta.playheadSeconds;
+          localVideo.playheadSync =
+            resTyped.data.mediaSource.meta.playheadUpdatedAt;
+          localVideo.playState = resTyped.data.mediaSource.meta.state;
+        }
+      );
+
+      // Pause the video
+      await communicate(
+        {
+          event: "VIDEO_SOURCE_PAUSE",
+          data: {
+            id: videoSourceComplete.id,
+          },
+        },
+        (res) => {
+          // Assert: The response is a VIDEO_SOURCE_PAUSE and had its playhead updated
+          expect(res).toEqual({
+            event: "VIDEO_SOURCE_PAUSE",
+            data: {
+              mediaSource: expect.objectContaining({
+                id: videoSourceComplete.id,
+                meta: expect.objectContaining({
+                  type: "video",
+                  playheadSeconds: localVideo.playheadSeconds,
+                  state: "paused",
+                }),
+              }),
+            },
+          });
+
+          // Type narrowing
+          const resTyped = res as WsResponse<{ mediaSource: MediaSourceDto }>;
+          assert(resTyped.data.mediaSource.meta.type === "video");
+          assert(resTyped.data.mediaSource.meta.state);
+          assert(resTyped.data.mediaSource.meta.playheadUpdatedAt);
+          assert(resTyped.data.mediaSource.meta.playheadSeconds !== undefined);
+
+          // Update local state
+          localVideo.playheadSeconds =
+            resTyped.data.mediaSource.meta.playheadSeconds;
+          localVideo.playheadSync =
+            resTyped.data.mediaSource.meta.playheadUpdatedAt;
+          localVideo.playState = resTyped.data.mediaSource.meta.state;
+        }
+      );
+
+      // Maybe we need to sync again
+      await communicate(
+        {
+          event: "VIDEO_SOURCE_SYNC",
+          data: {
+            id: videoSourceComplete.id,
+          },
+        },
+        (res) => {
+          // Assert: The response is a VIDEO_SOURCE_SYNC and nothing important has changed
+          expect(res).toEqual({
+            event: "VIDEO_SOURCE_SYNC",
+            data: {
+              mediaSource: expect.objectContaining({
+                id: videoSourceComplete.id,
+                meta: expect.objectContaining({
+                  type: "video",
+                  playheadSeconds: localVideo.playheadSeconds,
+                  playheadUpdatedAt: localVideo.playheadSync,
+                  state: localVideo.playState,
+                }),
+              }),
+            },
+          });
         }
       );
     });
