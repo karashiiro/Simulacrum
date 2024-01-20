@@ -15,13 +15,10 @@ using Serilog;
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
 [GithubActionsWithExtraSteps("build", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) }, // TODO: Enable plugin builds in CI
+    InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest), nameof(DockerBuild) }, // TODO: Enable plugin builds in CI
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
     Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
-[GitHubActions("build-image", GitHubActionsImage.UbuntuLatest,
-    On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(DockerBuild) })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:

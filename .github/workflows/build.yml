@@ -38,5 +38,5 @@ jobs:
           node-version: 18
       - name: 'Run: corepack enable'
         run: corepack enable
-      - name: 'Run: YarnInstall, YarnBuild, YarnTest'
-        run: ./build.cmd YarnInstall YarnBuild YarnTest
+      - name: 'Run: YarnInstall, YarnBuild, YarnTest, DockerBuild'
+        run: ./build.cmd YarnInstall YarnBuild YarnTest DockerBuild
