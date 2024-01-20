@@ -78,7 +78,7 @@ export const expectUUIDv4 = () => {
 
 export function getDdbLocalProcessEnv(container: StartedTestContainer) {
   return {
-    SIMULACRUM_DDB_ENDPOINT: `http://localhost:${container.getMappedPort(
+    SIMULACRUM_DDB_ENDPOINT: `http://${container.getHost()}:${container.getMappedPort(
       8000
     )}`,
     AWS_REGION: "us-east-1",
