@@ -8,7 +8,7 @@ import {
   ddbLocalTableParams,
   expectUUIDv4,
 } from "@simulacrum/db/test";
-import { DynamoDbService } from "@simulacrum/db";
+import { DynamoDbService, MediaSourceDto } from "@simulacrum/db";
 import { StartedTestContainer } from "testcontainers";
 import { RawData, WebSocket } from "ws";
 import { WsResponse } from "@nestjs/websockets";
@@ -113,7 +113,52 @@ describe("hostctl (e2e)", () => {
   describe("playhead syncing", () => {
     // TODO: Finish this test case
     it("works", async () => {
-      // Arrange: Create a screen
+      // Create a video source
+      const videoSource = {
+        meta: {
+          type: "video",
+          uri: "http://something.local/wow.m3u8",
+        },
+      };
+
+      // Send a message to create the video source
+      let videoSourceComplete: MediaSourceDto = {
+        id: "",
+        meta: { type: "blank" },
+        updatedAt: 0,
+      };
+      await communicate(
+        {
+          event: "MEDIA_SOURCE_CREATE",
+          data: {
+            mediaSource: videoSource,
+          },
+        },
+        (res) => {
+          // Assert: The response is a MEDIA_SOURCE_CREATE and has the created video source
+          expect(res).toEqual({
+            event: "MEDIA_SOURCE_CREATE",
+            data: {
+              mediaSource: {
+                id: expectUUIDv4(),
+                updatedAt: expect.any(Number),
+                meta: {
+                  ...videoSource.meta,
+                  playheadSeconds: 0,
+                  playheadUpdatedAt: expect.any(Number),
+                  state: "paused",
+                },
+              },
+            },
+          });
+
+          videoSourceComplete = (
+            res as WsResponse<{ mediaSource: MediaSourceDto }>
+          ).data.mediaSource;
+        }
+      );
+
+      // Create a linked screen
       const screen = {
         territory: 7,
         world: 74,
@@ -122,9 +167,11 @@ describe("hostctl (e2e)", () => {
           y: 21,
           z: 22,
         },
+        mediaSourceId: videoSourceComplete.id,
       };
 
-      // Act: Send a message to create a screen
+      // Send a message to create the screen
+      // let screenComplete: ScreenDto;
       await communicate(
         {
           event: "SCREEN_CREATE",
@@ -144,6 +191,9 @@ describe("hostctl (e2e)", () => {
               },
             },
           });
+
+          // screenComplete = (res as WsResponse<{ screen: ScreenDto }>).data
+          //   .screen;
         }
       );
     });
