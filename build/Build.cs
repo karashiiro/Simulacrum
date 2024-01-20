@@ -21,7 +21,7 @@ using Serilog;
     Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
 [GitHubActions("build-plugin", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(DockerBuild) }, // TODO: Enable plugin builds in CI
+    InvokedTargets = new[] { nameof(DockerBuild), nameof(TestHostctl) }, // TODO: Enable plugin builds in CI
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" })]
 class Build : NukeBuild
@@ -35,6 +35,7 @@ class Build : NukeBuild
 
     AbsolutePath SourceDirectory => RootDirectory / "src";
     AbsolutePath SolutionD17 => RootDirectory / "targets" / "simulacrum-d17.sln";
+    AbsolutePath SolutionHostctl => RootDirectory / "targets" / "simulacrum-hostctl.sln";
 
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
@@ -70,7 +71,7 @@ class Build : NukeBuild
         .Description("Builds the Docker container images in the monorepo.")
         .Executes(() =>
         {
-            DockerTasks.DockerBuild(_ => _
+            DockerTasks.DockerBuild(s => s
                 .SetPath(RootDirectory)
                 .SetFile(SourceDirectory / "simulacrum-cloud-api" / "Dockerfile")
                 .SetTag("simulacrum-cloud-api"));
@@ -89,6 +90,13 @@ class Build : NukeBuild
 
             var cxxOutput = RootDirectory / "x64";
             cxxOutput.DeleteDirectory();
+        });
+
+    Target RestoreHostctl => _ => _
+        .Executes(() =>
+        {
+            DotNetTasks.DotNetRestore(s => s
+                .SetProjectFile(SolutionHostctl));
         });
 
     Target RestoreD17 => _ => _
@@ -126,6 +134,17 @@ class Build : NukeBuild
                 .SetConfiguration(Configuration)
                 .SetTargetPlatform(MSBuildTargetPlatform.x64)
                 .EnableNodeReuse());
+        });
+
+    Target TestHostctl => _ => _
+        .Description("Tests Hostctl.")
+        .DependsOn(RestoreHostctl)
+        .After(DockerBuild)
+        .Executes(() =>
+        {
+            DotNetTasks.DotNetTest(s => s
+                .SetProjectFile(SolutionHostctl)
+                .SetConfiguration(Configuration));
         });
 
     // TODO: Vendor Simulacrum.AV

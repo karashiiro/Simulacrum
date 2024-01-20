@@ -32,5 +32,5 @@ jobs:
             ~/.nuget/packages
             **/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/package.json', '**/yarn.lock') }}
-      - name: 'Run: DockerBuild'
-        run: ./build.cmd DockerBuild
+      - name: 'Run: DockerBuild, TestHostctl'
+        run: ./build.cmd DockerBuild TestHostctl
