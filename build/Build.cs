@@ -4,6 +4,7 @@ using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
+using Nuke.Common.Tools.Docker;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.MSBuild;
 using Nuke.Common.Utilities.Collections;
@@ -18,6 +19,9 @@ using Serilog;
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
     Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
+[GitHubActions("build-image", GitHubActionsImage.UbuntuLatest,
+    On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
+    InvokedTargets = new[] { nameof(DockerBuild) })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
@@ -59,6 +63,16 @@ class Build : NukeBuild
     Target YarnBuild => _ => _
         .Description("Builds the Node.js packages in the monorepo using yarn.")
         .Executes(() => { Yarn("build"); });
+
+    Target DockerBuild => _ => _
+        .Description("Builds the Docker container images in the monorepo.")
+        .Executes(() =>
+        {
+            DockerTasks.DockerBuild(_ => _
+                .SetPath(RootDirectory)
+                .SetFile(SourceDirectory / "simulacrum-cloud-api" / "Dockerfile")
+                .SetTag("simulacrum-cloud-api"));
+        });
 
     [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
     Target CdkDiff => _ => _
