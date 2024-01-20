@@ -5,7 +5,7 @@ namespace Simulacrum.Hostctl.Tests;
 public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFixture<ServerIntegrationFixture>
 {
     [Fact]
-    public async Task HostctlClient_CanCreateUnlinkedMediaSource()
+    public async Task HostctlClient_CanCreateMediaSource()
     {
         // Arrange: Create a client
         var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
