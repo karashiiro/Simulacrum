@@ -14,6 +14,21 @@
     },
     {
       "path": "./src/simulacrum-cloud-diagrams"
+    },
+    {
+      "path": "./src/simulacrum-dalamud-av"
+    },
+    {
+      "path": "./src/simulacrum-dalamud-av-core"
+    },
+    {
+      "path": "./src/simulacrum-dalamud-debug"
+    },
+    {
+      "path": "./src/simulacrum-dalamud-hostctl"
+    },
+    {
+      "path": "./src/simulacrum-dalamud-plugin"
     }
   ],
   "settings": {}
