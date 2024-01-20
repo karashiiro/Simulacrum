@@ -1,4 +1,4 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, ListTablesCommand } from "@aws-sdk/client-dynamodb";
 import {
   Connection,
   EntityManager,
@@ -8,7 +8,7 @@ import {
   getScanManager,
 } from "@typedorm/core";
 import { DocumentClientV3 } from "@typedorm/document-client";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { table } from "./entity/table";
 import {
   DbAccessService,
@@ -146,7 +146,9 @@ function mediaSourceUpdateFromDynamo(
 }
 
 @Injectable()
-export class DynamoDbService implements DbAccessService {
+export class DynamoDbService implements DbAccessService, OnModuleInit {
+  private readonly logger = new Logger(DynamoDbService.name);
+
   private readonly entityManager: EntityManager;
   private readonly scanManager: ScanManager;
 
@@ -172,6 +174,11 @@ export class DynamoDbService implements DbAccessService {
 
     this.entityManager = getEntityManager();
     this.scanManager = getScanManager();
+  }
+
+  async onModuleInit() {
+    const tables = await DynamoDbService.client.send(new ListTablesCommand({}));
+    this.logger.log(`Found tables: [${tables.TableNames?.join(", ")}]`);
   }
 
   async findMediaSource(id: string): Promise<MediaSourceDto | undefined> {

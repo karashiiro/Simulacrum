@@ -28,6 +28,9 @@
       "path": "./src/simulacrum-dalamud-hostctl"
     },
     {
+      "path": "./src/simulacrum-dalamud-hostctl-tests"
+    },
+    {
       "path": "./src/simulacrum-dalamud-plugin"
     }
   ],
