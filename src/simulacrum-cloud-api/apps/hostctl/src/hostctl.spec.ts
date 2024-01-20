@@ -88,6 +88,28 @@ describe("hostctl (e2e)", () => {
     process.env = env;
   }, 15000);
 
+  // Helper function to send a message and assert on the next received message
+  const communicate = (
+    message: WsResponse<unknown>,
+    onResponse: (response: object) => void
+  ): Promise<void> => {
+    return new Promise<void>(async (resolve, reject) => {
+      const onMessage = (data: RawData) => {
+        client.removeListener("message", onMessage);
+        try {
+          const response = JSON.parse(data.toString());
+          onResponse(response);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      client.on("message", onMessage);
+      await sendMessage(message);
+    });
+  };
+
   describe("playhead syncing", () => {
     // TODO: Finish this test case
     it("works", async () => {
@@ -102,42 +124,28 @@ describe("hostctl (e2e)", () => {
         },
       };
 
-      await new Promise<void>(async (resolve, reject) => {
-        // Arrange: Prepare an event handler
-        const onmessage = (data: RawData) => {
-          try {
-            const message = JSON.parse(data.toString());
-
-            // Assert: The message is a SCREEN_CREATE and has the created screen
-            expect(message).toEqual({
-              event: "SCREEN_CREATE",
-              data: {
-                screen: {
-                  ...screen,
-                  id: expectUUIDv4(),
-                  updatedAt: expect.any(Number),
-                },
-              },
-            });
-
-            client.removeListener("message", onmessage);
-
-            resolve();
-          } catch (err) {
-            reject(err);
-          }
-        };
-
-        client.on("message", onmessage);
-
-        // Act: Send a message to create a screen
-        await sendMessage({
+      // Act: Send a message to create a screen
+      await communicate(
+        {
           event: "SCREEN_CREATE",
           data: {
             screen: screen,
           },
-        });
-      });
+        },
+        (res) => {
+          // Assert: The response is a SCREEN_CREATE and has the created screen
+          expect(res).toEqual({
+            event: "SCREEN_CREATE",
+            data: {
+              screen: {
+                ...screen,
+                id: expectUUIDv4(),
+                updatedAt: expect.any(Number),
+              },
+            },
+          });
+        }
+      );
     });
   });
 });
