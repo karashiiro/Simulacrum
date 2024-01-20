@@ -13,12 +13,17 @@ using Serilog;
 [SuppressMessage("ReSharper", "UnusedMember.Local")]
 [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
-[GithubActionsWithExtraSteps("build", GitHubActionsImage.UbuntuLatest,
+[GithubActionsWithExtraSteps("build-api", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest), nameof(DockerBuild) }, // TODO: Enable plugin builds in CI
+    InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
     Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
+[GitHubActions("build-plugin", GitHubActionsImage.UbuntuLatest,
+    On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
+    InvokedTargets = new[] { nameof(DockerBuild) }, // TODO: Enable plugin builds in CI
+    CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
+    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
