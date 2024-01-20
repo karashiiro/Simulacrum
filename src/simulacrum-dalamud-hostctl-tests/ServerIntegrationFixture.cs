@@ -18,14 +18,16 @@ public partial class ServerIntegrationFixture : IAsyncDisposable
 
     private readonly IContainer _db;
 
-    public string Hostname => _api.Hostname;
-
-    public int Port => _api.GetMappedPublicPort(3000);
-
     public ServerIntegrationFixture()
     {
         // Build the infra stack
         (_network, _db, _api) = BuildStack().GetAwaiter().GetResult();
+    }
+
+    public Task<HostctlClient> CreateClient(Action<Exception, string> logError, CancellationToken cancellationToken = default)
+    {
+        var uri = new Uri($"ws://{_api.Hostname}:{_api.GetMappedPublicPort(3000)}");
+        return HostctlClient.FromUri(uri, logError, cancellationToken);
     }
 
     public async ValueTask DisposeAsync()

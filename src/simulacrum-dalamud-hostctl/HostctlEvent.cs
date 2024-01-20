@@ -113,6 +113,8 @@ public abstract class HostctlEvent
         {
             get
             {
+                // TODO: We probably need to rely on the server's timestamp for this.
+                // The client's timestamp could be off by enough that this calculation would have a weird result.
                 var diff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - PlayheadUpdatedAt;
                 return TimeSpan.FromSeconds(PlayheadSeconds + diff);
             }
