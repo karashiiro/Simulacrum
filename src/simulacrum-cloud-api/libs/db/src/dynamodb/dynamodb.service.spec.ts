@@ -3,7 +3,7 @@ import { StartedTestContainer } from "testcontainers";
 import { DynamoDbService } from "./dynamodb.service";
 import { CreateTableCommand } from "@aws-sdk/client-dynamodb";
 import { MediaSourceDto, ScreenDto } from "../common";
-import * as assert from "assert";
+import assert from "assert";
 import {
   createDdbLocalTestContainer,
   ddbLocalTableParams,

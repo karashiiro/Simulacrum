@@ -13,7 +13,7 @@ import { StartedTestContainer } from "testcontainers";
 import { RawData, WebSocket } from "ws";
 import { WsResponse } from "@nestjs/websockets";
 import { WsAdapter } from "@nestjs/platform-ws";
-import * as assert from "assert";
+import assert from "assert";
 
 describe("hostctl (e2e)", () => {
   let container: StartedTestContainer;
@@ -198,6 +198,31 @@ describe("hostctl (e2e)", () => {
       assert(videoSourceComplete.meta.state);
       assert(videoSourceComplete.meta.playheadUpdatedAt);
       assert(videoSourceComplete.meta.playheadSeconds !== undefined);
+
+      // Validate that we can fetch the linked screen
+      await communicate(
+        {
+          event: "MEDIA_SOURCE_LIST_SCREENS",
+          data: {
+            mediaSourceId: videoSourceComplete.id,
+          },
+        },
+        (res) => {
+          // Assert: The response is a MEDIA_SOURCE_LIST_SCREENS and has the screen we created
+          expect(res).toEqual({
+            event: "MEDIA_SOURCE_LIST_SCREENS",
+            data: {
+              screens: [
+                {
+                  ...screen,
+                  id: expectUUIDv4(),
+                  updatedAt: expect.any(Number),
+                },
+              ],
+            },
+          });
+        }
+      );
 
       // Set up some "local" state for the video
       const localVideo = {

@@ -3,16 +3,40 @@ import { EventsGateway } from "./events.gateway";
 import { DbAccessService, MediaSourceDto, ScreenDto } from "@simulacrum/db";
 import { DbService } from "@simulacrum/db";
 import { broadcast } from "../utils/ws";
+import crypto from "node:crypto";
 
 jest.mock("../utils/ws");
 
 class TestDbService implements DbAccessService {
-  findMediaSource = jest.fn().mockResolvedValue(Promise.resolve());
-  findAllMediaSources = jest.fn().mockResolvedValue(Promise.resolve());
-  createMediaSource = jest.fn().mockResolvedValue(Promise.resolve());
-  updateMediaSource = jest.fn().mockResolvedValue(Promise.resolve());
-  findScreensByMediaSourceId = jest.fn().mockResolvedValue(Promise.resolve());
-  createScreen = jest.fn().mockResolvedValue(Promise.resolve());
+  findMediaSource = jest.fn().mockImplementation((id) =>
+    Promise.resolve({
+      id: id,
+      updatedAt: Math.floor(Date.now() / 1000),
+      meta: { type: "blank" },
+    })
+  );
+  findAllMediaSources = jest.fn().mockResolvedValue(Promise.resolve([]));
+  createMediaSource = jest.fn().mockImplementation((mediaSource) =>
+    Promise.resolve({
+      ...mediaSource,
+      id: crypto.randomUUID(),
+      updatedAt: Math.floor(Date.now() / 1000),
+    })
+  );
+  updateMediaSource = jest.fn().mockImplementation((id, mediaSource) =>
+    Promise.resolve({
+      ...mediaSource,
+      id: id,
+    })
+  );
+  findScreensByMediaSourceId = jest.fn().mockResolvedValue(Promise.resolve([]));
+  createScreen = jest.fn().mockImplementation((screen) =>
+    Promise.resolve({
+      ...screen,
+      id: crypto.randomUUID(),
+      updatedAt: Math.floor(Date.now() / 1000),
+    })
+  );
 }
 
 describe("EventsGateway", () => {
