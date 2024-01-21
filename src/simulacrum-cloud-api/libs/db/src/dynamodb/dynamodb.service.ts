@@ -8,7 +8,7 @@ import {
   getScanManager,
 } from "@typedorm/core";
 import { DocumentClientV3 } from "@typedorm/document-client";
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { table } from "./entity/table";
 import {
   DbAccessService,
@@ -147,8 +147,6 @@ function mediaSourceUpdateFromDynamo(
 
 @Injectable()
 export class DynamoDbService implements DbAccessService {
-  private readonly logger = new Logger(DynamoDbService.name);
-
   private readonly entityManager: EntityManager;
   private readonly scanManager: ScanManager;
 
