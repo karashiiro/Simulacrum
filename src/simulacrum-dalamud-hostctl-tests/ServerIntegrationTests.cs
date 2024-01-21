@@ -284,9 +284,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         // Wait a few seconds for a response
         await WaitUntil(() => videoSourcePlay is not null, TimeSpan.FromSeconds(5));
 
-        // Assert: The video is now playing
         var videoSourceUpdated = videoSourcePlay?.Data?.Meta as HostctlEvent.VideoMetadata;
         Assert.NotNull(videoSourceUpdated);
+
+        // Assert: The video is now playing
         Assert.Equal("playing", videoSourceUpdated.State);
 
         // Assert: No exceptions were thrown during the test
@@ -330,9 +331,69 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         // Wait a few seconds for a response
         await WaitUntil(() => videoSourcePaused is not null, TimeSpan.FromSeconds(5));
 
-        // Assert: The video is now paused
         var videoSourceUpdated = videoSourcePaused?.Data?.Meta as HostctlEvent.VideoMetadata;
         Assert.NotNull(videoSourceUpdated);
+
+        // Assert: The video is now paused
+        Assert.Equal("paused", videoSourceUpdated.State);
+
+        // Assert: No exceptions were thrown during the test
+        Assert.Empty(exceptions);
+    }
+
+    [Fact]
+    public async Task HostctlClient_CanPanVideoSource()
+    {
+        var exceptions = new List<Exception>();
+
+        // Arrange: Create a client
+        var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var client = await Server.CreateClient((ex, _) => exceptions.Add(ex), cts1.Token);
+
+        // Arrange: Set up an event handler
+        HostctlEvent.MediaSourceCreateBroadcast? mediaSourceCreate = null;
+        using var onMediaSourceCreate = client.OnMediaSourceCreate().Subscribe(res => { mediaSourceCreate = res; });
+
+        // Arrange: Send a MEDIA_SOURCE_CREATE event
+        var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await client.SendEvent(BuildVideoSourceCreateRequest(), cts2.Token);
+
+        // Wait a few seconds for a response
+        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+
+        // Validate that the video is paused
+        var videoSourceInitial = mediaSourceCreate?.Data?.Meta as HostctlEvent.VideoMetadata;
+        Assert.NotNull(videoSourceInitial);
+        Assert.Equal("paused", videoSourceInitial.State);
+
+        // Arrange: Set up an event handler
+        HostctlEvent.VideoSourcePanBroadcast? videoSourcePan = null;
+        using var onScreenCreate = client.OnVideoSourcePan().Subscribe(res => { videoSourcePan = res; });
+
+        // Arrange: Send a VIDEO_SOURCE_PAN event
+        Assert.NotNull(mediaSourceCreate?.Data?.Id);
+        var cts3 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await client.SendEvent(
+            new HostctlEvent.VideoSourcePanRequest
+            {
+                Id = mediaSourceCreate.Data.Id,
+                PlayheadSeconds = 20.88,
+            },
+            cts3.Token);
+
+        // Wait a few seconds for a response
+        await WaitUntil(() => videoSourcePan is not null, TimeSpan.FromSeconds(5));
+
+        var videoSourceUpdated = videoSourcePan?.Data?.Meta as HostctlEvent.VideoMetadata;
+        Assert.NotNull(videoSourceUpdated);
+
+        // Assert: The video timestamp has changed
+        Assert.Equal(20.88, videoSourceUpdated.PlayheadSeconds);
+
+        // Assert: The video timestamp update timestamp has changed
+        Assert.NotEqual(videoSourceInitial.PlayheadUpdatedAt, videoSourceUpdated.PlayheadUpdatedAt);
+
+        // Assert: The video is still paused
         Assert.Equal("paused", videoSourceUpdated.State);
 
         // Assert: No exceptions were thrown during the test
