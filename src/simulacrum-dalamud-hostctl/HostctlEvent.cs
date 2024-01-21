@@ -46,6 +46,7 @@ public abstract class HostctlEvent
 
     public class VideoSourceSyncRequest : HostctlEvent
     {
+        [JsonPropertyName("id")] public string? Id { get; init; }
     }
 
     public class VideoSourceSyncResponse : HostctlEvent
