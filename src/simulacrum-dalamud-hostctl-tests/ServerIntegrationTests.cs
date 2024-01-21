@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Simulacrum.Hostctl.Tests;
 
 public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFixture<ServerIntegrationFixture>
@@ -19,10 +17,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Act: Send a MEDIA_SOURCE_CREATE event
         var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildVideoSourceCreateRequest(), cts2.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildVideoSourceCreateRequest(), cts2.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => ev is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => ev is not null, TimeSpan.FromSeconds(5));
 
         // Assert: The broadcast response matches what we expect
         Assert.NotNull(ev?.Data);
@@ -60,10 +58,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Act: Send a SCREEN_CREATE event
         var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildScreenCreateRequest(), cts2.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildScreenCreateRequest(), cts2.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => ev is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => ev is not null, TimeSpan.FromSeconds(5));
 
         // Assert: The broadcast response matches what we expect
         Assert.NotNull(ev?.Data);
@@ -103,10 +101,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Arrange: Send a MEDIA_SOURCE_CREATE event
         var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildVideoSourceCreateRequest(), cts2.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildVideoSourceCreateRequest(), cts2.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
 
         // Arrange: Set up an event handler
         HostctlEvent.ScreenCreateBroadcast? screenCreate = null;
@@ -114,10 +112,11 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Act: Send a SCREEN_CREATE event
         var cts3 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildScreenCreateRequest(mediaSourceCreate?.Data?.Id), cts3.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildScreenCreateRequest(mediaSourceCreate?.Data?.Id),
+            cts3.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => screenCreate is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => screenCreate is not null, TimeSpan.FromSeconds(5));
 
         // Assert: The broadcast response matches what we expect
         Assert.NotNull(screenCreate?.Data);
@@ -159,10 +158,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Arrange: Send a MEDIA_SOURCE_CREATE event
         var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildVideoSourceCreateRequest(), cts2.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildVideoSourceCreateRequest(), cts2.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
 
         var screens = new List<HostctlEvent.ScreenDto>();
 
@@ -178,10 +177,11 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         var cts3 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         await Task.WhenAll(Enumerable.Range(0, screensTarget)
             // ReSharper disable once AccessToDisposedClosure
-            .Select(_ => client.SendEvent(BuildScreenCreateRequest(mediaSourceCreate?.Data?.Id), cts3.Token)));
+            .Select(_ => client.SendEvent(ServerIntegrationUtils.BuildScreenCreateRequest(mediaSourceCreate?.Data?.Id),
+                cts3.Token)));
 
         // Wait a few seconds for responses
-        await WaitUntil(() => screens.Count >= screensTarget, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => screens.Count >= screensTarget, TimeSpan.FromSeconds(5));
 
         // Arrange: Set up an event handler
         var responseScreens = new List<HostctlEvent.ScreenDto>();
@@ -195,13 +195,26 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         // Act: Send a MEDIA_SOURCE_LIST_SCREENS event
         Assert.NotNull(mediaSourceCreate?.Data?.Id);
         var cts4 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildMediaSourceListScreensRequest(mediaSourceCreate.Data.Id), cts4.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildMediaSourceListScreensRequest(mediaSourceCreate.Data.Id),
+            cts4.Token);
 
         // Wait a few seconds for responses
-        await WaitUntil(() => responseScreens.Count >= screens.Count, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => responseScreens.Count >= screens.Count, TimeSpan.FromSeconds(5));
 
         // Assert: The screens received are the same as what we created
+        var responseScreensDict = responseScreens.ToDictionary(ms =>
+        {
+            Assert.NotNull(ms.Id);
+            return ms.Id;
+        }, ms => ms);
         Assert.Equal(screens.Count, responseScreens.Count);
+        foreach (var screen in screens)
+        {
+            Assert.NotNull(screen.Id);
+
+            var responseScreen = responseScreensDict[screen.Id];
+            Assert.Equivalent(screen, responseScreen);
+        }
 
         // Assert: No exceptions were thrown during the test
         Assert.Empty(exceptions);
@@ -222,10 +235,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Arrange: Send a MEDIA_SOURCE_CREATE event
         var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildVideoSourceCreateRequest(), cts2.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildVideoSourceCreateRequest(), cts2.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
 
         // Arrange: Set up an event handler
         HostctlEvent.VideoSourceSyncResponse? videoSourceSync = null;
@@ -237,11 +250,13 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         await client.SendEvent(new HostctlEvent.VideoSourceSyncRequest { Id = mediaSourceCreate.Data.Id }, cts3.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => videoSourceSync is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => videoSourceSync is not null, TimeSpan.FromSeconds(5));
 
         // Assert: The data received is the same as what we created
         Assert.NotNull(videoSourceSync?.Data?.Id);
-        Assert.Equivalent(mediaSourceCreate.Data, videoSourceSync.Data);
+        Assert.Equal(mediaSourceCreate.Data.Id, videoSourceSync.Data.Id);
+        Assert.Equal(mediaSourceCreate.Data.UpdatedAt, videoSourceSync.Data.UpdatedAt);
+        Assert.Equivalent(mediaSourceCreate.Data.MetaRaw, videoSourceSync.Data.MetaRaw);
 
         // Assert: No exceptions were thrown during the test
         Assert.Empty(exceptions);
@@ -262,10 +277,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Arrange: Send a MEDIA_SOURCE_CREATE event
         var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildVideoSourceCreateRequest(), cts2.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildVideoSourceCreateRequest(), cts2.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
 
         // Validate that the video is paused
         var videoSourceInitial = mediaSourceCreate?.Data?.Meta as HostctlEvent.VideoMetadata;
@@ -282,7 +297,7 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         await client.SendEvent(new HostctlEvent.VideoSourcePlayRequest { Id = mediaSourceCreate.Data.Id }, cts3.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => videoSourcePlay is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => videoSourcePlay is not null, TimeSpan.FromSeconds(5));
 
         var videoSourceUpdated = videoSourcePlay?.Data?.Meta as HostctlEvent.VideoMetadata;
         Assert.NotNull(videoSourceUpdated);
@@ -309,10 +324,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Arrange: Send a MEDIA_SOURCE_CREATE event
         var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildVideoSourceCreateRequest(true), cts2.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildVideoSourceCreateRequest(true), cts2.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
 
         // Validate that the video is playing
         var videoSourceInitial = mediaSourceCreate?.Data?.Meta as HostctlEvent.VideoMetadata;
@@ -329,7 +344,7 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         await client.SendEvent(new HostctlEvent.VideoSourcePauseRequest { Id = mediaSourceCreate.Data.Id }, cts3.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => videoSourcePaused is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => videoSourcePaused is not null, TimeSpan.FromSeconds(5));
 
         var videoSourceUpdated = videoSourcePaused?.Data?.Meta as HostctlEvent.VideoMetadata;
         Assert.NotNull(videoSourceUpdated);
@@ -356,10 +371,10 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Arrange: Send a MEDIA_SOURCE_CREATE event
         var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await client.SendEvent(BuildVideoSourceCreateRequest(), cts2.Token);
+        await client.SendEvent(ServerIntegrationUtils.BuildVideoSourceCreateRequest(), cts2.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
 
         // Validate that the video is paused
         var videoSourceInitial = mediaSourceCreate?.Data?.Meta as HostctlEvent.VideoMetadata;
@@ -382,7 +397,7 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
             cts3.Token);
 
         // Wait a few seconds for a response
-        await WaitUntil(() => videoSourcePan is not null, TimeSpan.FromSeconds(5));
+        await ServerIntegrationUtils.WaitUntil(() => videoSourcePan is not null, TimeSpan.FromSeconds(5));
 
         var videoSourceUpdated = videoSourcePan?.Data?.Meta as HostctlEvent.VideoMetadata;
         Assert.NotNull(videoSourceUpdated);
@@ -398,60 +413,5 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
 
         // Assert: No exceptions were thrown during the test
         Assert.Empty(exceptions);
-    }
-
-    private static async Task WaitUntil(Func<bool> condition, TimeSpan timeout)
-    {
-        var cts = new CancellationTokenSource(timeout);
-        await Task.Run(async () =>
-        {
-            do
-            {
-                await Task.Yield();
-            } while (!condition());
-        }, cts.Token);
-    }
-
-    private static HostctlEvent.MediaSourceListScreensRequest BuildMediaSourceListScreensRequest(string mediaSourceId)
-    {
-        return new HostctlEvent.MediaSourceListScreensRequest
-        {
-            MediaSourceId = mediaSourceId,
-        };
-    }
-
-    private static HostctlEvent.MediaSourceCreateRequest BuildVideoSourceCreateRequest(bool playing = false)
-    {
-        return new HostctlEvent.MediaSourceCreateRequest
-        {
-            Data = new HostctlEvent.MediaSourceDto
-            {
-                MetaRaw = JsonSerializer.SerializeToElement(new HostctlEvent.VideoMetadata
-                {
-                    Type = "video",
-                    Uri = "https://dc6xbzf7ukys8.cloudfront.net/chugjug.m3u8",
-                    State = playing ? "playing" : null,
-                }),
-            },
-        };
-    }
-
-    private static HostctlEvent.ScreenCreateRequest BuildScreenCreateRequest(string? mediaSourceId = null)
-    {
-        return new HostctlEvent.ScreenCreateRequest
-        {
-            Data = new HostctlEvent.ScreenDto
-            {
-                Territory = 7,
-                World = 74,
-                Position = new HostctlEvent.PositionDto
-                {
-                    X = 23,
-                    Y = 24,
-                    Z = 25,
-                },
-                MediaSourceId = mediaSourceId,
-            },
-        };
     }
 }
