@@ -74,7 +74,21 @@ class Build : NukeBuild
             DockerTasks.DockerBuild(s => s
                 .SetPath(RootDirectory)
                 .SetFile(SourceDirectory / "simulacrum-cloud-api" / "Dockerfile")
-                .SetTag("simulacrum-cloud-api"));
+                .SetTag("simulacrum-cloud-api")
+                .SetProcessLogger((outputType, output) =>
+                {
+                    // Deal with Docker build output always being logged as errors
+                    // ReSharper disable TemplateIsNotCompileTimeConstantProblem
+                    if (outputType != OutputType.Std)
+                    {
+                        Log.Information(output);
+                    }
+                    else
+                    {
+                        Log.Error(output);
+                    }
+                    // ReSharper restore TemplateIsNotCompileTimeConstantProblem
+                }));
         });
 
     [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
