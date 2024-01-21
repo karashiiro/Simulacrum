@@ -62,8 +62,8 @@ public class HostctlClient : IDisposable
 
     private async Task InboundLoop(CancellationToken cancellationToken)
     {
-        // Limit inbound message size to 1KB
-        var buffer = new byte[1024];
+        // Limit inbound message size to 2KB
+        var buffer = new byte[2048];
 
         while (!cancellationToken.IsCancellationRequested)
         {
