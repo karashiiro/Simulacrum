@@ -34,7 +34,7 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         Assert.NotNull(videoMeta);
         Assert.Equal("video", videoMeta.Type);
         Assert.Equal("https://dc6xbzf7ukys8.cloudfront.net/chugjug.m3u8", videoMeta.Uri);
-        Assert.Equal("playing", videoMeta.State);
+        Assert.Equal("paused", videoMeta.State);
         Assert.Equal(0, videoMeta.PlayheadSeconds);
         Assert.NotEqual(0, videoMeta.PlayheadUpdatedAt);
 
@@ -231,7 +231,7 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         HostctlEvent.VideoSourceSyncResponse? videoSourceSync = null;
         using var onScreenCreate = client.OnVideoSourceSync().Subscribe(res => { videoSourceSync = res; });
 
-        // Arrange: Send a MEDIA_SOURCE_CREATE event
+        // Arrange: Send a VIDEO_SOURCE_SYNC event
         Assert.NotNull(mediaSourceCreate?.Data?.Id);
         var cts3 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         await client.SendEvent(new HostctlEvent.VideoSourceSyncRequest { Id = mediaSourceCreate.Data.Id }, cts3.Token);
@@ -242,6 +242,98 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         // Assert: The data received is the same as what we created
         Assert.NotNull(videoSourceSync?.Data?.Id);
         Assert.Equivalent(mediaSourceCreate.Data, videoSourceSync.Data);
+
+        // Assert: No exceptions were thrown during the test
+        Assert.Empty(exceptions);
+    }
+
+    [Fact]
+    public async Task HostctlClient_CanPlayVideoSource()
+    {
+        var exceptions = new List<Exception>();
+
+        // Arrange: Create a client
+        var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var client = await Server.CreateClient((ex, _) => exceptions.Add(ex), cts1.Token);
+
+        // Arrange: Set up an event handler
+        HostctlEvent.MediaSourceCreateBroadcast? mediaSourceCreate = null;
+        using var onMediaSourceCreate = client.OnMediaSourceCreate().Subscribe(res => { mediaSourceCreate = res; });
+
+        // Arrange: Send a MEDIA_SOURCE_CREATE event
+        var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await client.SendEvent(BuildVideoSourceCreateRequest(), cts2.Token);
+
+        // Wait a few seconds for a response
+        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+
+        // Validate that the video is paused
+        var videoSourceInitial = mediaSourceCreate?.Data?.Meta as HostctlEvent.VideoMetadata;
+        Assert.NotNull(videoSourceInitial);
+        Assert.Equal("paused", videoSourceInitial.State);
+
+        // Arrange: Set up an event handler
+        HostctlEvent.VideoSourcePlayBroadcast? videoSourcePlay = null;
+        using var onScreenCreate = client.OnVideoSourcePlay().Subscribe(res => { videoSourcePlay = res; });
+
+        // Arrange: Send a VIDEO_SOURCE_PLAY event
+        Assert.NotNull(mediaSourceCreate?.Data?.Id);
+        var cts3 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await client.SendEvent(new HostctlEvent.VideoSourcePlayRequest { Id = mediaSourceCreate.Data.Id }, cts3.Token);
+
+        // Wait a few seconds for a response
+        await WaitUntil(() => videoSourcePlay is not null, TimeSpan.FromSeconds(5));
+
+        // Assert: The video is now playing
+        var videoSourceUpdated = videoSourcePlay?.Data?.Meta as HostctlEvent.VideoMetadata;
+        Assert.NotNull(videoSourceUpdated);
+        Assert.Equal("playing", videoSourceUpdated.State);
+
+        // Assert: No exceptions were thrown during the test
+        Assert.Empty(exceptions);
+    }
+
+    [Fact]
+    public async Task HostctlClient_CanPauseVideoSource()
+    {
+        var exceptions = new List<Exception>();
+
+        // Arrange: Create a client
+        var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var client = await Server.CreateClient((ex, _) => exceptions.Add(ex), cts1.Token);
+
+        // Arrange: Set up an event handler
+        HostctlEvent.MediaSourceCreateBroadcast? mediaSourceCreate = null;
+        using var onMediaSourceCreate = client.OnMediaSourceCreate().Subscribe(res => { mediaSourceCreate = res; });
+
+        // Arrange: Send a MEDIA_SOURCE_CREATE event
+        var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await client.SendEvent(BuildVideoSourceCreateRequest(true), cts2.Token);
+
+        // Wait a few seconds for a response
+        await WaitUntil(() => mediaSourceCreate is not null, TimeSpan.FromSeconds(5));
+
+        // Validate that the video is playing
+        var videoSourceInitial = mediaSourceCreate?.Data?.Meta as HostctlEvent.VideoMetadata;
+        Assert.NotNull(videoSourceInitial);
+        Assert.Equal("playing", videoSourceInitial.State);
+
+        // Arrange: Set up an event handler
+        HostctlEvent.VideoSourcePauseBroadcast? videoSourcePaused = null;
+        using var onScreenCreate = client.OnVideoSourcePause().Subscribe(res => { videoSourcePaused = res; });
+
+        // Arrange: Send a VIDEO_SOURCE_PAUSE event
+        Assert.NotNull(mediaSourceCreate?.Data?.Id);
+        var cts3 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await client.SendEvent(new HostctlEvent.VideoSourcePauseRequest { Id = mediaSourceCreate.Data.Id }, cts3.Token);
+
+        // Wait a few seconds for a response
+        await WaitUntil(() => videoSourcePaused is not null, TimeSpan.FromSeconds(5));
+
+        // Assert: The video is now paused
+        var videoSourceUpdated = videoSourcePaused?.Data?.Meta as HostctlEvent.VideoMetadata;
+        Assert.NotNull(videoSourceUpdated);
+        Assert.Equal("paused", videoSourceUpdated.State);
 
         // Assert: No exceptions were thrown during the test
         Assert.Empty(exceptions);
@@ -267,7 +359,7 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
         };
     }
 
-    private static HostctlEvent.MediaSourceCreateRequest BuildVideoSourceCreateRequest()
+    private static HostctlEvent.MediaSourceCreateRequest BuildVideoSourceCreateRequest(bool playing = false)
     {
         return new HostctlEvent.MediaSourceCreateRequest
         {
@@ -277,7 +369,7 @@ public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFix
                 {
                     Type = "video",
                     Uri = "https://dc6xbzf7ukys8.cloudfront.net/chugjug.m3u8",
-                    State = "playing",
+                    State = playing ? "playing" : null,
                 }),
             },
         };
