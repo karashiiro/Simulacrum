@@ -78,46 +78,51 @@ public partial class ServerIntegrationFixture : IAsyncDisposable
 
         // Create the test table
         var req = new CreateTableRequest("Simulacrum",
-            [
+            new ()
+            {
                 new KeySchemaElement("PK", KeyType.HASH),
                 new KeySchemaElement("SK", KeyType.RANGE),
-            ],
-            [
+            },
+            new ()
+            {
                 new AttributeDefinition("PK", ScalarAttributeType.S),
                 new AttributeDefinition("SK", ScalarAttributeType.S),
                 new AttributeDefinition("LSI1SK", ScalarAttributeType.S),
                 new AttributeDefinition("GSI1PK", ScalarAttributeType.S),
                 new AttributeDefinition("GSI1SK", ScalarAttributeType.S),
-            ],
+            },
             new ProvisionedThroughput(10, 5))
         {
             LocalSecondaryIndexes =
-            [
+            new ()
+            {
                 new LocalSecondaryIndex
                 {
                     IndexName = "LSI1",
                     KeySchema =
-                    [
-                        new KeySchemaElement("PK", KeyType.HASH),
-                        new KeySchemaElement("LSI1SK", KeyType.RANGE),
-                    ],
+                        new ()
+                        {
+                            new KeySchemaElement("PK", KeyType.HASH),
+                            new KeySchemaElement("LSI1SK", KeyType.RANGE),
+                        },
                     Projection = new Projection { ProjectionType = ProjectionType.ALL },
                 },
-            ],
+            },
             GlobalSecondaryIndexes =
-            [
+            new ()
+            {
                 new GlobalSecondaryIndex
                 {
                     IndexName = "GSI1",
                     KeySchema =
-                    [
+                    {
                         new KeySchemaElement("GSI1PK", KeyType.HASH),
                         new KeySchemaElement("GSI1SK", KeyType.RANGE),
-                    ],
+                    },
                     Projection = new Projection { ProjectionType = ProjectionType.ALL },
                     ProvisionedThroughput = new ProvisionedThroughput(10, 5),
                 },
-            ],
+            },
         };
 
         await ddb.CreateTableAsync(req, ct);

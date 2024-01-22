@@ -1,8 +1,14 @@
 ﻿namespace Simulacrum.Hostctl.Tests;
 
-public class ServerListMediaSourcesIntegrationTests(ServerIntegrationFixture Server)
-    : IClassFixture<ServerIntegrationFixture>
+public class ServerListMediaSourcesIntegrationTests : IClassFixture<ServerIntegrationFixture>
 {
+    private ServerIntegrationFixture Server { get; }
+
+    public ServerListMediaSourcesIntegrationTests(ServerIntegrationFixture server)
+    {
+        Server = server;
+    }
+
     [Fact]
     public async Task HostctlClient_CanListAllMediaSources()
     {

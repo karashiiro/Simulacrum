@@ -1,7 +1,14 @@
 namespace Simulacrum.Hostctl.Tests;
 
-public class ServerIntegrationTests(ServerIntegrationFixture Server) : IClassFixture<ServerIntegrationFixture>
+public class ServerIntegrationTests : IClassFixture<ServerIntegrationFixture>
 {
+    private ServerIntegrationFixture Server { get; }
+
+    public ServerIntegrationTests(ServerIntegrationFixture server)
+    {
+        Server = server;
+    }
+
     [Fact]
     public async Task HostctlClient_CanCreateMediaSource()
     {
