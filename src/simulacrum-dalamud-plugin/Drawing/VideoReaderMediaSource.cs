@@ -141,15 +141,22 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             return;
         }
 
+        // TODO: Fix an issue with audio playback where it'll get stuck in sync correction if we start out paused
+        // TODO: Fix an issue with audio playback where it'll actually be playing and constantly padding silence
+        // (with some moments where sound plays anyways) if we start out stopped
+
         // Discard audio samples if the audio pts is ahead of the clock, and pad
         // silence if the audio pts is behind the clock.
-        var audioDiff = _waveProvider.PlaybackPosition - _sync.GetTime();
+        var ts = _sync.GetTime();
+        var pos = _waveProvider.PlaybackPosition;
+        var audioDiff = pos - ts;
         if (audioDiff > AudioSyncThreshold)
         {
             var nPadded = _waveProvider.PadSamples(audioDiff);
             if (nPadded > 0)
             {
-                _log.Warning($"Audio stream was ahead of clock, padded {nPadded} bytes of data");
+                _log.Warning(
+                    $"Audio stream was {audioDiff.ToString()} ahead of clock, padded {nPadded} bytes of data (wav={pos.ToString()}, sync={ts.ToString()})");
             }
         }
         else if (audioDiff < -AudioSyncThreshold)
@@ -157,7 +164,8 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             var nDiscarded = _waveProvider.DiscardSamples(audioDiff);
             if (nDiscarded > 0)
             {
-                _log.Warning($"Audio stream was behind clock, discarded {nDiscarded} bytes of data");
+                _log.Warning(
+                    $"Audio stream was {audioDiff.ToString()} behind clock, discarded {nDiscarded} bytes of data (wav={pos.ToString()}, sync={ts.ToString()})");
             }
         }
     }
