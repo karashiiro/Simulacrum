@@ -4,12 +4,7 @@ namespace Simulacrum.Drawing;
 
 public class PlaybackTrackerManager : IDisposable
 {
-    private readonly IDictionary<string, IPlaybackTracker> _playbackTrackers;
-
-    public PlaybackTrackerManager()
-    {
-        _playbackTrackers = new Dictionary<string, IPlaybackTracker>();
-    }
+    private readonly Dictionary<string, IPlaybackTracker> _playbackTrackers = new();
 
     public void AddPlaybackTracker(string id, IPlaybackTracker mediaSource)
     {

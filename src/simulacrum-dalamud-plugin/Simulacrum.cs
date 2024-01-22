@@ -89,100 +89,164 @@ public class Simulacrum : IDalamudPlugin
 
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
-        _commandManager.AddHandler("/simplay", new CommandInfo((_, arguments) =>
+        _commandManager.AddHandler("/simplay", new CommandInfo((_, mediaSourceId) =>
         {
-            if (arguments.IsNullOrEmpty())
+            if (mediaSourceId.IsNullOrWhitespace())
             {
                 return;
             }
 
-            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
             if (tracker is null)
             {
                 return;
             }
 
             tracker.Play();
+
+            _hostctl?.SendEvent(new HostctlEvent.VideoSourcePlayRequest
+            {
+                Id = mediaSourceId,
+            }).FireAndForget(_log);
         }));
 
-        _commandManager.AddHandler("/simpause", new CommandInfo((_, arguments) =>
+        _commandManager.AddHandler("/simpause", new CommandInfo((_, mediaSourceId) =>
         {
-            if (arguments.IsNullOrEmpty())
+            if (mediaSourceId.IsNullOrWhitespace())
             {
                 return;
             }
 
-            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
             if (tracker is null)
             {
                 return;
             }
 
             tracker.Pause();
+
+            _hostctl?.SendEvent(new HostctlEvent.VideoSourcePauseRequest
+            {
+                Id = mediaSourceId,
+            }).FireAndForget(_log);
         }));
 
-        _commandManager.AddHandler("/simskip3", new CommandInfo((_, arguments) =>
+        _commandManager.AddHandler("/simpan", new CommandInfo((_, arguments) =>
         {
-            if (arguments.IsNullOrEmpty())
+            var argsSplit = arguments.Split(' ');
+            var mediaSourceId = argsSplit[0];
+            var ts = TimeSpan.FromSeconds(double.Parse(argsSplit[1]));
+
+            if (mediaSourceId.IsNullOrWhitespace())
             {
                 return;
             }
 
-            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
             if (tracker is null)
             {
                 return;
             }
 
-            tracker.Pan(tracker.GetTime() + TimeSpan.FromSeconds(3));
+            tracker.Pan(ts);
+
+            _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
+            {
+                Id = mediaSourceId,
+                PlayheadSeconds = ts.TotalSeconds,
+            }).FireAndForget(_log);
         }));
 
-        _commandManager.AddHandler("/simback3", new CommandInfo((_, arguments) =>
+        _commandManager.AddHandler("/simskip3", new CommandInfo((_, mediaSourceId) =>
         {
-            if (arguments.IsNullOrEmpty())
+            if (mediaSourceId.IsNullOrWhitespace())
             {
                 return;
             }
 
-            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
             if (tracker is null)
             {
                 return;
             }
 
-            tracker.Pan(tracker.GetTime() - TimeSpan.FromSeconds(3));
+            var ts = tracker.GetTime() + TimeSpan.FromSeconds(3);
+            tracker.Pan(ts);
+
+            _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
+            {
+                Id = mediaSourceId,
+                PlayheadSeconds = ts.TotalSeconds,
+            }).FireAndForget(_log);
         }));
 
-        _commandManager.AddHandler("/simskip10", new CommandInfo((_, arguments) =>
+        _commandManager.AddHandler("/simback3", new CommandInfo((_, mediaSourceId) =>
         {
-            if (arguments.IsNullOrEmpty())
+            if (mediaSourceId.IsNullOrWhitespace())
             {
                 return;
             }
 
-            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
             if (tracker is null)
             {
                 return;
             }
 
-            tracker.Pan(tracker.GetTime() + TimeSpan.FromSeconds(10));
+            var ts = tracker.GetTime() - TimeSpan.FromSeconds(3);
+            tracker.Pan(ts);
+
+            _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
+            {
+                Id = mediaSourceId,
+                PlayheadSeconds = ts.TotalSeconds,
+            }).FireAndForget(_log);
         }));
 
-        _commandManager.AddHandler("/simback10", new CommandInfo((_, arguments) =>
+        _commandManager.AddHandler("/simskip10", new CommandInfo((_, mediaSourceId) =>
         {
-            if (arguments.IsNullOrEmpty())
+            if (mediaSourceId.IsNullOrWhitespace())
             {
                 return;
             }
 
-            var tracker = _playbackTrackers.GetPlaybackTracker(arguments);
+            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
             if (tracker is null)
             {
                 return;
             }
 
-            tracker.Pan(tracker.GetTime() - TimeSpan.FromSeconds(10));
+            var ts = tracker.GetTime() + TimeSpan.FromSeconds(10);
+            tracker.Pan(ts);
+
+            _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
+            {
+                Id = mediaSourceId,
+                PlayheadSeconds = ts.TotalSeconds,
+            }).FireAndForget(_log);
+        }));
+
+        _commandManager.AddHandler("/simback10", new CommandInfo((_, mediaSourceId) =>
+        {
+            if (mediaSourceId.IsNullOrWhitespace())
+            {
+                return;
+            }
+
+            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
+            if (tracker is null)
+            {
+                return;
+            }
+
+            var ts = tracker.GetTime() - TimeSpan.FromSeconds(10);
+            tracker.Pan(ts);
+
+            _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
+            {
+                Id = mediaSourceId,
+                PlayheadSeconds = ts.TotalSeconds,
+            }).FireAndForget(_log);
         }));
 
         _commandManager.AddHandler("/simcreate", new CommandInfo((_, _) =>
@@ -393,7 +457,7 @@ public class Simulacrum : IDalamudPlugin
                 var videoSync = new TimePlaybackTracker();
                 var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync, _log);
 
-                //videoSync.Pan(video.PlayheadActual);
+                videoSync.Pan(video.PlayheadActual);
                 if (video.State == "playing")
                 {
                     videoSync.Play();
