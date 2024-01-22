@@ -89,6 +89,8 @@ public class Simulacrum : IDalamudPlugin
 
         _pluginInterface.UiBuilder.Draw += _windows.Draw;
 
+        _commandManager.AddHandler("/simgc", new CommandInfo((_, _) => { GC.Collect(2); }));
+
         _commandManager.AddHandler("/simplay", new CommandInfo((_, mediaSourceId) =>
         {
             if (mediaSourceId.IsNullOrWhitespace())
@@ -499,41 +501,40 @@ public class Simulacrum : IDalamudPlugin
     [Conditional("DEBUG")]
     private void UninstallAVLogHandler()
     {
-        _logFunctionHandle?.Free();
         AVLog.UseDefaultCallback();
+        _logFunctionHandle?.Free();
     }
 
-    private static void HandleAVLog(AVLogLevel level, string? message)
+    private void HandleAVLog(AVLogLevel level, string? message)
     {
-        // TODO: Make this non-static (does it segfault?)
         message = $"[libav] {message}";
         switch (level)
         {
             case AVLogLevel.Quiet:
                 break;
             case AVLogLevel.Panic:
-                PluginLog.LogFatal(message);
+                _log.Fatal(message);
                 break;
             case AVLogLevel.Fatal:
-                PluginLog.LogFatal(message);
+                _log.Fatal(message);
                 break;
             case AVLogLevel.Error:
-                PluginLog.LogError(message);
+                _log.Error(message);
                 break;
             case AVLogLevel.Warning:
-                PluginLog.LogWarning(message);
+                _log.Warning(message);
                 break;
             case AVLogLevel.Info:
-                PluginLog.LogInformation(message);
+                _log.Information(message);
                 break;
             case AVLogLevel.Verbose:
-                PluginLog.LogVerbose(message);
+                _log.Verbose(message);
                 break;
             case AVLogLevel.Debug:
-                PluginLog.LogDebug(message);
+                _log.Debug(message);
                 break;
             case AVLogLevel.Trace:
-                PluginLog.LogVerbose(message);
+                _log.Verbose(message);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(level), level, null);
@@ -552,6 +553,7 @@ public class Simulacrum : IDalamudPlugin
         _commandManager.RemoveHandler("/simback10");
         _commandManager.RemoveHandler("/simplace");
         _commandManager.RemoveHandler("/simcreate");
+        _commandManager.RemoveHandler("/simgc");
 
         _cts.Cancel();
         try
