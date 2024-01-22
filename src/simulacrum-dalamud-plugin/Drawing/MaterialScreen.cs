@@ -37,6 +37,7 @@ public class MaterialScreen : IScreen, IDisposable
         _stopwatch.Start();
 
         // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui
+        // TODO: Seriously do something other than this, it pauses playback when pressing Scroll Lock because that makes Dalamud stop calling this
         _ui.Draw += Draw;
     }
 
