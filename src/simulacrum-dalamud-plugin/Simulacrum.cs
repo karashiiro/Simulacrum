@@ -6,7 +6,6 @@ using Dalamud.Game;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
-using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
@@ -98,14 +97,6 @@ public class Simulacrum : IDalamudPlugin
                 return;
             }
 
-            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
-            if (tracker is null)
-            {
-                return;
-            }
-
-            tracker.Play();
-
             _hostctl?.SendEvent(new HostctlEvent.VideoSourcePlayRequest
             {
                 Id = mediaSourceId,
@@ -118,14 +109,6 @@ public class Simulacrum : IDalamudPlugin
             {
                 return;
             }
-
-            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
-            if (tracker is null)
-            {
-                return;
-            }
-
-            tracker.Pause();
 
             _hostctl?.SendEvent(new HostctlEvent.VideoSourcePauseRequest
             {
@@ -143,14 +126,6 @@ public class Simulacrum : IDalamudPlugin
             {
                 return;
             }
-
-            var tracker = _playbackTrackers.GetPlaybackTracker(mediaSourceId);
-            if (tracker is null)
-            {
-                return;
-            }
-
-            tracker.Pan(ts);
 
             _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
             {
@@ -173,8 +148,6 @@ public class Simulacrum : IDalamudPlugin
             }
 
             var ts = tracker.GetTime() + TimeSpan.FromSeconds(3);
-            tracker.Pan(ts);
-
             _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
             {
                 Id = mediaSourceId,
@@ -196,8 +169,6 @@ public class Simulacrum : IDalamudPlugin
             }
 
             var ts = tracker.GetTime() - TimeSpan.FromSeconds(3);
-            tracker.Pan(ts);
-
             _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
             {
                 Id = mediaSourceId,
@@ -219,8 +190,6 @@ public class Simulacrum : IDalamudPlugin
             }
 
             var ts = tracker.GetTime() + TimeSpan.FromSeconds(10);
-            tracker.Pan(ts);
-
             _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
             {
                 Id = mediaSourceId,
@@ -242,8 +211,6 @@ public class Simulacrum : IDalamudPlugin
             }
 
             var ts = tracker.GetTime() - TimeSpan.FromSeconds(10);
-            tracker.Pan(ts);
-
             _hostctl?.SendEvent(new HostctlEvent.VideoSourcePanRequest
             {
                 Id = mediaSourceId,
