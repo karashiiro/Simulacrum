@@ -450,32 +450,36 @@ bool Simulacrum::AV::Core::VideoReader::DecodeVideoFrame()
     return true;
 }
 
-bool Simulacrum::AV::Core::VideoReader::SeekAudioFrameInternal()
+int Simulacrum::AV::Core::VideoReader::SeekAudioFrameInternal()
 {
     const auto audio_seek_frame = static_cast<int64_t>(audio_stream.seek_pts / av_q2d(audio_stream.time_base));
-    if (av_seek_frame(av_format_ctx, audio_stream.stream_index, audio_seek_frame, audio_stream.seek_flags) < 0)
+    const auto result = av_seek_frame(av_format_ctx, audio_stream.stream_index, audio_seek_frame,
+                                      audio_stream.seek_flags);
+    if (result < 0)
     {
-        return false;
+        return result;
     }
 
     audio_stream.packet_queue->Flush();
     audio_stream.flush_requested = true;
 
-    return true;
+    return result;
 }
 
-bool Simulacrum::AV::Core::VideoReader::SeekVideoFrameInternal()
+int Simulacrum::AV::Core::VideoReader::SeekVideoFrameInternal()
 {
     const auto video_seek_frame = static_cast<int64_t>(video_stream.seek_pts / av_q2d(video_stream.time_base));
-    if (av_seek_frame(av_format_ctx, video_stream.stream_index, video_seek_frame, video_stream.seek_flags) < 0)
+    const auto result = av_seek_frame(av_format_ctx, video_stream.stream_index, video_seek_frame,
+                                      video_stream.seek_flags);
+    if (result < 0)
     {
-        return false;
+        return result;
     }
 
     video_stream.packet_queue->Flush();
     video_stream.flush_requested = true;
 
-    return true;
+    return result;
 }
 
 bool Simulacrum::AV::Core::VideoReader::CopyResampledAudio(uint8_t* audio_buffer, int& samples_read) const
@@ -564,9 +568,9 @@ void Simulacrum::AV::Core::VideoReader::Ingest()
 
         if (audio_stream.seek_requested)
         {
-            if (!SeekAudioFrameInternal())
+            if (const auto result = SeekAudioFrameInternal(); result < 0)
             {
-                av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek audio stream");
+                av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek audio stream: %s", av_make_error(result));
             }
 
             audio_stream.seek_requested = false;
@@ -574,9 +578,9 @@ void Simulacrum::AV::Core::VideoReader::Ingest()
 
         if (video_stream.seek_requested)
         {
-            if (!SeekVideoFrameInternal())
+            if (const auto result = SeekVideoFrameInternal(); result < 0)
             {
-                av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek video stream");
+                av_log(nullptr, AV_LOG_ERROR, "[user] Could not seek video stream: %s", av_make_error(result));
             }
 
             video_stream.seek_requested = false;

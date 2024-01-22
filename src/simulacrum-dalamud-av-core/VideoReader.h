@@ -127,8 +127,8 @@ namespace Simulacrum::AV::Core
          */
         bool DecodeVideoFrame();
 
-        bool SeekAudioFrameInternal();
-        bool SeekVideoFrameInternal();
+        int SeekAudioFrameInternal();
+        int SeekVideoFrameInternal();
 
         /**
          * \brief Resamples the current audio frame data and copies it into the provided output buffer.
