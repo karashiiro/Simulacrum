@@ -141,10 +141,6 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
             return;
         }
 
-        // TODO: Fix an issue with audio playback where it'll get stuck in sync correction if we start out paused
-        // TODO: Fix an issue with audio playback where it'll actually be playing and constantly padding silence
-        // (with some moments where sound plays anyways) if we start out stopped
-
         // Discard audio samples if the audio pts is ahead of the clock, and pad
         // silence if the audio pts is behind the clock.
         var ts = _sync.GetTime();
@@ -152,6 +148,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         var audioDiff = pos - ts;
         if (audioDiff > AudioSyncThreshold)
         {
+            // Pad samples with silence to delay playback slightly
             var nPadded = _waveProvider.PadSamples(audioDiff);
             if (nPadded > 0)
             {
@@ -161,12 +158,27 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         }
         else if (audioDiff < -AudioSyncThreshold)
         {
+            /*
+             Discarding samples from our audio buffer doesn't discard samples from the
+             audio device interface responsible for actually playing sound. This means
+             that if the time difference is large enough, we can get stuck attempting
+             to discard samples from our buffer because all of that time difference is
+             in the device buffer, which we can't directly manipulate.
+
+             Instead, we stop the player to force it to flush samples, and then restart
+             it after discarding the samples we need to get rid of.
+            */
+            _wavePlayer.Stop();
+
+            // Discard samples to catch up
             var nDiscarded = _waveProvider.DiscardSamples(audioDiff);
             if (nDiscarded > 0)
             {
                 _log.Warning(
                     $"Audio stream was {audioDiff.ToString()} behind clock, discarded {nDiscarded} bytes of data (wav={pos.ToString()}, sync={ts.ToString()})");
             }
+
+            _wavePlayer.Play();
         }
     }
 

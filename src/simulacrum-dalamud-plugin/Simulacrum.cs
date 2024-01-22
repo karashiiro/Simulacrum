@@ -431,6 +431,10 @@ public class Simulacrum : IDalamudPlugin
                 {
                     videoSync.Play();
                 }
+                else
+                {
+                    videoSync.Pause();
+                }
 
                 _playbackTrackers.AddPlaybackTracker(dto.Id, videoSync);
                 _mediaSources.AddMediaSource(dto.Id, videoMediaSource);
