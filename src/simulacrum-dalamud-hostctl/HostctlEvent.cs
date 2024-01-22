@@ -114,6 +114,12 @@ public abstract class HostctlEvent
         {
             get
             {
+                if (State == "paused")
+                {
+                    // Simple case; we're paused so we don't care about sync correction
+                    return TimeSpan.FromSeconds(PlayheadSeconds);
+                }
+
                 // TODO: We probably need to rely on the server's timestamp for this.
                 // The client's timestamp could be off by enough that this calculation would have a weird result.
                 var updateTimeDiffMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - PlayheadUpdatedAt;
