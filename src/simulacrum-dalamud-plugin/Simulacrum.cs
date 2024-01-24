@@ -339,7 +339,8 @@ public class Simulacrum : IDalamudPlugin
 
     private async Task Connect(CancellationToken cancellationToken)
     {
-        var hostctlUri = new Uri("ws://localhost:3000");
+        // TODO: Make this configurable
+        var hostctlUri = new Uri("ws://Simula-Simul-4NZdeaOLkaRA-1772232274.us-west-2.elb.amazonaws.com");
 
         _hostctl = await HostctlClient.FromUri(hostctlUri, (e, m) => _log.Error(e, m), cancellationToken);
         _hostctlBag.Add(_hostctl.OnScreenCreate().Subscribe(ev => { InitializeScreen(ev.Data); }));
@@ -420,25 +421,25 @@ public class Simulacrum : IDalamudPlugin
                 // TODO
                 break;
             case HostctlEvent.VideoMetadata video:
-            {
-                _log.Info($"Got new video source: {video.Uri}");
-
-                var videoSync = new TimePlaybackTracker();
-                var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync, _log);
-
-                videoSync.Pan(video.PlayheadActual);
-                if (video.State == "playing")
                 {
-                    videoSync.Play();
-                }
-                else
-                {
-                    videoSync.Pause();
-                }
+                    _log.Info($"Got new video source: {video.Uri}");
 
-                _playbackTrackers.AddPlaybackTracker(dto.Id, videoSync);
-                _mediaSources.AddMediaSource(dto.Id, videoMediaSource);
-            }
+                    var videoSync = new TimePlaybackTracker();
+                    var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync, _log);
+
+                    videoSync.Pan(video.PlayheadActual);
+                    if (video.State == "playing")
+                    {
+                        videoSync.Play();
+                    }
+                    else
+                    {
+                        videoSync.Pause();
+                    }
+
+                    _playbackTrackers.AddPlaybackTracker(dto.Id, videoSync);
+                    _mediaSources.AddMediaSource(dto.Id, videoMediaSource);
+                }
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(dto));

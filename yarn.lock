@@ -2739,6 +2739,45 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@node-kit/extra.fs@npm:3.2.0":
+  version: 3.2.0
+  resolution: "@node-kit/extra.fs@npm:3.2.0"
+  checksum: 8572655a5e3d5274b59545d23119a29c67ac8544b36314de413208b60e5a87ed7a9737dd79799f76f7d640b163be6e1cae528f1165d92fe88be22c1231496aca
+  languageName: node
+  linkType: hard
+
+"@node-kit/lerna-workspace-root@npm:3.2.0":
+  version: 3.2.0
+  resolution: "@node-kit/lerna-workspace-root@npm:3.2.0"
+  dependencies:
+    "@node-kit/extra.fs": "npm:3.2.0"
+    find-up: "npm:^5.0.0"
+  checksum: 9e6f17254472cd6ce146bfada5e0db85e9c1a00831e7eb430b1c1460eb580507adc392a2243f859a2c5d236df6ede8b923a90826999c11d53e8dc2793ec07038
+  languageName: node
+  linkType: hard
+
+"@node-kit/pnpm-workspace-root@npm:3.2.0":
+  version: 3.2.0
+  resolution: "@node-kit/pnpm-workspace-root@npm:3.2.0"
+  dependencies:
+    "@node-kit/extra.fs": "npm:3.2.0"
+    "@pnpm/error": "npm:^5.0.2"
+    find-up: "npm:^5.0.0"
+  checksum: b23613a7dcffe260a69ae4ed3ec9ea38349550aad196fc1fe1e15ee65091f3a0ee817dd97e50865ecb404a8c687efee3e93d8887b7a3158753a4f6cdef2e346d
+  languageName: node
+  linkType: hard
+
+"@node-kit/yarn-workspace-root@npm:3.2.0":
+  version: 3.2.0
+  resolution: "@node-kit/yarn-workspace-root@npm:3.2.0"
+  dependencies:
+    "@node-kit/extra.fs": "npm:3.2.0"
+    find-up: "npm:^5.0.0"
+    micromatch: "npm:^4.0.5"
+  checksum: eba5de818b5f3f2d7b93eb40256a40c23e7483baabbff7ec9da261613f591d94094b39a4bc1bc84d3cc0502ddfbbced832a9f1c30bc0ee701396e8ac0161392a
+  languageName: node
+  linkType: hard
+
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -2812,6 +2851,22 @@ __metadata:
   version: 1.1.0
   resolution: "@pnpm/config.env-replace@npm:1.1.0"
   checksum: 4cfc4a5c49ab3d0c6a1f196cfd4146374768b0243d441c7de8fa7bd28eaab6290f514b98490472cc65dbd080d34369447b3e9302585e1d5c099befd7c8b5e55f
+  languageName: node
+  linkType: hard
+
+"@pnpm/constants@npm:7.1.1":
+  version: 7.1.1
+  resolution: "@pnpm/constants@npm:7.1.1"
+  checksum: 605550f6d59dbe4796d2bfbbaec6c629cf0cee13b3093d5aa2d0657a1c77d1fc240ffef902d07f618980321c32fcbba69f7bf0fa4215f86cafe0d541745160a3
+  languageName: node
+  linkType: hard
+
+"@pnpm/error@npm:^5.0.2":
+  version: 5.0.2
+  resolution: "@pnpm/error@npm:5.0.2"
+  dependencies:
+    "@pnpm/constants": "npm:7.1.1"
+  checksum: 86fb85364cae579bdc5e5f217db4b731e3ae5d58106fc69b18c339e0740131971dee8f4ffc7211ab8ffd055cdf74709b4dcc8769f1db4bb9865db408ff752ba6
   languageName: node
   linkType: hard
 
@@ -8017,7 +8072,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"micromatch@npm:^4.0.0, micromatch@npm:^4.0.4":
+"micromatch@npm:^4.0.0, micromatch@npm:^4.0.4, micromatch@npm:^4.0.5":
   version: 4.0.5
   resolution: "micromatch@npm:4.0.5"
   dependencies:
@@ -9601,6 +9656,7 @@ __metadata:
     ts-jest: "npm:^29.1.0"
     ts-node: "npm:^10.9.1"
     typescript: "npm:~5.0.4"
+    workspace-root: "npm:^3.2.0"
   bin:
     simulacrum-cloud-aws-cdk: bin/simulacrum-cloud-aws-cdk.js
   languageName: unknown
@@ -10877,6 +10933,17 @@ __metadata:
   version: 1.2.5
   resolution: "word-wrap@npm:1.2.5"
   checksum: e0e4a1ca27599c92a6ca4c32260e8a92e8a44f4ef6ef93f803f8ed823f486e0889fc0b93be4db59c8d51b3064951d25e43d434e95dc8c960cc3a63d65d00ba20
+  languageName: node
+  linkType: hard
+
+"workspace-root@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "workspace-root@npm:3.2.0"
+  dependencies:
+    "@node-kit/lerna-workspace-root": "npm:3.2.0"
+    "@node-kit/pnpm-workspace-root": "npm:3.2.0"
+    "@node-kit/yarn-workspace-root": "npm:3.2.0"
+  checksum: 350806c235f724ab796690c8268dc4ae002105957b3957a15a0aab7d5aabd9ba5cb50a4e022612ae4a7d2a7ec75d1924a9057bf267ce3adc5b086a8cedaf2530
   languageName: node
   linkType: hard
 

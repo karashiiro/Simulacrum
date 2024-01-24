@@ -10,6 +10,8 @@ import { Construct } from "constructs";
 import path from "path";
 import hlsConverterTemplate from "./aws-mediaconvert-template-hls-converter.json";
 import { MediaConvertEndpoint } from "./resources/mediaconvert-endpoint";
+import { AttributeType, ProjectionType, Table } from "aws-cdk-lib/aws-dynamodb";
+import { SimulacrumServer } from "./simulacrum-server";
 
 export class SimulacrumCloudAwsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -86,5 +88,35 @@ export class SimulacrumCloudAwsCdkStack extends cdk.Stack {
     new cdk.CfnOutput(this, "UploadBucketArn", {
       value: uploadBucket.bucketArn ?? "",
     });
+
+    // Create the application data table
+    const table = new Table(this, "SimulacrumTable", {
+      partitionKey: { name: "PK", type: AttributeType.STRING },
+      sortKey: { name: "SK", type: AttributeType.STRING },
+      deletionProtection: true,
+    });
+
+    table.addGlobalSecondaryIndex({
+      indexName: "GSI1",
+      partitionKey: { name: "GSI1PK", type: AttributeType.STRING },
+      sortKey: { name: "GSI1SK", type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    table.addLocalSecondaryIndex({
+      indexName: "LSI1",
+      sortKey: { name: "LSI1SK", type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    table.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
+
+    // Create the server
+    const server = new SimulacrumServer(this, "SimulacrumServer", {
+      tableName: table.tableName,
+    });
+
+    // Grant read/write access to the server for the table
+    table.grantReadWriteData(server.executionRole);
   }
 }

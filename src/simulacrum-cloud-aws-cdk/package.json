@@ -25,6 +25,7 @@
     "@aws-solutions-constructs/aws-cloudfront-s3": "^2.41.0",
     "aws-cdk-lib": "2.84.0",
     "constructs": "^10.0.0",
-    "source-map-support": "^0.5.21"
+    "source-map-support": "^0.5.21",
+    "workspace-root": "^3.2.0"
   }
 }

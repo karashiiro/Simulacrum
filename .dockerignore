@@ -5,3 +5,10 @@
 .yarn
 node_modules
 *.user
+
+/build
+/src/simulacrum-dalamud-*
+# Avoids an infinite loop during `cdk synth` where cdk.out copies itself recursively and with unbounded depth
+/src/simulacrum-cloud-aws-cdk
+/targets
+/x64
