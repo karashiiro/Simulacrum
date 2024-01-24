@@ -179,6 +179,29 @@ describe("EventsGateway", () => {
       // Assert: All assertions occurred (pseudo-length check on results)
       expect.assertions(4);
     });
+
+    it("returns an empty array if there are no screens for the media source", async () => {
+      // Act: Call method
+      const results = await gateway.listScreensForMediaSource({
+        mediaSourceId: "0",
+      });
+
+      // Assert: Result was an empty array
+      results.forEach((page) => {
+        expect(page).toStrictEqual({
+          event: "MEDIA_SOURCE_LIST_SCREENS",
+          data: {
+            screens: [],
+          },
+        });
+      });
+
+      // Assert: broadcast was not called
+      expect(broadcast).toHaveBeenCalledTimes(0);
+
+      // Assert: All assertions occurred (pseudo-length check on results)
+      expect.assertions(2);
+    });
   });
 
   describe("listMediaSources", () => {
@@ -217,6 +240,27 @@ describe("EventsGateway", () => {
 
       // Assert: All assertions occurred (pseudo-length check on results)
       expect.assertions(4);
+    });
+
+    it("returns an empty array if there are no media sources", async () => {
+      // Act: Call method
+      const results = await gateway.listMediaSources();
+
+      // Assert: Result was an empty array
+      results.forEach((page) => {
+        expect(page).toStrictEqual({
+          event: "MEDIA_SOURCE_LIST",
+          data: {
+            mediaSources: [],
+          },
+        });
+      });
+
+      // Assert: broadcast was not called
+      expect(broadcast).toHaveBeenCalledTimes(0);
+
+      // Assert: All assertions occurred (pseudo-length check on results)
+      expect.assertions(2);
     });
   });
 

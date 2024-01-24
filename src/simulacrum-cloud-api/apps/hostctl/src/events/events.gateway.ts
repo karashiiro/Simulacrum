@@ -76,6 +76,10 @@ interface VideoSourcePanBroadcast {
 }
 
 function batchArray<T>(arr: T[], batchSize: number): T[][] {
+  if (arr.length === 0) {
+    return [[]];
+  }
+
   return new Array(Math.ceil(arr.length / batchSize))
     .fill(undefined)
     .map((_, i) => arr.slice(i * batchSize, (i + 1) * batchSize));
