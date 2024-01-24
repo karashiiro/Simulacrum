@@ -16,7 +16,7 @@ export interface SimulacrumServerProps {
 }
 
 export class SimulacrumServer extends Construct {
-  readonly executionRole: Role;
+  readonly taskRole: Role;
 
   readonly service: ApplicationLoadBalancedFargateService;
 
@@ -33,8 +33,8 @@ export class SimulacrumServer extends Construct {
       file: "src/simulacrum-cloud-api/Dockerfile",
     });
 
-    // Create the execution role
-    this.executionRole = new Role(this, "SimulacrumServiceRole", {
+    // Create the task role
+    this.taskRole = new Role(this, "SimulacrumServiceRole", {
       assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
     });
 
@@ -51,7 +51,7 @@ export class SimulacrumServer extends Construct {
             SIMULACRUM_DDB_TABLE: props.tableName,
             NO_COLOR: "1",
           },
-          executionRole: this.executionRole,
+          taskRole: this.taskRole,
         },
         memoryLimitMiB: 1024,
         desiredCount: 1,
