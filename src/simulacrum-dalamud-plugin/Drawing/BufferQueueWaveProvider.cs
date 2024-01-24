@@ -78,7 +78,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
 
         var seconds = duration.TotalSeconds;
-        var toPad = Convert.ToInt32(WaveFormat.AverageBytesPerSecond * seconds);
+        var toPad = Convert.ToInt32(Math.Min(WaveFormat.AverageBytesPerSecond * seconds, int.MaxValue));
         var toPadPadded = toPad + toPad % WaveFormat.BlockAlign;
 
         _silentBytes += toPadPadded;
@@ -99,7 +99,7 @@ public class BufferQueueWaveProvider : IWaveProvider, IDisposable
         }
 
         var seconds = -duration.TotalSeconds;
-        var toDiscard = Convert.ToInt32(WaveFormat.AverageBytesPerSecond * seconds);
+        var toDiscard = Convert.ToInt32(Math.Min(WaveFormat.AverageBytesPerSecond * seconds, int.MaxValue));
         var toDiscardPadded = toDiscard + toDiscard % WaveFormat.BlockAlign;
 
         _lock.Wait();
