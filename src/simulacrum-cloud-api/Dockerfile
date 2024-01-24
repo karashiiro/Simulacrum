@@ -57,5 +57,7 @@ COPY --from=installer /app/src/simulacrum-cloud-api/dist/apps/hostctl/main.js .
 
 EXPOSE 3000
 ENV NODE_ENV production
+HEALTHCHECK --interval=10m --timeout=5s \
+    CMD curl -f http://localhost:3000/health || exit 1
 
 CMD node main.js
