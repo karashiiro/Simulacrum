@@ -1,4 +1,5 @@
 import assert from "assert";
+import { Aws } from "aws-cdk-lib";
 import { DockerImageAsset, Platform } from "aws-cdk-lib/aws-ecr-assets";
 import {
   ContainerImage,
@@ -46,6 +47,7 @@ export class SimulacrumServer extends Construct {
           image: ContainerImage.fromDockerImageAsset(imageAsset),
           containerPort: 3000,
           environment: {
+            SIMULACRUM_DDB_ENDPOINT: `https://dynamodb.${Aws.REGION}.amazonaws.com`,
             SIMULACRUM_DDB_TABLE: props.tableName,
             NO_COLOR: "1",
           },
