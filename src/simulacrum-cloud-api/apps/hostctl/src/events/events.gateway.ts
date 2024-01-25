@@ -90,7 +90,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(EventsGateway.name);
 
   @WebSocketServer()
-  private readonly wss: Server;
+  private readonly wss!: Server;
 
   constructor(private readonly db: DbService) {}
 

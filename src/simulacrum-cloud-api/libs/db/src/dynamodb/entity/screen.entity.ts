@@ -25,16 +25,16 @@ export class Screen implements ScreenDto {
   @AutoGenerateAttribute({
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.UUID4,
   })
-  id: string;
+  id!: string;
 
   @Attribute()
-  territory: number;
+  territory!: number;
 
   @Attribute()
-  world: number;
+  world!: number;
 
   @Attribute()
-  position: Position;
+  position!: Position;
 
   @Attribute()
   mediaSourceId?: string;
@@ -43,5 +43,5 @@ export class Screen implements ScreenDto {
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.EPOCH_DATE,
     autoUpdate: true,
   })
-  updatedAt: number;
+  updatedAt!: number;
 }

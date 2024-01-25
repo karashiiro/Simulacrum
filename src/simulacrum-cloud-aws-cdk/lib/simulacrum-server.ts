@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Aws, CfnOutput } from "aws-cdk-lib";
+import { Aws, CfnOutput, Duration } from "aws-cdk-lib";
 import { WebSocketApi, WebSocketStage } from "aws-cdk-lib/aws-apigatewayv2";
 import { WebSocketLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { DockerImageAsset } from "aws-cdk-lib/aws-ecr-assets";
@@ -41,6 +41,7 @@ export class SimulacrumServer extends Construct {
         SIMULACRUM_DDB_TABLE: props.tableName,
         NO_COLOR: "1",
       },
+      timeout: Duration.seconds(15),
     });
 
     const wsApi = new WebSocketApi(this, "SimulacrumServiceAPI", {
@@ -51,7 +52,21 @@ export class SimulacrumServer extends Construct {
           this.handler
         ),
       },
+      connectRouteOptions: {
+        integration: new WebSocketLambdaIntegration(
+          "ConnectIntegration",
+          this.handler
+        ),
+      },
+      disconnectRouteOptions: {
+        integration: new WebSocketLambdaIntegration(
+          "DisconnectIntegration",
+          this.handler
+        ),
+      },
     });
+
+    wsApi.grantManageConnections(this.handler);
 
     const prodStage = new WebSocketStage(this, "ProdStage", {
       webSocketApi: wsApi,

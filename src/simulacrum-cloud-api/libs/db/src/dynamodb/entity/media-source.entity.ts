@@ -17,10 +17,10 @@ export class MediaSource {
   @AutoGenerateAttribute({
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.UUID4,
   })
-  id: string;
+  id!: string;
 
   @Attribute({ isEnum: true })
-  type: MediaSourceType;
+  type!: MediaSourceType;
 
   @Attribute()
   uri?: string;
@@ -38,5 +38,5 @@ export class MediaSource {
     strategy: AUTO_GENERATE_ATTRIBUTE_STRATEGY.EPOCH_DATE,
     autoUpdate: true,
   })
-  updatedAt: number;
+  updatedAt!: number;
 }
