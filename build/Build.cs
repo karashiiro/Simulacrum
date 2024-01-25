@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
@@ -21,7 +22,7 @@ using Serilog;
     Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
 [GitHubActions("build-plugin", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(DockerBuild), nameof(TestHostctl) }, // TODO: Enable plugin builds in CI
+    InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(TestHostctl) }, // TODO: Enable plugin builds in CI
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" })]
 class Build : NukeBuild
@@ -67,28 +68,26 @@ class Build : NukeBuild
         .Description("Builds the Node.js packages in the monorepo using yarn.")
         .Executes(() => { Yarn("build"); });
 
-    Target DockerBuild => _ => _
-        .Description("Builds the Docker container images in the monorepo.")
+    Target APIDockerBuild => _ => _
+        .Description("Builds the Docker container image for the API.")
         .Executes(() =>
         {
             DockerTasks.DockerBuild(s => s
                 .SetPath(RootDirectory)
                 .SetFile(SourceDirectory / "simulacrum-cloud-api" / "Dockerfile")
                 .SetTag("simulacrum-cloud-api")
-                .SetProcessLogger((outputType, output) =>
-                {
-                    // Deal with Docker build output always being logged as errors
-                    // ReSharper disable TemplateIsNotCompileTimeConstantProblem
-                    if (outputType != OutputType.Std)
-                    {
-                        Log.Information(output);
-                    }
-                    else
-                    {
-                        Log.Error(output);
-                    }
-                    // ReSharper restore TemplateIsNotCompileTimeConstantProblem
-                }));
+                .SetProcessLogger(DockerLogger));
+        });
+
+    Target APILambdaDockerBuild => _ => _
+        .Description("Builds the Docker container image for the API on Lambda.")
+        .Executes(() =>
+        {
+            DockerTasks.DockerBuild(s => s
+                .SetPath(RootDirectory)
+                .SetFile(SourceDirectory / "simulacrum-cloud-api" / "Dockerfile.lambda")
+                .SetTag("simulacrum-cloud-api:lambda")
+                .SetProcessLogger(DockerLogger));
         });
 
     [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
@@ -153,7 +152,7 @@ class Build : NukeBuild
     Target TestHostctl => _ => _
         .Description("Tests Hostctl.")
         .DependsOn(RestoreHostctl)
-        .After(DockerBuild)
+        .After(APIDockerBuild, APILambdaDockerBuild)
         .Executes(() =>
         {
             DotNetTasks.DotNetTest(s => s
@@ -162,4 +161,19 @@ class Build : NukeBuild
         });
 
     // TODO: Vendor Simulacrum.AV
+
+    void DockerLogger(OutputType outputType, string output)
+    {
+        // Deal with Docker build output always being logged as errors
+        // ReSharper disable TemplateIsNotCompileTimeConstantProblem
+        if (outputType != OutputType.Std)
+        {
+            Log.Information(output);
+        }
+        else
+        {
+            Log.Error(output);
+        }
+        // ReSharper restore TemplateIsNotCompileTimeConstantProblem
+    }
 }

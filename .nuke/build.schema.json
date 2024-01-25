@@ -72,11 +72,12 @@
           "items": {
             "type": "string",
             "enum": [
+              "APIDockerBuild",
+              "APILambdaDockerBuild",
               "CdkDiff",
               "Clean",
               "Compile",
               "CompileD17",
-              "DockerBuild",
               "Restore",
               "RestoreD17",
               "RestoreHostctl",
@@ -99,11 +100,12 @@
           "items": {
             "type": "string",
             "enum": [
+              "APIDockerBuild",
+              "APILambdaDockerBuild",
               "CdkDiff",
               "Clean",
               "Compile",
               "CompileD17",
-              "DockerBuild",
               "Restore",
               "RestoreD17",
               "RestoreHostctl",

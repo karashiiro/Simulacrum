@@ -1,13 +1,13 @@
 import assert from "assert";
-import { Aws } from "aws-cdk-lib";
-import { DockerImageAsset, Platform } from "aws-cdk-lib/aws-ecr-assets";
+import { Aws, CfnOutput } from "aws-cdk-lib";
+import { WebSocketApi, WebSocketStage } from "aws-cdk-lib/aws-apigatewayv2";
+import { WebSocketLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import { DockerImageAsset } from "aws-cdk-lib/aws-ecr-assets";
 import {
-  ContainerImage,
-  CpuArchitecture,
-  OperatingSystemFamily,
-} from "aws-cdk-lib/aws-ecs";
-import { ApplicationLoadBalancedFargateService } from "aws-cdk-lib/aws-ecs-patterns";
-import { Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+  DockerImageCode,
+  DockerImageFunction,
+  IFunction,
+} from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import { workspaceRootSync } from "workspace-root";
 
@@ -16,9 +16,7 @@ export interface SimulacrumServerProps {
 }
 
 export class SimulacrumServer extends Construct {
-  readonly taskRole: Role;
-
-  readonly service: ApplicationLoadBalancedFargateService;
+  readonly handler: IFunction;
 
   constructor(scope: Construct, id: string, props: SimulacrumServerProps) {
     super(scope, id);
@@ -30,37 +28,39 @@ export class SimulacrumServer extends Construct {
     // Build the container image
     const imageAsset = new DockerImageAsset(this, "SimulacrumImage", {
       directory: wsRoot,
-      file: "src/simulacrum-cloud-api/Dockerfile",
-    });
-
-    // Create the task role
-    this.taskRole = new Role(this, "SimulacrumServiceRole", {
-      assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
+      file: "src/simulacrum-cloud-api/Dockerfile.lambda",
     });
 
     // Create a service with the built container image
-    this.service = new ApplicationLoadBalancedFargateService(
-      this,
-      "SimulacrumService",
-      {
-        taskImageOptions: {
-          image: ContainerImage.fromDockerImageAsset(imageAsset),
-          containerPort: 3000,
-          environment: {
-            SIMULACRUM_DDB_ENDPOINT: `https://dynamodb.${Aws.REGION}.amazonaws.com`,
-            SIMULACRUM_DDB_TABLE: props.tableName,
-            NO_COLOR: "1",
-          },
-          taskRole: this.taskRole,
-        },
-        memoryLimitMiB: 1024,
-        desiredCount: 1,
-        cpu: 512,
-      }
-    );
+    this.handler = new DockerImageFunction(this, "SimulacrumServiceFunction", {
+      code: DockerImageCode.fromEcr(imageAsset.repository, {
+        tagOrDigest: imageAsset.imageTag,
+      }),
+      environment: {
+        SIMULACRUM_DDB_ENDPOINT: `https://dynamodb.${Aws.REGION}.amazonaws.com`,
+        SIMULACRUM_DDB_TABLE: props.tableName,
+        NO_COLOR: "1",
+      },
+    });
 
-    this.service.targetGroup.configureHealthCheck({
-      path: "/health",
+    const wsApi = new WebSocketApi(this, "SimulacrumServiceAPI", {
+      description: "The Simulacrum WebSocket API.",
+      defaultRouteOptions: {
+        integration: new WebSocketLambdaIntegration(
+          "DefaultIntegration",
+          this.handler
+        ),
+      },
+    });
+
+    const prodStage = new WebSocketStage(this, "ProdStage", {
+      webSocketApi: wsApi,
+      stageName: "prod",
+      autoDeploy: true,
+    });
+
+    new CfnOutput(this, "ServiceURL", {
+      value: prodStage.url,
     });
   }
 }

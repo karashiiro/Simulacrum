@@ -117,6 +117,6 @@ export class SimulacrumCloudAwsCdkStack extends cdk.Stack {
     });
 
     // Grant read/write access to the server for the table
-    table.grantReadWriteData(server.taskRole);
+    table.grantReadWriteData(server.handler);
   }
 }
