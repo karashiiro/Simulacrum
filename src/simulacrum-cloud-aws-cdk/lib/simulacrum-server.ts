@@ -40,7 +40,9 @@ export class SimulacrumServer extends Construct {
         SIMULACRUM_DDB_ENDPOINT: `https://dynamodb.${Aws.REGION}.amazonaws.com`,
         SIMULACRUM_DDB_TABLE: props.tableName,
         NO_COLOR: "1",
+        NODE_OPTIONS: "--enable-source-maps",
       },
+      memorySize: 512,
       timeout: Duration.seconds(15),
     });
 
@@ -49,12 +51,6 @@ export class SimulacrumServer extends Construct {
       defaultRouteOptions: {
         integration: new WebSocketLambdaIntegration(
           "DefaultIntegration",
-          this.handler
-        ),
-      },
-      connectRouteOptions: {
-        integration: new WebSocketLambdaIntegration(
-          "ConnectIntegration",
           this.handler
         ),
       },

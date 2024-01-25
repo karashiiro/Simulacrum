@@ -78,7 +78,7 @@ export class WsApiGatewayClient extends EventEmitter {
     try {
       await this.client.send(command);
     } catch (err) {
-      const error = this.unknownAsErr(err);
+      const error = unknownAsErr(err);
       this.logger.error(error.message, error.stack);
     }
   }
@@ -87,25 +87,14 @@ export class WsApiGatewayClient extends EventEmitter {
     this.client.destroy();
     this.emit("close", 0);
   }
-
-  private unknownAsErr(err: unknown): Error {
-    if (err instanceof Error) {
-      return err;
-    }
-
-    try {
-      // Throw the error to populate it with a stack trace
-      throw new Error(`${err}`);
-    } catch (err) {
-      return err as Error;
-    }
-  }
 }
 
 // https://github.com/nestjs/nest/blob/master/packages/websockets/adapters/ws-adapter.ts
 export class WsApiGatewayAdapter
   implements WebSocketAdapter<WsApiGatewayServer, WsApiGatewayClient, never>
 {
+  private readonly logger = new Logger(WsApiGatewayAdapter.name);
+
   readonly server: WsApiGatewayServer;
 
   constructor() {
@@ -138,8 +127,8 @@ export class WsApiGatewayAdapter
   ) {
     const close$ = fromEvent(client, "close").pipe(share(), first());
     const source$ = fromEvent(client, "message").pipe(
-      mergeMap((data) =>
-        this.bindMessageHandler(data, handlers, transform).pipe(
+      mergeMap((buffer) =>
+        this.bindMessageHandler(buffer, handlers, transform).pipe(
           filter((result) => result)
         )
       ),
@@ -159,7 +148,7 @@ export class WsApiGatewayAdapter
     transform: (data: any) => Observable<any>
   ) {
     try {
-      const message = JSON.parse(buffer.data);
+      const message = JSON.parse(buffer);
 
       const messageHandler = handlers.find(
         (handler) => handler.message === message.event
@@ -169,11 +158,26 @@ export class WsApiGatewayAdapter
       }
 
       return transform(messageHandler.callback(message.data));
-    } catch {
+    } catch (err) {
+      const error = unknownAsErr(err);
+      this.logger.error(error.message, error.stack);
       return EMPTY;
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
   close(_server: WsApiGatewayServer) {}
+}
+
+function unknownAsErr(err: unknown): Error {
+  if (err instanceof Error) {
+    return err;
+  }
+
+  try {
+    // Throw the error to populate it with a stack trace
+    throw new Error(`${err}`);
+  } catch (err) {
+    return err as Error;
+  }
 }

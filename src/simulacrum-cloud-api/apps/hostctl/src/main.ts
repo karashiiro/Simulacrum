@@ -21,8 +21,6 @@ async function initServerless(
     const { routeKey, domainName, stage, connectionId } = requestContext;
 
     switch (routeKey) {
-      case "$connect":
-        break;
       case "$default":
         // Create/acquire a connection
         const client = wsAdapter.server.getClient(
@@ -72,7 +70,8 @@ export const handler: APIGatewayProxyWebsocketHandlerV2 = async (
   context,
   callback
 ) => {
-  await didBootstrap;
   console.log(event);
-  return server(event, context, callback);
+  return didBootstrap
+    .then(() => server(event, context, callback))
+    .catch(console.error);
 };
