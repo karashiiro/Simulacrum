@@ -24,6 +24,10 @@ export class WsApiGatewayServer extends EventEmitter {
 
   private readonly clients = new Map<string, WsApiGatewayClient>();
 
+  getClients() {
+    return Array.from(this.clients.values());
+  }
+
   getClient(domainName: string, stage: string, connectionId: string) {
     let client = this.clients.get(connectionId);
     if (client) {

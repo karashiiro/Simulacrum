@@ -24,7 +24,7 @@ describe("ws", () => {
   });
 
   describe("broadcast", () => {
-    it("broadcasts messages to all clients with an open connection", () => {
+    it("broadcasts messages to all clients with an open connection", async () => {
       // Arrange: Create some open clients
       const clients = createClients(() => WebSocket.OPEN);
 
@@ -40,7 +40,7 @@ describe("ws", () => {
         },
       };
 
-      broadcast(server, message);
+      await broadcast(server, message);
 
       // Assert: The message was sent to each client
       for (const client of clients) {
@@ -48,7 +48,7 @@ describe("ws", () => {
       }
     });
 
-    it("does not broadcast messages to clients with closed connections", () => {
+    it("does not broadcast messages to clients with closed connections", async () => {
       // Arrange: Create some open and closed clients
       const clients = createClients((i) =>
         i % 2 === 0 ? WebSocket.OPEN : WebSocket.CLOSED
@@ -66,7 +66,7 @@ describe("ws", () => {
         },
       };
 
-      broadcast(server, message);
+      await broadcast(server, message);
 
       // Assert: The message was sent to each open client
       for (const client of clients) {

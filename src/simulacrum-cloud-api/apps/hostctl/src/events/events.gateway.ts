@@ -112,7 +112,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logger.log(`Screen created successfully: id=${dto.id}`);
 
-    broadcast<ScreenCreateBroadcast>(this.wss, {
+    await broadcast<ScreenCreateBroadcast>(this.wss, {
       event: "SCREEN_CREATE",
       data: {
         screen: dto,
@@ -178,7 +178,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logger.log(`Media source created successfully: id=${dto.id}`);
 
-    broadcast<MediaSourceCreateBroadcast>(this.wss, {
+    await broadcast<MediaSourceCreateBroadcast>(this.wss, {
       event: "MEDIA_SOURCE_CREATE",
       data: {
         mediaSource: dto,
@@ -233,7 +233,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logger.log("Media source updated successfully");
 
-    broadcast<VideoSourcePlayBroadcast>(this.wss, {
+    await broadcast<VideoSourcePlayBroadcast>(this.wss, {
       event: "VIDEO_SOURCE_PLAY",
       data: {
         mediaSource: dto,
@@ -264,7 +264,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logger.log("Media source updated successfully");
 
-    broadcast<VideoSourcePauseBroadcast>(this.wss, {
+    await broadcast<VideoSourcePauseBroadcast>(this.wss, {
       event: "VIDEO_SOURCE_PAUSE",
       data: {
         mediaSource: dto,
@@ -297,7 +297,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logger.log("Media source updated successfully");
 
-    broadcast<VideoSourcePanBroadcast>(this.wss, {
+    await broadcast<VideoSourcePanBroadcast>(this.wss, {
       event: "VIDEO_SOURCE_PAN",
       data: {
         mediaSource: dto,
