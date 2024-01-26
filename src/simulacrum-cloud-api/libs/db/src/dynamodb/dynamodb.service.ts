@@ -8,7 +8,7 @@ import {
   getScanManager,
 } from "@typedorm/core";
 import { DocumentClientV3 } from "@typedorm/document-client";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { table } from "./entity/table";
 import {
   DbAccessService,
@@ -147,6 +147,8 @@ function mediaSourceUpdateFromDynamo(
 
 @Injectable()
 export class DynamoDbService implements DbAccessService {
+  private readonly logger = new Logger(DynamoDbService.name);
+
   private readonly entityManager: EntityManager;
   private readonly scanManager: ScanManager;
 
@@ -175,11 +177,13 @@ export class DynamoDbService implements DbAccessService {
   }
 
   async findMediaSource(id: string): Promise<MediaSourceDto | undefined> {
+    this.logger.debug(`Fetching media source "${id}" from entity manager`);
     const mediaSource = await this.entityManager.findOne(MediaSource, { id });
     return mediaSourceFromDynamo(mediaSource);
   }
 
   async findAllMediaSources(): Promise<MediaSourceDto[]> {
+    this.logger.debug("Fetching all media sources from entity manager");
     const results = await this.scanManager.find(MediaSource);
     const resultItems = results.items ?? [];
     return resultItems.map((ms) => mediaSourceFromDynamo(ms));
@@ -193,6 +197,7 @@ export class DynamoDbService implements DbAccessService {
       dto.meta.playheadUpdatedAt = new Date().valueOf();
     }
 
+    this.logger.debug("Creating new media source");
     const mediaSource = await this.entityManager.create<MediaSource>(
       mediaSourceToDynamo(dto)
     );
@@ -221,6 +226,7 @@ export class DynamoDbService implements DbAccessService {
       }
     }
 
+    this.logger.debug("Updating media source");
     const mediaSource = await this.entityManager.update(
       MediaSource,
       { id },
@@ -232,6 +238,9 @@ export class DynamoDbService implements DbAccessService {
   async findScreensByMediaSourceId(
     mediaSourceId: string
   ): Promise<ScreenDto[]> {
+    this.logger.debug(
+      `Finding screens with media source ID "${mediaSourceId}" from entity manager`
+    );
     const results = await this.entityManager.find(
       Screen,
       { mediaSourceId },
@@ -251,6 +260,7 @@ export class DynamoDbService implements DbAccessService {
     screen.position = dto.position;
     screen.mediaSourceId = dto.mediaSourceId;
 
+    this.logger.debug("Creating new screen");
     const result = await this.entityManager.create<Screen>(screen);
     return result;
   }
