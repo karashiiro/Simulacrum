@@ -3,18 +3,21 @@ import {
   PostToConnectionCommand,
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { Logger, WebSocketAdapter, WsMessageHandler } from "@nestjs/common";
+import { WsResponse } from "@nestjs/websockets";
 import { BlobPayloadInputTypes } from "@smithy/types";
-import EventEmitter from "events";
+import EventEmitter from "node:events";
 import {
   EMPTY,
   Observable,
-  filter,
   first,
   fromEvent,
+  map,
   mergeMap,
   share,
   takeUntil,
 } from "rxjs";
+import { unknownAsErr } from "./utils/errors";
+import { Callback } from "aws-lambda";
 
 export class WsApiGatewayServer extends EventEmitter {
   private readonly logger = new Logger(WsApiGatewayServer.name);
@@ -70,6 +73,10 @@ export class WsApiGatewayClient extends EventEmitter {
   }
 
   async send(data: BlobPayloadInputTypes): Promise<void> {
+    this.logger.debug(
+      `Sending message to client with connection ID: ${this.connectionId}`
+    );
+
     const command = new PostToConnectionCommand({
       ConnectionId: this.connectionId,
       Data: data,
@@ -84,6 +91,10 @@ export class WsApiGatewayClient extends EventEmitter {
   }
 
   close(): void {
+    this.logger.debug(
+      `Closing client with connection ID: ${this.connectionId}`
+    );
+
     this.client.destroy();
     this.emit("close", 0);
   }
@@ -126,29 +137,45 @@ export class WsApiGatewayAdapter
     transform: (data: any) => Observable<any>
   ) {
     const close$ = fromEvent(client, "close").pipe(share(), first());
-    const source$ = fromEvent(client, "message").pipe(
-      mergeMap((buffer) =>
-        this.bindMessageHandler(buffer, handlers, transform).pipe(
-          filter((result) => result)
+    const source$ = fromEvent(
+      client,
+      "message",
+      (data, callback) => [data, callback] as [string, Callback]
+    ).pipe(
+      mergeMap(([data, callback]) =>
+        this.bindMessageHandler(data, handlers, transform).pipe(
+          map((response) => [response, callback] as [any, Callback])
         )
       ),
       takeUntil(close$)
     );
 
-    const onMessage = (response: any) => {
-      client.send(JSON.stringify(response));
-    };
-
-    source$.subscribe(onMessage);
+    source$.subscribe(([response, callback]) => {
+      const data = JSON.stringify(response);
+      this.logger.verbose(data);
+      client
+        .send(data)
+        .then(() =>
+          callback(undefined, {
+            statusCode: 200,
+          })
+        )
+        .catch((err) => {
+          const error = unknownAsErr(err);
+          this.logger.error(error.message, error.stack);
+          callback(err);
+        });
+    });
   }
 
   bindMessageHandler(
-    buffer: any,
+    data: string,
     handlers: WsMessageHandler<string>[],
     transform: (data: any) => Observable<any>
   ) {
     try {
-      const message = JSON.parse(buffer);
+      const message: WsResponse = JSON.parse(data);
+      this.logger.verbose(message);
 
       const messageHandler = handlers.find(
         (handler) => handler.message === message.event
@@ -157,27 +184,16 @@ export class WsApiGatewayAdapter
         return EMPTY;
       }
 
-      return transform(messageHandler.callback(message.data));
+      this.logger.debug(`Executing handler for event: "${message.event}"`);
+      return transform(messageHandler.callback(message.data, message.event));
     } catch (err) {
       const error = unknownAsErr(err);
       this.logger.error(error.message, error.stack);
+
       return EMPTY;
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
   close(_server: WsApiGatewayServer) {}
-}
-
-function unknownAsErr(err: unknown): Error {
-  if (err instanceof Error) {
-    return err;
-  }
-
-  try {
-    // Throw the error to populate it with a stack trace
-    throw new Error(`${err}`);
-  } catch (err) {
-    return err as Error;
-  }
 }

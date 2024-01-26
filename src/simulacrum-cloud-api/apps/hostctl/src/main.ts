@@ -16,7 +16,8 @@ async function initServerless(
 
   await app.init();
 
-  return (event) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return (event, _context, callback) => {
     const { body, requestContext } = event;
     const { routeKey, domainName, stage, connectionId } = requestContext;
 
@@ -31,7 +32,7 @@ async function initServerless(
 
         // Emit a message using the connection - it'll get where it
         // needs to go so long as that place is a WebSocketGateway
-        client.emit("message", body);
+        client.emit("message", body, callback);
         break;
       case "$disconnect":
         wsAdapter.server.closeClient(connectionId);
@@ -64,14 +65,16 @@ async function bootstrap() {
 
 const didBootstrap = bootstrap();
 
-// Export handler for Lambda interface
-export const handler: APIGatewayProxyWebsocketHandlerV2 = async (
+// Export handler for Lambda interface - this cannot be async, or else execution
+// will end once the handler promise resolves instead of when the callback is
+// invoked
+export const handler: APIGatewayProxyWebsocketHandlerV2 = (
   event,
   context,
   callback
 ) => {
   console.log(event);
-  return didBootstrap
+  didBootstrap
     .then(() => server(event, context, callback))
-    .catch(console.error);
+    .catch((err) => callback(err));
 };
