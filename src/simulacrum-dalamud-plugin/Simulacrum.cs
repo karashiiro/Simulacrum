@@ -340,7 +340,7 @@ public class Simulacrum : IDalamudPlugin
     private async Task Connect(CancellationToken cancellationToken)
     {
         // TODO: Make this configurable
-        var hostctlUri = new Uri("ws://Simula-Simul-4NZdeaOLkaRA-1772232274.us-west-2.elb.amazonaws.com");
+        var hostctlUri = new Uri("wss://1z4s5nrge4.execute-api.us-west-2.amazonaws.com/prod");
 
         _hostctl = await HostctlClient.FromUri(hostctlUri, (e, m) => _log.Error(e, m), cancellationToken);
         _hostctlBag.Add(_hostctl.OnScreenCreate().Subscribe(ev => { InitializeScreen(ev.Data); }));
