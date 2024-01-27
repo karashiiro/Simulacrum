@@ -3553,13 +3553,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/aws-lambda@npm:^8.10.117":
-  version: 8.10.119
-  resolution: "@types/aws-lambda@npm:8.10.119"
-  checksum: cf30ca6f53b372ef1715a8451db324981de241fe58a5da1d82a79c4a972ddea66a252cfe71cd4e578e17bdc2d5ac11b4954bc2b84b8157f50af5a06df996b929
-  languageName: node
-  linkType: hard
-
 "@types/aws-lambda@npm:^8.10.131":
   version: 8.10.131
   resolution: "@types/aws-lambda@npm:8.10.131"
@@ -9742,7 +9735,7 @@ __metadata:
   dependencies:
     "@aws-sdk/client-mediaconvert": "npm:^3.348.0"
     "@aws-solutions-constructs/aws-cloudfront-s3": "npm:^2.41.0"
-    "@types/aws-lambda": "npm:^8.10.117"
+    "@types/aws-lambda": "npm:^8.10.131"
     "@types/jest": "npm:^29.5.1"
     "@types/node": "npm:20.1.7"
     aws-cdk: "npm:2.122.0"
