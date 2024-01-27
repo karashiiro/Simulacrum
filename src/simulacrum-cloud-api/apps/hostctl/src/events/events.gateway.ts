@@ -13,6 +13,7 @@ import { DbService, MediaSourceDto, ScreenDto } from "@simulacrum/db";
 import { Observable, from, map, tap } from "rxjs";
 import { WebSocketServer as Server } from "ws";
 import { broadcast } from "../utils/ws";
+import { WsApiGatewayServer } from "../ws-apigw-adapter";
 
 interface ScreenCreateEvent {
   screen: Omit<ScreenDto, "id" | "updatedAt">;
@@ -90,7 +91,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(EventsGateway.name);
 
   @WebSocketServer()
-  private readonly wss!: Server;
+  private readonly wss!: Server | WsApiGatewayServer;
 
   constructor(private readonly db: DbService) {}
 
