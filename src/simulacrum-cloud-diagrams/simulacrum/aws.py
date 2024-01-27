@@ -1,8 +1,8 @@
 from diagrams import Cluster, Diagram, Edge
-from diagrams.aws.compute import Lambda, Fargate
+from diagrams.aws.compute import Lambda
 from diagrams.aws.database import Dynamodb
 from diagrams.aws.media import ElementalMediaconvert
-from diagrams.aws.network import CloudFront, ALB
+from diagrams.aws.network import CloudFront, APIGateway
 from diagrams.aws.storage import S3
 from diagrams.onprem.client import Client
 
@@ -36,7 +36,7 @@ with Diagram("Simulacrum", filename="simulacrum/aws", show=False):
         (
             client
             >> BidirectionalEdge()
-            << ALB("ALB")
-            >> Fargate("WebSocket API")
+            << APIGateway("WebSocket API Gateway")
+            >> Lambda("Simulacrum")
             >> Dynamodb("DynamoDB")
         )
