@@ -5,7 +5,7 @@
 #
 #     - To turn off auto-generation set:
 #
-#         [GitHubActions (AutoGenerate = false)]
+#         [GithubActionsWithExtraSteps (AutoGenerate = false)]
 #
 #     - To trigger manual generation invoke:
 #
@@ -32,5 +32,7 @@ jobs:
             ~/.nuget/packages
             **/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/package.json', '**/yarn.lock') }}
-      - name: 'Run: APIDockerBuild, APILambdaDockerBuild, TestHostctl'
-        run: ./build.cmd APIDockerBuild APILambdaDockerBuild TestHostctl
+      - name: 'Run: wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud'
+        run: wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud
+      - name: 'Run: APIDockerBuild, APILambdaDockerBuild, Compile, TestHostctl'
+        run: ./build.cmd APIDockerBuild APILambdaDockerBuild Compile TestHostctl
