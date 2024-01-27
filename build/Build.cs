@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
@@ -20,11 +21,12 @@ using Serilog;
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
     Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
-[GitHubActions("build-plugin", GitHubActionsImage.UbuntuLatest,
+[GithubActionsWithExtraSteps("build-plugin", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(TestHostctl) }, // TODO: Enable plugin builds in CI
+    InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(Compile), nameof(TestHostctl) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
-    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" })]
+    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
+    Setup = new[] { "run(wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud)" })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
@@ -141,12 +143,19 @@ class Build : NukeBuild
         .DependsOn(Restore)
         .Executes(() =>
         {
-            MSBuildTasks.MSBuild(s => s
-                .SetTargetPath(Solution)
-                .SetTargets("Build")
-                .SetConfiguration(Configuration)
-                .SetTargetPlatform(MSBuildTargetPlatform.x64)
-                .EnableNodeReuse());
+            MSBuildTasks.MSBuild(s =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CI")))
+                        {
+                            s = s.AddProcessEnvironmentVariable("DALAMUD_HOME", "/tmp/dalamud");
+                        }
+
+                        return s.SetTargetPath(Solution)
+                            .SetTargets("Build")
+                            .SetConfiguration(Configuration)
+                            .SetTargetPlatform(MSBuildTargetPlatform.x64)
+                            .EnableNodeReuse();
+                    });
         });
 
     Target TestHostctl => _ => _
