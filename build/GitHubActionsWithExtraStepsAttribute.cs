@@ -18,7 +18,7 @@ using Nuke.Common.Utilities.Collections;
 /// The syntax for <c>uses</c> is <c>uses(action-name[@version], attribute=value[, ...])</c>.
 /// The syntax for <c>run</c> is <c>run(command)</c>.
 /// </summary>
-partial class GithubActionsWithExtraStepsAttribute : GitHubActionsAttribute
+partial class GitHubActionsWithExtraStepsAttribute : GitHubActionsAttribute
 {
     public string[] Setup { get; init; }
 
@@ -28,7 +28,7 @@ partial class GithubActionsWithExtraStepsAttribute : GitHubActionsAttribute
     [GeneratedRegex(@"run\((?<Run>.+)\)", RegexOptions.IgnoreCase, "en-US")]
     private static partial Regex RunRegex();
 
-    public GithubActionsWithExtraStepsAttribute(string name, GitHubActionsImage image, params GitHubActionsImage[] images) : base(name, image, images)
+    public GitHubActionsWithExtraStepsAttribute(string name, GitHubActionsImage image, params GitHubActionsImage[] images) : base(name, image, images)
     {
     }
 

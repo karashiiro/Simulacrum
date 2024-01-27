@@ -15,18 +15,18 @@ using Serilog;
 [SuppressMessage("ReSharper", "UnusedMember.Local")]
 [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
-[GithubActionsWithExtraSteps("build-api", GitHubActionsImage.UbuntuLatest,
+[GitHubActionsWithExtraSteps("build-api", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
     InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
-    Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
-[GithubActionsWithExtraSteps("build-plugin", GitHubActionsImage.UbuntuLatest,
+    Setup = new[] { "uses(actions/setup-dotnet@v3, dotnet-version=7.0.x)", "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
+[GitHubActionsWithExtraSteps("build-plugin", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
     InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(Compile), nameof(TestHostctl) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
-    Setup = new[] { "run(wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud)" })]
+    Setup = new[] { "uses(actions/setup-dotnet@v3, dotnet-version=7.0.x)", "run(wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud)" })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
