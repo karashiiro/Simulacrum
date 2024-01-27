@@ -147,7 +147,9 @@ class Build : NukeBuild
                     {
                         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CI")))
                         {
-                            s = s.AddProcessEnvironmentVariable("DALAMUD_HOME", "/tmp/dalamud");
+                            s = s
+                                .SetProcessEnvironmentVariable("DALAMUD_HOME", "/tmp/dalamud")
+                                .SetProperty("EnableWindowsTargetting", "1");
                         }
 
                         return s.SetTargetPath(Solution)
