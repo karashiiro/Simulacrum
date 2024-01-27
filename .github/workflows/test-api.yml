@@ -5,16 +5,16 @@
 #
 #     - To turn off auto-generation set:
 #
-#         [GitHubActionsWithExtraSteps (AutoGenerate = false)]
+#         [GitHubActions (AutoGenerate = false)]
 #
 #     - To trigger manual generation invoke:
 #
-#         nuke --generate-configuration GitHubActions_build-api --host GitHubActions
+#         nuke --generate-configuration GitHubActions_test-api --host GitHubActions
 #
 # </auto-generated>
 # ------------------------------------------------------------------------------
 
-name: build-api
+name: test-api
 
 on: [push, pull_request]
 
@@ -32,11 +32,5 @@ jobs:
             ~/.nuget/packages
             **/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/package.json', '**/yarn.lock') }}
-      - name: 'Setup: actions/setup-node@v4'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: 'Run: corepack enable'
-        run: corepack enable
-      - name: 'Run: YarnInstall, YarnBuild, YarnTest'
-        run: ./build.cmd YarnInstall YarnBuild YarnTest
+      - name: 'Run: APIDockerBuild, APILambdaDockerBuild, TestHostctl'
+        run: ./build.cmd APIDockerBuild APILambdaDockerBuild TestHostctl

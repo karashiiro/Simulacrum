@@ -15,17 +15,20 @@ using Serilog;
 [SuppressMessage("ReSharper", "UnusedMember.Local")]
 [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Local")]
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
-[GithubActionsWithExtraSteps("build-api", GitHubActionsImage.UbuntuLatest,
+[GitHubActionsWithExtraSteps("build-api", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
     InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
     Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
-[GithubActionsWithExtraSteps("build-plugin", GitHubActionsImage.UbuntuLatest,
+[GitHubActions("test-api", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(Compile), nameof(TestHostctl) },
+    InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(TestHostctl) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
-    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
+    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" })]
+[GitHubActionsWithExtraSteps("build-plugin", GitHubActionsImage.WindowsLatest,
+    On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
+    InvokedTargets = new[] { nameof(Compile) },
     Setup = new[] { "run(wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud)" })]
 class Build : NukeBuild
 {
@@ -147,9 +150,7 @@ class Build : NukeBuild
                     {
                         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CI")))
                         {
-                            s = s
-                                .SetProcessEnvironmentVariable("DALAMUD_HOME", "/tmp/dalamud")
-                                .SetProperty("EnableWindowsTargetting", "1");
+                            s = s.SetProcessEnvironmentVariable("DALAMUD_HOME", "/tmp/dalamud");
                         }
 
                         return s.SetTargetPath(Solution)

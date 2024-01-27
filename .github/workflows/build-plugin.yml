@@ -5,7 +5,7 @@
 #
 #     - To turn off auto-generation set:
 #
-#         [GithubActionsWithExtraSteps (AutoGenerate = false)]
+#         [GitHubActionsWithExtraSteps (AutoGenerate = false)]
 #
 #     - To trigger manual generation invoke:
 #
@@ -19,20 +19,19 @@ name: build-plugin
 on: [push, pull_request]
 
 jobs:
-  ubuntu-latest:
-    name: ubuntu-latest
-    runs-on: ubuntu-latest
+  windows-latest:
+    name: windows-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - name: 'Cache: .nuke/temp, ~/.nuget/packages, **/node_modules'
+      - name: 'Cache: .nuke/temp, ~/.nuget/packages'
         uses: actions/cache@v3
         with:
           path: |
             .nuke/temp
             ~/.nuget/packages
-            **/node_modules
-          key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/package.json', '**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
       - name: 'Run: wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud'
         run: wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud
-      - name: 'Run: APIDockerBuild, APILambdaDockerBuild, Compile, TestHostctl'
-        run: ./build.cmd APIDockerBuild APILambdaDockerBuild Compile TestHostctl
+      - name: 'Run: Compile'
+        run: ./build.cmd Compile
