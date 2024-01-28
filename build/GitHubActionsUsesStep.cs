@@ -5,9 +5,9 @@ using Nuke.Common.Utilities.Collections;
 
 class GitHubActionsUsesStep : GitHubActionsStep
 {
-    public string Uses { get; init; }
+    public required string Uses { get; init; }
 
-    public IDictionary<string, string> With { get; init; }
+    public required IDictionary<string, string> With { get; init; }
 
     public override void Write(CustomFileWriter writer)
     {

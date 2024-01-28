@@ -3,7 +3,7 @@ using Nuke.Common.Utilities;
 
 class GitHubActionsSimpleRunStep : GitHubActionsStep
 {
-    public string Command { get; set; }
+    public required string Command { get; set; }
 
     public override void Write(CustomFileWriter writer)
     {
