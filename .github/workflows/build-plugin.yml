@@ -31,6 +31,8 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
+      - name: 'Run: vcpkg integrate install'
+        run: vcpkg integrate install
       - name: 'Run: vcpkg install ffmpeg[all] --triplet x64-windows'
         run: vcpkg install ffmpeg[all] --triplet x64-windows
       - name: 'Run: Compile'
