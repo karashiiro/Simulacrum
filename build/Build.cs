@@ -1,6 +1,9 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.IO.Compression;
+using System.Net;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.IO;
@@ -20,13 +23,15 @@ using Serilog;
     InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
-    Setup = new[] { "uses(actions/setup-dotnet@v3, dotnet-version=7.0.304)", "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
-[GitHubActionsWithExtraSteps("build-plugin", GitHubActionsImage.UbuntuLatest,
+    Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
+[GitHubActions("test-api", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(Compile), nameof(TestHostctl) },
+    InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(TestHostctl) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
-    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
-    Setup = new[] { "uses(actions/setup-dotnet@v3, dotnet-version=7.0.304)", "run(wget https://goatcorp.github.io/dalamud-distrib/latest.zip -O /tmp/dalamud.zip && unzip /tmp/dalamud.zip -d /tmp/dalamud)" })]
+    CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" })]
+[GitHubActions("build-plugin", GitHubActionsImage.WindowsLatest,
+    On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
+    InvokedTargets = new[] { nameof(Compile) })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
@@ -43,9 +48,9 @@ class Build : NukeBuild
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
 
-    [Solution] readonly Solution Solution;
+    [Solution] readonly Solution Solution = null!;
 
-    [PathVariable] readonly Tool Yarn;
+    [PathVariable] readonly Tool Yarn = null!;
 
     Target YarnAssertRoot => _ => _
         .Unlisted()
@@ -143,11 +148,28 @@ class Build : NukeBuild
         .DependsOn(Restore)
         .Executes(() =>
         {
+            // Download the latest Dalamud release in CI environments
+            string? dalamudDir = null;
+            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CI")))
+            {
+                var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                Directory.CreateDirectory(tempDir);
+
+                var tempZip = Path.Combine(tempDir, "latest.zip");
+                dalamudDir = Path.Combine(tempDir, "dalamud");
+
+                using var wc = new WebClient();
+
+                wc.DownloadFile("https://goatcorp.github.io/dalamud-distrib/latest.zip", tempZip);
+
+                ZipFile.ExtractToDirectory(tempZip, dalamudDir);
+            }
+
             MSBuildTasks.MSBuild(s =>
                     {
-                        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CI")))
+                        if (!string.IsNullOrWhiteSpace(dalamudDir))
                         {
-                            s = s.SetProcessEnvironmentVariable("DALAMUD_HOME", "/tmp/dalamud");
+                            s = s.SetProcessEnvironmentVariable("DALAMUD_HOME", dalamudDir);
                         }
 
                         return s.SetTargetPath(Solution)
