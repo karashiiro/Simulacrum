@@ -5,7 +5,7 @@
 #
 #     - To turn off auto-generation set:
 #
-#         [GitHubActions (AutoGenerate = false)]
+#         [GitHubActionsWithExtraSteps (AutoGenerate = false)]
 #
 #     - To trigger manual generation invoke:
 #
@@ -31,5 +31,7 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
+      - name: 'Run: vcpkg install ffmpeg[all] --triplet x64-windows'
+        run: vcpkg install ffmpeg[all] --triplet x64-windows
       - name: 'Run: Compile'
         run: ./build.cmd Compile
