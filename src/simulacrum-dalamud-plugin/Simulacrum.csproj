@@ -8,7 +8,6 @@
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <PlatformTarget>x64</PlatformTarget>
-        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <UseWindowsForms>true</UseWindowsForms>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
     </PropertyGroup>
