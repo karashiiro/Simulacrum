@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Dalamud.Plugin.Services;
 
 #if DEBUG
-using Dalamud.Plugin.Services;
 using Prometheus;
 #endif
 
@@ -20,6 +20,11 @@ public class DebugMetrics : IDisposable
     {
         _server = new MetricServer(port: Port);
         _log = log;
+    }
+#else
+    // ReSharper disable once UnusedParameter.Local
+    public DebugMetrics(IPluginLog log)
+    {
     }
 #endif
 
