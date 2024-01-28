@@ -11,7 +11,7 @@ class GitHubActionsUsesStep : GitHubActionsStep
 
     public override void Write(CustomFileWriter writer)
     {
-        writer.WriteLine($"- name: {("Setup: " + Uses).SingleQuote()}");
+        writer.WriteLine($"- name: {("Using: " + Uses).SingleQuote()}");
         writer.WriteLine($"  uses: {Uses}");
         if (With.Count <= 0)
         {

@@ -32,7 +32,7 @@ jobs:
             ~/.nuget/packages
             **/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/package.json', '**/yarn.lock') }}
-      - name: 'Setup: actions/setup-node@v4'
+      - name: 'Using: actions/setup-node@v4'
         uses: actions/setup-node@v4
         with:
           node-version: 18

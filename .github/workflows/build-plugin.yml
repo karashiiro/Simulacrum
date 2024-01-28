@@ -37,3 +37,7 @@ jobs:
         run: vcpkg install ffmpeg[all] --triplet x64-windows
       - name: 'Run: Compile'
         run: ./build.cmd Compile
+      - name: 'Using: actions/upload-artifact@v3'
+        uses: actions/upload-artifact@v3
+        with:
+          path: src/simulacrum-dalamud-plugin/bin/Release/net7.0-windows/Simulacrum/latest.zip

@@ -20,7 +20,9 @@ using Nuke.Common.Utilities.Collections;
 /// </summary>
 partial class GitHubActionsWithExtraStepsAttribute : GitHubActionsAttribute
 {
-    public string[] Setup { get; init; } = Array.Empty<string>();
+    public string[] Before { get; init; } = Array.Empty<string>();
+
+    public string[] After { get; init; } = Array.Empty<string>();
 
     [GeneratedRegex(@"uses\((?<Uses>[^,]+),\s*(?<With>.+)\s*\)", RegexOptions.IgnoreCase, "en-US")]
     private static partial Regex UsesRegex();
@@ -37,16 +39,22 @@ partial class GitHubActionsWithExtraStepsAttribute : GitHubActionsAttribute
         var jobs = base.GetJobs(image, relevantTargets);
         var steps = jobs.Steps.ToList();
 
-        // Splice our setup steps before the first run step
+        // Splice our "Before" steps before the first run step
         var firstRunStepIdx = steps.FindIndex((step) => step is GitHubActionsRunStep);
         if (firstRunStepIdx == -1)
         {
             firstRunStepIdx = 0;
         }
 
-        Setup.Reverse().ForEach((setupClause, i) =>
+        Before.Reverse().ForEach((beforClause, i) =>
         {
-            steps.Insert(firstRunStepIdx, ParseStep(setupClause));
+            steps.Insert(firstRunStepIdx, ParseStep(beforClause));
+        });
+
+        // Add our "After" steps at the end
+        After.Reverse().ForEach((afterClause, i) =>
+        {
+            steps.Add(ParseStep(afterClause));
         });
 
         jobs.Steps = steps.ToArray();

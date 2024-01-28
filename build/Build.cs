@@ -23,7 +23,7 @@ using Serilog;
     InvokedTargets = new[] { nameof(YarnInstall), nameof(YarnBuild), nameof(YarnTest) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" },
-    Setup = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
+    Before = new[] { "uses(actions/setup-node@v4, node-version=18)", "run(corepack enable)" })]
 [GitHubActions("test-api", GitHubActionsImage.UbuntuLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
     InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(TestHostctl) },
@@ -32,7 +32,8 @@ using Serilog;
 [GitHubActionsWithExtraSteps("build-plugin", GitHubActionsImage.WindowsLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
     InvokedTargets = new[] { nameof(Compile) },
-    Setup = new[] { "run(vcpkg integrate install)", "run(vcpkg install ffmpeg[all] --triplet x64-windows)" })]
+    Before = new[] { "run(vcpkg integrate install)", "run(vcpkg install ffmpeg[all] --triplet x64-windows)" },
+    After = new[] { "uses(actions/upload-artifact@v3, path=src/simulacrum-dalamud-plugin/bin/Release/net7.0-windows/Simulacrum/latest.zip)" })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
