@@ -20,7 +20,7 @@ using Nuke.Common.Utilities.Collections;
 /// </summary>
 partial class GitHubActionsWithExtraStepsAttribute : GitHubActionsAttribute
 {
-    public required string[] Setup { get; init; }
+    public string[] Setup { get; init; } = Array.Empty<string>();
 
     [GeneratedRegex(@"uses\((?<Uses>[^,]+),\s*(?<With>.+)\s*\)", RegexOptions.IgnoreCase, "en-US")]
     private static partial Regex UsesRegex();

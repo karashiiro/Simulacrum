@@ -29,9 +29,10 @@ using Serilog;
     InvokedTargets = new[] { nameof(APIDockerBuild), nameof(APILambdaDockerBuild), nameof(TestHostctl) },
     CacheKeyFiles = new[] { "**/global.json", "**/*.csproj", "**/package.json", "**/yarn.lock" },
     CacheIncludePatterns = new[] { ".nuke/temp", "~/.nuget/packages", "**/node_modules" })]
-[GitHubActions("build-plugin", GitHubActionsImage.WindowsLatest,
+[GitHubActionsWithExtraSteps("build-plugin", GitHubActionsImage.WindowsLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
-    InvokedTargets = new[] { nameof(Compile) })]
+    InvokedTargets = new[] { nameof(Compile) },
+    Setup = new[] { "run(vcpkg install ffmpeg[all] --triplet x64-windows)" })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
