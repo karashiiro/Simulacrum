@@ -32,7 +32,7 @@ using Serilog;
 [GitHubActionsWithExtraSteps("build-plugin", GitHubActionsImage.WindowsLatest,
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
     InvokedTargets = new[] { nameof(Compile) },
-    Setup = new[] { "run(vcpkg install ffmpeg[all] --triplet x64-windows)" })]
+    Setup = new[] { "run(vcpkg integrate install)", "run(vcpkg install ffmpeg[all] --triplet x64-windows)" })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
