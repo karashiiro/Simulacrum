@@ -33,7 +33,7 @@ using Serilog;
     On = new[] { GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest },
     InvokedTargets = new[] { nameof(Compile) },
     Before = new[] { "run(vcpkg integrate install)", "run(vcpkg install ffmpeg[all] --triplet x64-windows)" },
-    After = new[] { "uses(actions/upload-artifact@v3, path=src/simulacrum-dalamud-plugin/bin/Release/net7.0-windows/Simulacrum/latest.zip)" })]
+    After = new[] { "uses(actions/upload-artifact@v3, path=src/simulacrum-dalamud-plugin/bin/Release/net7.0-windows/Simulacrum/*, if-no-files-found=error)" })]
 class Build : NukeBuild
 {
     /// Support plugins are available for:
