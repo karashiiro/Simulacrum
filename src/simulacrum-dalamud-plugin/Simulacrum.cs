@@ -344,9 +344,9 @@ public class Simulacrum : IDalamudPlugin
         var hostctlUri = new Uri("wss://1z4s5nrge4.execute-api.us-west-2.amazonaws.com/prod");
 
         _hostctl = await HostctlClient.FromUri(hostctlUri, (e, m) => _log.Error(e, m), cancellationToken);
-        var unsubscribeScreenCreate = _hostctl.OnScreenCreate().DoCancelOnCompleted(_cts)
+        var unsubscribeScreenCreate = _hostctl.OnScreenCreate().TakeUntil(_cts.Token)
             .Subscribe(this, static (ev, p) => p.InitializeScreen(ev.Data));
-        var unsubscribeMediaSourceListScreens = _hostctl.OnMediaSourceListScreens().DoCancelOnCompleted(_cts).Subscribe(
+        var unsubscribeMediaSourceListScreens = _hostctl.OnMediaSourceListScreens().TakeUntil(_cts.Token).Subscribe(
             this, static (ev, p) =>
             {
                 if (ev.Data is null) return;
@@ -355,7 +355,7 @@ public class Simulacrum : IDalamudPlugin
                     p.InitializeScreen(screen);
                 }
             });
-        var unsubscribeMediaSourceList = _hostctl.OnMediaSourceList().DoCancelOnCompleted(_cts).Subscribe(this,
+        var unsubscribeMediaSourceList = _hostctl.OnMediaSourceList().TakeUntil(_cts.Token).Subscribe(this,
             static (ev, p) =>
             {
                 if (ev.Data is null) return;
@@ -368,27 +368,27 @@ public class Simulacrum : IDalamudPlugin
                     }, p._cts.Token).FireAndForget(p._log);
                 }
             });
-        var unsubscribeMediaSourceCreate = _hostctl.OnMediaSourceCreate().DoCancelOnCompleted(_cts)
+        var unsubscribeMediaSourceCreate = _hostctl.OnMediaSourceCreate().TakeUntil(_cts.Token)
             .Subscribe(this, static (ev, p) => p.InitializeMediaSource(ev.Data));
-        var unsubscribeVideoSourcePlay = _hostctl.OnVideoSourcePlay().DoCancelOnCompleted(_cts).Subscribe(this,
+        var unsubscribeVideoSourcePlay = _hostctl.OnVideoSourcePlay().TakeUntil(_cts.Token).Subscribe(this,
             static (ev, p) =>
             {
                 p._log.Info($"Now playing media source \"{ev.Data?.Id}\"");
                 p._playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Play();
             });
-        var unsubscribeVideoSourcePause = _hostctl.OnVideoSourcePause().DoCancelOnCompleted(_cts).Subscribe(this,
+        var unsubscribeVideoSourcePause = _hostctl.OnVideoSourcePause().TakeUntil(_cts.Token).Subscribe(this,
             static (ev, p) =>
             {
                 p._log.Info($"Now pausing media source \"{ev.Data?.Id}\"");
                 p._playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pause();
             });
-        var unsubscribeVideoSourcePan = _hostctl.OnVideoSourcePan().DoCancelOnCompleted(_cts).Subscribe(this,
+        var unsubscribeVideoSourcePan = _hostctl.OnVideoSourcePan().TakeUntil(_cts.Token).Subscribe(this,
             static (ev, p) =>
             {
                 if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
                 p._playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadActual);
             });
-        var unsubscribeVideoSourceSync = _hostctl.OnVideoSourceSync().DoCancelOnCompleted(_cts).Subscribe(this,
+        var unsubscribeVideoSourceSync = _hostctl.OnVideoSourceSync().TakeUntil(_cts.Token).Subscribe(this,
             static (ev, p) =>
             {
                 if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
