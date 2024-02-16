@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="System.Reactive" Version="6.0.0" />
+      <PackageReference Include="R3" Version="0.1.23" />
       <PackageReference Include="Thinktecture.Runtime.Extensions" Version="6.4.0" />
       <PackageReference Include="Thinktecture.Runtime.Extensions.Json" Version="6.4.0" />
     </ItemGroup>

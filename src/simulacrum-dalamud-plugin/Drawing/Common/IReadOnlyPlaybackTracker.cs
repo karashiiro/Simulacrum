@@ -1,4 +1,6 @@
-﻿namespace Simulacrum.Drawing.Common;
+﻿using R3;
+
+namespace Simulacrum.Drawing.Common;
 
 public interface IReadOnlyPlaybackTracker
 {
@@ -14,17 +16,17 @@ public interface IReadOnlyPlaybackTracker
     /// manual time changes occur.
     /// </summary>
     /// <returns></returns>
-    IObservable<TimeSpan> OnPan();
+    Observable<TimeSpan> OnPan();
 
     /// <summary>
     /// Creates an observable over plays.
     /// </summary>
     /// <returns></returns>
-    IObservable<TimeSpan> OnPlay();
+    Observable<TimeSpan> OnPlay();
 
     /// <summary>
     /// Creates an observable over pauses.
     /// </summary>
     /// <returns></returns>
-    IObservable<TimeSpan> OnPause();
+    Observable<TimeSpan> OnPause();
 }

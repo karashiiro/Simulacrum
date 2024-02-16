@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using Dalamud.Plugin.Services;
 using NAudio.Wave;
+using R3;
 using Simulacrum.AV;
 using Simulacrum.Drawing.Common;
 using Simulacrum.Monitoring;
@@ -37,9 +38,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
     private readonly Thread _audioThread;
 
     private readonly IReadOnlyPlaybackTracker _sync;
-    private readonly IDisposable _unsubscribePlay;
-    private readonly IDisposable _unsubscribePause;
-    private readonly IDisposable _unsubscribePan;
+    private readonly IDisposable _unsubscribeAll;
 
     private readonly IPluginLog _log;
 
@@ -81,32 +80,34 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _audioThread = new Thread(AudioLoop);
         _audioThread.Start();
 
-        _unsubscribePause = _sync.OnPause().Subscribe(_ => _wavePlayer.Pause());
-        _unsubscribePlay = _sync.OnPlay().Subscribe(_ => _wavePlayer.Play());
-        _unsubscribePan = _sync.OnPan().Subscribe(targetPts =>
+        var unsubscribePause = _sync.OnPause().Subscribe(_wavePlayer, static (_, wp) => wp.Pause());
+        var unsubscribePlay = _sync.OnPlay().Subscribe(_wavePlayer, static (_, wp) => wp.Play());
+        var unsubscribePan = _sync.OnPan().Subscribe(this, static (targetPts, ms) =>
         {
-            var audioDiff = targetPts - _waveProvider.PlaybackPosition;
+            var audioDiff = targetPts - ms._waveProvider.PlaybackPosition;
             if (audioDiff < TimeSpan.Zero || audioDiff > TimeSpan.FromSeconds(5))
             {
-                if (!_reader.SeekAudioStream(targetPts.TotalSeconds))
+                if (!ms._reader.SeekAudioStream(targetPts.TotalSeconds))
                 {
-                    _log.Warning("Failed to seek through audio stream");
+                    ms._log.Warning("Failed to seek through audio stream");
                 }
 
-                _audioFlushRequested = true;
+                ms._audioFlushRequested = true;
             }
 
-            var videoDiff = targetPts - _nextPts;
+            var videoDiff = targetPts - ms._nextPts;
             if (videoDiff < TimeSpan.Zero || videoDiff > TimeSpan.FromSeconds(5))
             {
-                if (!_reader.SeekVideoFrame(targetPts.TotalSeconds))
+                if (!ms._reader.SeekVideoFrame(targetPts.TotalSeconds))
                 {
-                    _log.Warning("Failed to seek through video stream");
+                    ms._log.Warning("Failed to seek through video stream");
                 }
 
-                _nextPts = targetPts + _reader.VideoFrameDelay;
+                ms._nextPts = targetPts + ms._reader.VideoFrameDelay;
             }
         });
+
+        _unsubscribeAll = Disposable.Combine(unsubscribePause, unsubscribePlay, unsubscribePan);
     }
 
     public void RenderTo(Span<byte> buffer)
@@ -299,9 +300,7 @@ public class VideoReaderMediaSource : IMediaSource, IDisposable
         _audioThread.Join();
         _videoThread.Join();
 
-        _unsubscribePlay.Dispose();
-        _unsubscribePause.Dispose();
-        _unsubscribePan.Dispose();
+        _unsubscribeAll.Dispose();
         _reader.Close();
         _reader.Dispose();
         _wavePlayer.Dispose();

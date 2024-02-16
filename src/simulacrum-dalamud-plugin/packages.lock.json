@@ -32,6 +32,15 @@
           "Microsoft.Extensions.ObjectPool": "7.0.0"
         }
       },
+      "R3": {
+        "type": "Direct",
+        "requested": "[0.1.23, )",
+        "resolved": "0.1.23",
+        "contentHash": "OfJF6GOpCf/3j3WAc7/7q7jfqdLvB+e+WzHbze+4aj760S2ZeDYqQIFgj5tHEOdYWJpXMRfA6aKEzvFRdrP0/Q==",
+        "dependencies": {
+          "Microsoft.Bcl.TimeProvider": "8.0.0"
+        }
+      },
       "Silk.NET.Direct3D11": {
         "type": "Direct",
         "requested": "[2.18.0, )",
@@ -42,12 +51,6 @@
           "Silk.NET.DXGI": "2.18.0"
         }
       },
-      "System.Reactive": {
-        "type": "Direct",
-        "requested": "[6.0.0, )",
-        "resolved": "6.0.0",
-        "contentHash": "31kfaW4ZupZzPsI5PVe77VhnvFF55qgma7KZr/E0iFTs6fmdhhG8j0mgEx620iLTey1EynOkEfnyTjtNEpJzGw=="
-      },
       "Thinktecture.Runtime.Extensions": {
         "type": "Direct",
         "requested": "[6.4.0, )",
@@ -55,6 +58,19 @@
         "contentHash": "lZ5DdOQt+NAEFbhBqPSQmPd+Vq//+HFZ8Eig9LC8Tb8gqXYhvLZfZAtZ12lpSKAuYgvxYd3z526dHT/w5pZrXw==",
         "dependencies": {
           "Thinktecture.Runtime.Extensions.SourceGenerator": "6.4.0"
+        }
+      },
+      "Microsoft.Bcl.AsyncInterfaces": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "UcSjPsst+DfAdJGVDsu346FX0ci0ah+lw3WRtn18NUwEqRt70HaOQ7lI72vy3+1LxtqI3T5GWwV39rQSrCzAeg=="
+      },
+      "Microsoft.Bcl.TimeProvider": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "f5Kr5JepAbiGo7uDmhgvMqhntwxqXNn6/IpTBSSI4cuHhgnJGrLxFRhMjVpRkLPp6zJXO0/G0l3j9p9zSJxa+w==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "6.0.0"
         }
       },
       "Microsoft.CSharp": {
@@ -308,7 +324,7 @@
       "simulacrum.hostctl": {
         "type": "Project",
         "dependencies": {
-          "System.Reactive": "[6.0.0, )",
+          "R3": "[0.1.23, )",
           "Thinktecture.Runtime.Extensions": "[6.4.0, )",
           "Thinktecture.Runtime.Extensions.Json": "[6.4.0, )"
         }

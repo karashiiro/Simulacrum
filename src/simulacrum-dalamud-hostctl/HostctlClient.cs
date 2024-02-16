@@ -1,8 +1,7 @@
 ﻿using System.Net;
 using System.Net.WebSockets;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Text.Json;
+using R3;
 
 namespace Simulacrum.Hostctl;
 
@@ -189,7 +188,7 @@ public class HostctlClient : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public IObservable<HostctlEvent.ScreenCreateBroadcast> OnScreenCreate()
+    public Observable<HostctlEvent.ScreenCreateBroadcast> OnScreenCreate()
     {
         return _events
             .Select(ev => ev as HostctlEvent.ScreenCreateBroadcast)
@@ -197,7 +196,7 @@ public class HostctlClient : IDisposable
             .Select(ev => ev!);
     }
 
-    public IObservable<HostctlEvent.MediaSourceListScreensResponse> OnMediaSourceListScreens()
+    public Observable<HostctlEvent.MediaSourceListScreensResponse> OnMediaSourceListScreens()
     {
         return _events
             .Select(ev => ev as HostctlEvent.MediaSourceListScreensResponse)
@@ -205,7 +204,7 @@ public class HostctlClient : IDisposable
             .Select(ev => ev!);
     }
 
-    public IObservable<HostctlEvent.MediaSourceListResponse> OnMediaSourceList()
+    public Observable<HostctlEvent.MediaSourceListResponse> OnMediaSourceList()
     {
         return _events
             .Select(ev => ev as HostctlEvent.MediaSourceListResponse)
@@ -213,7 +212,7 @@ public class HostctlClient : IDisposable
             .Select(ev => ev!);
     }
 
-    public IObservable<HostctlEvent.MediaSourceCreateBroadcast> OnMediaSourceCreate()
+    public Observable<HostctlEvent.MediaSourceCreateBroadcast> OnMediaSourceCreate()
     {
         return _events
             .Select(ev => ev as HostctlEvent.MediaSourceCreateBroadcast)
@@ -221,7 +220,7 @@ public class HostctlClient : IDisposable
             .Select(ev => ev!);
     }
 
-    public IObservable<HostctlEvent.VideoSourceSyncResponse> OnVideoSourceSync()
+    public Observable<HostctlEvent.VideoSourceSyncResponse> OnVideoSourceSync()
     {
         return _events
             .Select(ev => ev as HostctlEvent.VideoSourceSyncResponse)
@@ -229,7 +228,7 @@ public class HostctlClient : IDisposable
             .Select(ev => ev!);
     }
 
-    public IObservable<HostctlEvent.VideoSourcePlayBroadcast> OnVideoSourcePlay()
+    public Observable<HostctlEvent.VideoSourcePlayBroadcast> OnVideoSourcePlay()
     {
         return _events
             .Select(ev => ev as HostctlEvent.VideoSourcePlayBroadcast)
@@ -237,7 +236,7 @@ public class HostctlClient : IDisposable
             .Select(ev => ev!);
     }
 
-    public IObservable<HostctlEvent.VideoSourcePauseBroadcast> OnVideoSourcePause()
+    public Observable<HostctlEvent.VideoSourcePauseBroadcast> OnVideoSourcePause()
     {
         return _events
             .Select(ev => ev as HostctlEvent.VideoSourcePauseBroadcast)
@@ -245,7 +244,7 @@ public class HostctlClient : IDisposable
             .Select(ev => ev!);
     }
 
-    public IObservable<HostctlEvent.VideoSourcePanBroadcast> OnVideoSourcePan()
+    public Observable<HostctlEvent.VideoSourcePanBroadcast> OnVideoSourcePan()
     {
         return _events
             .Select(ev => ev as HostctlEvent.VideoSourcePanBroadcast)

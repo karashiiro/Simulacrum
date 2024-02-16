@@ -2,11 +2,14 @@
   "version": 1,
   "dependencies": {
     "net7.0": {
-      "System.Reactive": {
+      "R3": {
         "type": "Direct",
-        "requested": "[6.0.0, )",
-        "resolved": "6.0.0",
-        "contentHash": "31kfaW4ZupZzPsI5PVe77VhnvFF55qgma7KZr/E0iFTs6fmdhhG8j0mgEx620iLTey1EynOkEfnyTjtNEpJzGw=="
+        "requested": "[0.1.23, )",
+        "resolved": "0.1.23",
+        "contentHash": "OfJF6GOpCf/3j3WAc7/7q7jfqdLvB+e+WzHbze+4aj760S2ZeDYqQIFgj5tHEOdYWJpXMRfA6aKEzvFRdrP0/Q==",
+        "dependencies": {
+          "Microsoft.Bcl.TimeProvider": "8.0.0"
+        }
       },
       "Thinktecture.Runtime.Extensions": {
         "type": "Direct",
@@ -25,6 +28,19 @@
         "dependencies": {
           "System.Text.Json": "7.0.3",
           "Thinktecture.Runtime.Extensions": "6.4.0"
+        }
+      },
+      "Microsoft.Bcl.AsyncInterfaces": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "UcSjPsst+DfAdJGVDsu346FX0ci0ah+lw3WRtn18NUwEqRt70HaOQ7lI72vy3+1LxtqI3T5GWwV39rQSrCzAeg=="
+      },
+      "Microsoft.Bcl.TimeProvider": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "f5Kr5JepAbiGo7uDmhgvMqhntwxqXNn6/IpTBSSI4cuHhgnJGrLxFRhMjVpRkLPp6zJXO0/G0l3j9p9zSJxa+w==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "6.0.0"
         }
       },
       "System.Text.Encodings.Web": {

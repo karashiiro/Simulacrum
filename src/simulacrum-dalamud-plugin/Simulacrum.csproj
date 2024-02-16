@@ -22,8 +22,8 @@
         <PackageReference Include="DalamudPackager" Version="2.1.12" />
         <PackageReference Include="NAudio" Version="2.2.1" />
         <PackageReference Condition="'$(Configuration)'=='Debug'" Include="prometheus-net" Version="8.0.1" />
+        <PackageReference Include="R3" Version="0.1.23" />
         <PackageReference Include="Silk.NET.Direct3D11" Version="2.18.0" />
-        <PackageReference Include="System.Reactive" Version="6.0.0" />
         <PackageReference Include="Thinktecture.Runtime.Extensions" Version="6.4.0" />
     </ItemGroup>
 

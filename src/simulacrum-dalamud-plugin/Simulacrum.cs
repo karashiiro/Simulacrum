@@ -9,6 +9,7 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using R3;
 using Simulacrum.AV;
 using Simulacrum.Drawing;
 using Simulacrum.Game;
@@ -48,7 +49,7 @@ public class Simulacrum : IDalamudPlugin
     private DebugMetrics? _debugMetrics;
     private GCHandle? _logFunctionHandle;
     private HostctlClient? _hostctl;
-    private IList<IDisposable> _hostctlBag;
+    private DisposableBag _hostctlBag;
 
     public Simulacrum(
         [RequiredVersion("1.0")] IClientState clientState,
@@ -73,7 +74,7 @@ public class Simulacrum : IDalamudPlugin
 
         _primitive = new PrimitiveDebug(sigScanner, gameInteropProvider, log);
 
-        _hostctlBag = new List<IDisposable>();
+        _hostctlBag = new DisposableBag();
 
         _mediaSources = new MediaSourceManager();
         _playbackTrackers = new PlaybackTrackerManager();
@@ -343,48 +344,60 @@ public class Simulacrum : IDalamudPlugin
         var hostctlUri = new Uri("wss://1z4s5nrge4.execute-api.us-west-2.amazonaws.com/prod");
 
         _hostctl = await HostctlClient.FromUri(hostctlUri, (e, m) => _log.Error(e, m), cancellationToken);
-        _hostctlBag.Add(_hostctl.OnScreenCreate().Subscribe(ev => { InitializeScreen(ev.Data); }));
-        _hostctlBag.Add(_hostctl.OnMediaSourceListScreens().Subscribe(ev =>
-        {
-            if (ev.Data is null) return;
-            foreach (var screen in ev.Data)
+        var unsubscribeScreenCreate = _hostctl.OnScreenCreate().DoCancelOnCompleted(_cts)
+            .Subscribe(this, static (ev, p) => p.InitializeScreen(ev.Data));
+        var unsubscribeMediaSourceListScreens = _hostctl.OnMediaSourceListScreens().DoCancelOnCompleted(_cts).Subscribe(
+            this, static (ev, p) =>
             {
-                InitializeScreen(screen);
-            }
-        }));
-        _hostctlBag.Add(_hostctl.OnMediaSourceList().Subscribe(ev =>
-        {
-            if (ev.Data is null) return;
-            foreach (var mediaSource in ev.Data)
-            {
-                InitializeMediaSource(mediaSource);
-                _hostctl.SendEvent(new HostctlEvent.MediaSourceListScreensRequest
+                if (ev.Data is null) return;
+                foreach (var screen in ev.Data)
                 {
-                    MediaSourceId = mediaSource.Id,
-                }, _cts.Token).FireAndForget(_log);
-            }
-        }));
-        _hostctlBag.Add(_hostctl.OnMediaSourceCreate().Subscribe(ev => InitializeMediaSource(ev.Data)));
-        _hostctlBag.Add(_hostctl.OnVideoSourcePlay().Subscribe(ev =>
-        {
-            _log.Info($"Now playing media source \"{ev.Data?.Id}\"");
-            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Play();
-        }));
-        _hostctlBag.Add(_hostctl.OnVideoSourcePause().Subscribe(ev =>
-        {
-            _log.Info($"Now pausing media source \"{ev.Data?.Id}\"");
-            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pause();
-        }));
-        _hostctlBag.Add(_hostctl.OnVideoSourcePan().Subscribe(ev =>
-        {
-            if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
-            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadActual);
-        }));
-        _hostctlBag.Add(_hostctl.OnVideoSourceSync().Subscribe(ev =>
-        {
-            if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
-            _playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadActual);
-        }));
+                    p.InitializeScreen(screen);
+                }
+            });
+        var unsubscribeMediaSourceList = _hostctl.OnMediaSourceList().DoCancelOnCompleted(_cts).Subscribe(this,
+            static (ev, p) =>
+            {
+                if (ev.Data is null) return;
+                foreach (var mediaSource in ev.Data)
+                {
+                    p.InitializeMediaSource(mediaSource);
+                    p._hostctl?.SendEvent(new HostctlEvent.MediaSourceListScreensRequest
+                    {
+                        MediaSourceId = mediaSource.Id,
+                    }, p._cts.Token).FireAndForget(p._log);
+                }
+            });
+        var unsubscribeMediaSourceCreate = _hostctl.OnMediaSourceCreate().DoCancelOnCompleted(_cts)
+            .Subscribe(this, static (ev, p) => p.InitializeMediaSource(ev.Data));
+        var unsubscribeVideoSourcePlay = _hostctl.OnVideoSourcePlay().DoCancelOnCompleted(_cts).Subscribe(this,
+            static (ev, p) =>
+            {
+                p._log.Info($"Now playing media source \"{ev.Data?.Id}\"");
+                p._playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Play();
+            });
+        var unsubscribeVideoSourcePause = _hostctl.OnVideoSourcePause().DoCancelOnCompleted(_cts).Subscribe(this,
+            static (ev, p) =>
+            {
+                p._log.Info($"Now pausing media source \"{ev.Data?.Id}\"");
+                p._playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pause();
+            });
+        var unsubscribeVideoSourcePan = _hostctl.OnVideoSourcePan().DoCancelOnCompleted(_cts).Subscribe(this,
+            static (ev, p) =>
+            {
+                if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
+                p._playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadActual);
+            });
+        var unsubscribeVideoSourceSync = _hostctl.OnVideoSourceSync().DoCancelOnCompleted(_cts).Subscribe(this,
+            static (ev, p) =>
+            {
+                if (ev.Data?.Meta is not HostctlEvent.VideoMetadata videoMetadata) return;
+                p._playbackTrackers.GetPlaybackTracker(ev.Data?.Id)?.Pan(videoMetadata.PlayheadActual);
+            });
+
+        _hostctlBag.Add(Disposable.Combine(unsubscribeScreenCreate, unsubscribeMediaSourceCreate,
+            unsubscribeMediaSourceList, unsubscribeVideoSourcePan, unsubscribeVideoSourcePause,
+            unsubscribeVideoSourcePlay, unsubscribeVideoSourceSync, unsubscribeMediaSourceListScreens));
     }
 
     private void InitializeScreen(HostctlEvent.ScreenDto? dto)
@@ -421,25 +434,25 @@ public class Simulacrum : IDalamudPlugin
                 // TODO
                 break;
             case HostctlEvent.VideoMetadata video:
+            {
+                _log.Info($"Got new video source: {video.Uri}");
+
+                var videoSync = new TimePlaybackTracker();
+                var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync, _log);
+
+                videoSync.Pan(video.PlayheadActual);
+                if (video.State == "playing")
                 {
-                    _log.Info($"Got new video source: {video.Uri}");
-
-                    var videoSync = new TimePlaybackTracker();
-                    var videoMediaSource = new VideoReaderMediaSource(video.Uri, videoSync, _log);
-
-                    videoSync.Pan(video.PlayheadActual);
-                    if (video.State == "playing")
-                    {
-                        videoSync.Play();
-                    }
-                    else
-                    {
-                        videoSync.Pause();
-                    }
-
-                    _playbackTrackers.AddPlaybackTracker(dto.Id, videoSync);
-                    _mediaSources.AddMediaSource(dto.Id, videoMediaSource);
+                    videoSync.Play();
                 }
+                else
+                {
+                    videoSync.Pause();
+                }
+
+                _playbackTrackers.AddPlaybackTracker(dto.Id, videoSync);
+                _mediaSources.AddMediaSource(dto.Id, videoMediaSource);
+            }
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(dto));
@@ -548,11 +561,7 @@ public class Simulacrum : IDalamudPlugin
 
         _unsubscribe?.Dispose();
 
-        foreach (var subscription in _hostctlBag)
-        {
-            subscription.Dispose();
-        }
-
+        _hostctlBag.Dispose();
         _hostctl?.Dispose();
 
         UninstallDebugMetricsServer();
