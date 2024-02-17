@@ -4,9 +4,9 @@
     "net7.0": {
       "R3": {
         "type": "Direct",
-        "requested": "[0.1.23, )",
-        "resolved": "0.1.23",
-        "contentHash": "OfJF6GOpCf/3j3WAc7/7q7jfqdLvB+e+WzHbze+4aj760S2ZeDYqQIFgj5tHEOdYWJpXMRfA6aKEzvFRdrP0/Q==",
+        "requested": "[1.0.1, )",
+        "resolved": "1.0.1",
+        "contentHash": "QESbZntZBK5q5d287mK88pcsRaJp6TZpmihT+x6TAfBqbwtwYl2yos9/IbdGH28HjnSxs3GaQI+Vc6UOWq1uag==",
         "dependencies": {
           "Microsoft.Bcl.TimeProvider": "8.0.0"
         }
