@@ -18,6 +18,7 @@ public class MpvMediaSource : IMediaSource, IDisposable
         _handle = new MpvHandle();
         _handle.Initialize();
 
+        // https://github.com/mpv-player/mpv-examples/blob/master/libmpv/csharp/Form1.cs
         _handle.SetOptionString("keep-open"u8, "always"u8);
 
         _handle.Command(new[,] { { "loadfile", uri } });
