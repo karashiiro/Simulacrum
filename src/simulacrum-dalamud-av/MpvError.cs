@@ -2,6 +2,7 @@
 
 namespace Simulacrum.AV;
 
+// https://github.com/mpv-player/mpv/blob/665a47209869d7a0c4ea860b28910fcd6ca874c8/libmpv/client.h#L274-L380
 internal sealed partial class MpvError : IEnum<int>
 {
     public static readonly MpvError EventQueueFull = new(-1);
