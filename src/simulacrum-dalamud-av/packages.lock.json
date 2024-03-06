@@ -1,6 +1,21 @@
 {
   "version": 1,
   "dependencies": {
-    "net7.0": {}
+    "net7.0": {
+      "Thinktecture.Runtime.Extensions": {
+        "type": "Direct",
+        "requested": "[6.4.0, )",
+        "resolved": "6.4.0",
+        "contentHash": "lZ5DdOQt+NAEFbhBqPSQmPd+Vq//+HFZ8Eig9LC8Tb8gqXYhvLZfZAtZ12lpSKAuYgvxYd3z526dHT/w5pZrXw==",
+        "dependencies": {
+          "Thinktecture.Runtime.Extensions.SourceGenerator": "6.4.0"
+        }
+      },
+      "Thinktecture.Runtime.Extensions.SourceGenerator": {
+        "type": "Transitive",
+        "resolved": "6.4.0",
+        "contentHash": "9pXWSaYKJ9xR8ilJq0ylFSRRSrT2vwg9W9uxPnStLuQCGJCtt+VByaUURMbhiLbwgPfSCOMORernV8yvwQ43zw=="
+      }
+    }
   }
 }

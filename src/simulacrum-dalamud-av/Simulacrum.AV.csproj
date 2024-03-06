@@ -16,5 +16,9 @@
             <Private>false</Private>
         </ProjectReference>
     </ItemGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="Thinktecture.Runtime.Extensions" Version="6.4.0" />
+    </ItemGroup>
 
 </Project>

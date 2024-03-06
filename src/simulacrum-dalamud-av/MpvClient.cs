@@ -2,7 +2,7 @@
 
 namespace Simulacrum.AV;
 
-public static partial class Mpv
+public static partial class MpvClient
 {
     [LibraryImport("mpv.exe", EntryPoint = "mpv_create")]
     internal static partial nint Create();

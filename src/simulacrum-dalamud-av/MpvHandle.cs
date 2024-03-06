@@ -2,36 +2,66 @@
 
 public class MpvHandle : IDisposable
 {
-    private nint _handle = Mpv.Create();
+    internal nint _handle = MpvClient.Create();
 
-    public int Initialize()
+    public void Initialize()
     {
-        return _handle != nint.Zero ? Mpv.Initialize(_handle) : -1;
+        if (_handle == nint.Zero)
+        {
+            return;
+        }
+
+        MpvException.ThrowMpvError(MpvClient.Initialize(_handle));
     }
 
-    public int Command(string[,] args)
+    public void Command(string[,] args)
     {
-        return _handle != nint.Zero ? Mpv.Command(_handle, args) : -1;
+        if (_handle == nint.Zero)
+        {
+            return;
+        }
+
+        MpvException.ThrowMpvError(MpvClient.Command(_handle, args));
     }
 
-    public int SetOption(ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data)
+    public void SetOption(ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data)
     {
-        return _handle != nint.Zero ? Mpv.SetOption(_handle, name, format, data) : -1;
+        if (_handle == nint.Zero)
+        {
+            return;
+        }
+
+        MpvException.ThrowMpvError(MpvClient.SetOption(_handle, name, format, data));
     }
 
-    public int SetOptionString(ReadOnlySpan<byte> name, ReadOnlySpan<byte> data)
+    public void SetOptionString(ReadOnlySpan<byte> name, ReadOnlySpan<byte> data)
     {
-        return _handle != nint.Zero ? Mpv.SetOptionString(_handle, name, data) : -1;
+        if (_handle == nint.Zero)
+        {
+            return;
+        }
+
+        MpvException.ThrowMpvError(MpvClient.SetOptionString(_handle, name, data));
     }
 
-    public int GetProperty(ReadOnlySpan<byte> name, int format, ref nint data)
+    public void GetProperty(ReadOnlySpan<byte> name, int format, ref nint data)
     {
-        return _handle != nint.Zero ? Mpv.GetProperty(_handle, name, format, ref data) : -1;
+        if (_handle == nint.Zero)
+        {
+            return;
+        }
+
+        MpvException.ThrowMpvError(MpvClient.GetProperty(_handle, name, format, ref data));
     }
 
-    public int SetProperty(ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data)
+    public void SetProperty(ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data)
     {
-        return _handle != nint.Zero ? Mpv.SetProperty(_handle, name, format, data) : -1;
+        if (_handle == nint.Zero)
+        {
+            return;
+        }
+
+        MpvException.ThrowMpvError(MpvClient.SetProperty(_handle, name, format, data));
     }
 
     private void ReleaseUnmanagedResources()
@@ -41,7 +71,7 @@ public class MpvHandle : IDisposable
             return;
         }
 
-        Mpv.TerminateDestroy(_handle);
+        MpvException.ThrowMpvError(MpvClient.TerminateDestroy(_handle));
         _handle = nint.Zero;
     }
 

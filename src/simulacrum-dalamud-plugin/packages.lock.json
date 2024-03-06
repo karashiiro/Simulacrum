@@ -319,7 +319,10 @@
         "contentHash": "9pXWSaYKJ9xR8ilJq0ylFSRRSrT2vwg9W9uxPnStLuQCGJCtt+VByaUURMbhiLbwgPfSCOMORernV8yvwQ43zw=="
       },
       "simulacrum.av": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Thinktecture.Runtime.Extensions": "[6.4.0, )"
+        }
       },
       "simulacrum.hostctl": {
         "type": "Project",
