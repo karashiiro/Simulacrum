@@ -1,13 +1,23 @@
-﻿namespace Simulacrum.AV;
+﻿using System.Runtime.CompilerServices;
+
+namespace Simulacrum.AV;
 
 public class MpvRenderContext : IDisposable
 {
     private nint _context;
 
-    public MpvRenderContext(MpvHandle handle)
+    public unsafe MpvRenderContext(MpvHandle handle)
     {
-        var result = MpvRender.CreateContext(_context, handle._handle, ReadOnlySpan<MpvRender.MpvRenderParam>.Empty);
-        MpvException.ThrowMpvError(result);
+        Span<MpvRenderParam> contextParams = stackalloc MpvRenderParam[2];
+
+        var apiType = "sw"u8.ToArray().AsSpan();
+        fixed (byte* apiTypePtr = apiType)
+        {
+            contextParams[0] = new MpvRenderParam { Type = MpvRenderParamType.ApiType, Data = (nint)apiTypePtr };
+
+            var result = MpvRender.CreateContext(_context, handle._handle, contextParams);
+            MpvException.ThrowMpvError(result);
+        }
     }
 
     private void ReleaseUnmanagedResources()

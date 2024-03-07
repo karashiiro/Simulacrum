@@ -23,11 +23,4 @@ public static partial class MpvRender
     internal static partial void FreeContext(nint context);
 
     public delegate void MpvRenderUpdateCallback(nint ctx);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MpvRenderParam
-    {
-        public int Type;
-        public nint Data;
-    }
 }
