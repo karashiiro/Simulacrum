@@ -14,7 +14,7 @@ public static partial class MpvClient
     internal static partial int TerminateDestroy(nint client);
 
     [LibraryImport("mpv.exe", EntryPoint = "mpv_command", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial int Command(nint client, string[,] args);
+    internal static partial int Command(nint client, string[][] args);
 
     [LibraryImport("mpv.exe", EntryPoint = "mpv_set_option")]
     internal static partial int SetOption(nint client, ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data);

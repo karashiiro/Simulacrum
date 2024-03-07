@@ -14,7 +14,7 @@ public class MpvHandle : IDisposable
         MpvException.ThrowMpvError(MpvClient.Initialize(_handle));
     }
 
-    public void Command(string[,] args)
+    public void Command(params string[][] args)
     {
         if (_handle == nint.Zero)
         {
