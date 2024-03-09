@@ -2,15 +2,11 @@
 
 public class MpvHandle : IDisposable
 {
-    internal nint _handle = MpvClient.Create();
+    internal nint _handle;
 
-    public void Initialize()
+    public MpvHandle()
     {
-        if (_handle == nint.Zero)
-        {
-            return;
-        }
-
+        _handle = MpvClient.Create();
         MpvException.ThrowMpvError(MpvClient.Initialize(_handle));
     }
 

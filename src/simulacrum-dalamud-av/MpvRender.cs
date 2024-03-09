@@ -5,7 +5,7 @@ namespace Simulacrum.AV;
 public static partial class MpvRender
 {
     [LibraryImport("mpv.exe", EntryPoint = "mpv_render_context_create")]
-    internal static partial int CreateContext(nint context, nint handle, ReadOnlySpan<MpvRenderParam> parameters);
+    internal static partial int CreateContext(ref nint context, nint handle, ReadOnlySpan<MpvRenderParam> parameters);
 
     [LibraryImport("mpv.exe", EntryPoint = "mpv_render_context_get_info")]
     internal static partial int GetContextInfo(nint context, MpvRenderParam parameter);
