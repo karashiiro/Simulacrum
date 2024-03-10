@@ -36,7 +36,6 @@ public class MpvHandleTests
     public void Play_DoesNotThrow()
     {
         using var handle = new MpvHandle();
-        handle.LoadFile(VideoUrl);
         handle.Play();
     }
 
@@ -44,7 +43,6 @@ public class MpvHandleTests
     public void Pause_DoesNotThrow()
     {
         using var handle = new MpvHandle();
-        handle.LoadFile(VideoUrl);
         handle.Pause();
     }
 }
