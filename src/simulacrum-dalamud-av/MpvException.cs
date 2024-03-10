@@ -8,6 +8,7 @@ public class MpvException : Exception
 
     public static void ThrowMpvError(int error)
     {
+        // TODO: Replace with mpv_error_string
         // Simple model of these errors: https://github.com/mpv-player/mpv/blob/665a47209869d7a0c4ea860b28910fcd6ca874c8/libmpv/client.h#L274-L380
         if (error >= 0) return;
         var mpvError = MpvError.Get(error);
