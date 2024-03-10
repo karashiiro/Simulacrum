@@ -40,6 +40,15 @@ public class MpvHandleTests
     }
 
     [Fact]
+    public async Task Seek_WithFile_CanSeekBackwards()
+    {
+        using var handle = new MpvHandle();
+        await InitPlayback(handle);
+        handle.Seek(TimeSpan.FromSeconds(15));
+        handle.Seek(TimeSpan.FromSeconds(0));
+    }
+
+    [Fact]
     public void Play_WithoutFile_DoesNotThrow()
     {
         using var handle = new MpvHandle();
