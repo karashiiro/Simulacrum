@@ -1,4 +1,7 @@
-﻿namespace Simulacrum.AV;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
+
+namespace Simulacrum.AV;
 
 public class MpvHandle : IDisposable
 {
@@ -10,63 +13,77 @@ public class MpvHandle : IDisposable
         MpvException.ThrowMpvError(MpvClient.Initialize(_handle));
     }
 
-    public void Command(params string[][] args)
+    public void LoadFile(string uri)
     {
-        if (_handle == nint.Zero)
+        Command("loadfile", uri);
+    }
+
+    public unsafe void Command(params string[] args)
+    {
+        if (_handle == nint.Zero) return;
+
+        /*
+         * It's like this https://github.com/mpv-player/mpv-examples/blob/57d26935c0525585482748b7236b60fe83d3f044/libmpv/csharp/Form1.cs#L122-L153
+         * but without as many allocations. It's probably not necessary, but it was fun to write.
+         */
+
+        // Get the UTF8 lengths of each argument, plus null terminators
+        var argSizes = args.Select(arg => Encoding.UTF8.GetByteCount(arg) + 1).ToArray();
+
+        // Allocate a big chunk of stack memory to shove it all in
+        var bufferSize = argSizes.Sum();
+        Span<byte> buffer = stackalloc byte[bufferSize];
+
+        // Allocate a pointer array of the addresses of each string within the buffer, plus a null terminator
+        Span<nint> argPointers = stackalloc nint[args.Length + 1];
+
+        var bufferIndex = 0;
+        for (var i = 0; i < args.Length; i++)
         {
-            return;
+            // Get the subsection of the buffer that we want to copy the arg into
+            var bufferArg = buffer.Slice(bufferIndex, argSizes[i]);
+
+            // Convert the string to its UTF8 representation
+            Encoding.UTF8.GetBytes(args[i], bufferArg);
+
+            // Get an interior pointer to the string within the buffer and store it.
+            // This is safe, because we're creating a pointer into a stack-allocated array.
+            argPointers[i] = (nint)Unsafe.AsPointer(ref bufferArg[0]);
+
+            bufferIndex += argSizes[i];
         }
 
-        MpvException.ThrowMpvError(MpvClient.Command(_handle, args));
+        // Pass all of that into mpv_command, which is expecting a char** of args
+        MpvException.ThrowMpvError(MpvClient.Command(_handle, argPointers));
     }
 
     public void SetOption(ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data)
     {
-        if (_handle == nint.Zero)
-        {
-            return;
-        }
-
+        if (_handle == nint.Zero) return;
         MpvException.ThrowMpvError(MpvClient.SetOption(_handle, name, format, data));
     }
 
     public void SetOptionString(ReadOnlySpan<byte> name, ReadOnlySpan<byte> data)
     {
-        if (_handle == nint.Zero)
-        {
-            return;
-        }
-
+        if (_handle == nint.Zero) return;
         MpvException.ThrowMpvError(MpvClient.SetOptionString(_handle, name, data));
     }
 
     public void GetProperty(ReadOnlySpan<byte> name, int format, ref nint data)
     {
-        if (_handle == nint.Zero)
-        {
-            return;
-        }
-
+        if (_handle == nint.Zero) return;
         MpvException.ThrowMpvError(MpvClient.GetProperty(_handle, name, format, ref data));
     }
 
     public void SetProperty(ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data)
     {
-        if (_handle == nint.Zero)
-        {
-            return;
-        }
-
+        if (_handle == nint.Zero) return;
         MpvException.ThrowMpvError(MpvClient.SetProperty(_handle, name, format, data));
     }
 
     private void ReleaseUnmanagedResources()
     {
-        if (_handle == nint.Zero)
-        {
-            return;
-        }
-
+        if (_handle == nint.Zero) return;
         MpvException.ThrowMpvError(MpvClient.TerminateDestroy(_handle));
         _handle = nint.Zero;
     }
