@@ -25,31 +25,57 @@ public class MpvHandleTests
     }
 
     [Fact]
-    public async Task Seek_DoesNotThrow()
+    public void Seek_WithoutFile_ThrowsMpvException()
     {
         using var handle = new MpvHandle();
+        Assert.Throws<MpvException>(() => handle.Seek(TimeSpan.FromSeconds(15)));
+    }
 
-        // Disable video, but leave audio enabled because at least one stream must be active for mpv_seek to succeed
-        handle.SetPropertyString("vid", "no");
-        handle.LoadFile(VideoUrl);
-
-        // Wait for the file to be loaded - this should really be done with a hook
-        await Task.Delay(1000);
-
+    [Fact]
+    public async Task Seek_WithFile_DoesNotThrow()
+    {
+        using var handle = new MpvHandle();
+        await InitPlayback(handle);
         handle.Seek(TimeSpan.FromSeconds(15));
     }
 
     [Fact]
-    public void Play_DoesNotThrow()
+    public void Play_WithoutFile_DoesNotThrow()
     {
         using var handle = new MpvHandle();
         handle.Play();
     }
 
     [Fact]
-    public void Pause_DoesNotThrow()
+    public async Task Play_WithFile_DoesNotThrow()
+    {
+        using var handle = new MpvHandle();
+        await InitPlayback(handle);
+        handle.Play();
+    }
+
+    [Fact]
+    public void Pause_WithoutFile_DoesNotThrow()
     {
         using var handle = new MpvHandle();
         handle.Pause();
+    }
+
+    [Fact]
+    public async Task Pause_WithFile_DoesNotThrow()
+    {
+        using var handle = new MpvHandle();
+        await InitPlayback(handle);
+        handle.Pause();
+    }
+
+    private static async Task InitPlayback(MpvHandle handle)
+    {
+        // Disable video, but leave audio enabled because at least one stream must be active for mpv_seek to succeed
+        handle.SetPropertyString("vid", "no");
+        handle.LoadFile(VideoUrl);
+
+        // Wait for the file to be loaded - this should really be done with a hook
+        await Task.Delay(1000);
     }
 }
