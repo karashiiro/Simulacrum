@@ -91,4 +91,11 @@
         <Copy SourceFiles="@(NativeDeps)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
     </Target>
 
+    <Target Name="CopyMpv" AfterTargets="Build">
+        <ItemGroup>
+            <NativeDeps Include="..\..\lib\mpv\**\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(NativeDeps)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+    </Target>
+
 </Project>
