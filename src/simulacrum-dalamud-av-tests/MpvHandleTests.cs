@@ -24,11 +24,18 @@ public class MpvHandleTests
         handle.LoadFile(VideoUrl);
     }
 
-    [Fact(Skip = "Currently unclear how this works")]
-    public void Seek_DoesNotThrow()
+    [Fact]
+    public async Task Seek_DoesNotThrow()
     {
         using var handle = new MpvHandle();
+
+        // Disable video, but leave audio enabled because at least one stream must be active for mpv_seek to succeed
+        handle.SetPropertyString("vid", "no");
         handle.LoadFile(VideoUrl);
+
+        // Wait for the file to be loaded - this should really be done with a hook
+        await Task.Delay(1000);
+
         handle.Seek(TimeSpan.FromSeconds(15));
     }
 

@@ -63,10 +63,17 @@ public class MpvHandle : IDisposable
         MpvException.ThrowMpvError(MpvClient.Command(_handle, argPointers));
     }
 
-    public void SetOption(string name, int format, ReadOnlySpan<byte> data)
+    public void SetOption(string name, nint data)
+    {
+        Span<byte> rawData = stackalloc byte[sizeof(long)];
+        Unsafe.As<byte, long>(ref rawData[0]) = data.ToInt64();
+        SetOption(name, MpvFormat.Int64, rawData);
+    }
+
+    public void SetOption(string name, MpvFormat format, ReadOnlySpan<byte> data)
     {
         if (_handle == nint.Zero) return;
-        MpvException.ThrowMpvError(MpvClient.SetOption(_handle, name, format, data));
+        MpvException.ThrowMpvError(MpvClient.SetOption(_handle, name, (int)format, data));
     }
 
     public void SetOptionString(string name, string data)
@@ -85,10 +92,10 @@ public class MpvHandle : IDisposable
         SetPropertyString("pause", "yes");
     }
 
-    public void GetProperty(string name, int format, ref nint data)
+    public void GetProperty(string name, MpvFormat format, ref nint data)
     {
         if (_handle == nint.Zero) return;
-        MpvException.ThrowMpvError(MpvClient.GetProperty(_handle, name, format, ref data));
+        MpvException.ThrowMpvError(MpvClient.GetProperty(_handle, name, (int)format, ref data));
     }
 
     public void SetPropertyString(string name, string data)
