@@ -24,19 +24,9 @@ public class MpvRenderContext : IDisposable
         }
     }
 
-    public unsafe (int, int) GetSize()
+    public (int, int) GetSize()
     {
-        if (_context == nint.Zero) return (0, 0);
-
-        Span<int> size = stackalloc int[2];
-        fixed (int* sizePtr = size)
-        {
-            var param = new MpvRenderParam { Type = MpvRenderParamType.SoftwareSize, Data = (nint)sizePtr };
-            var result = MpvRender.GetContextInfo(_context, param);
-            MpvException.ThrowMpvError(result);
-
-            return (size[0], size[1]);
-        }
+        return (_width, _height);
     }
 
     public unsafe void ReadVideoFrame(Span<byte> buffer)
