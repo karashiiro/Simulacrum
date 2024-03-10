@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Simulacrum.AV;
@@ -16,6 +17,11 @@ public class MpvHandle : IDisposable
     public void LoadFile(string uri)
     {
         Command("loadfile", uri);
+    }
+
+    public void Seek(TimeSpan ts)
+    {
+        Command("seek", ts.TotalSeconds.ToString(CultureInfo.InvariantCulture), "absolute");
     }
 
     public unsafe void Command(params string[] args)
@@ -57,28 +63,38 @@ public class MpvHandle : IDisposable
         MpvException.ThrowMpvError(MpvClient.Command(_handle, argPointers));
     }
 
-    public void SetOption(ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data)
+    public void SetOption(string name, int format, ReadOnlySpan<byte> data)
     {
         if (_handle == nint.Zero) return;
         MpvException.ThrowMpvError(MpvClient.SetOption(_handle, name, format, data));
     }
 
-    public void SetOptionString(ReadOnlySpan<byte> name, ReadOnlySpan<byte> data)
+    public void SetOptionString(string name, string data)
     {
         if (_handle == nint.Zero) return;
         MpvException.ThrowMpvError(MpvClient.SetOptionString(_handle, name, data));
     }
 
-    public void GetProperty(ReadOnlySpan<byte> name, int format, ref nint data)
+    public void Play()
+    {
+        SetPropertyString("pause", "no");
+    }
+
+    public void Pause()
+    {
+        SetPropertyString("pause", "yes");
+    }
+
+    public void GetProperty(string name, int format, ref nint data)
     {
         if (_handle == nint.Zero) return;
         MpvException.ThrowMpvError(MpvClient.GetProperty(_handle, name, format, ref data));
     }
 
-    public void SetProperty(ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data)
+    public void SetPropertyString(string name, string data)
     {
         if (_handle == nint.Zero) return;
-        MpvException.ThrowMpvError(MpvClient.SetProperty(_handle, name, format, data));
+        MpvException.ThrowMpvError(MpvClient.SetPropertyString(_handle, name, data));
     }
 
     private void ReleaseUnmanagedResources()

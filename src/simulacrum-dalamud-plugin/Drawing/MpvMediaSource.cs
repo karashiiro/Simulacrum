@@ -29,19 +29,13 @@ public class MpvMediaSource : IMediaSource, IDisposable
         _renderContext = new MpvRenderContext(_handle, width, height);
 
         // https://github.com/mpv-player/mpv-examples/blob/master/libmpv/csharp/Form1.cs
-        _handle.SetOptionString("keep-open\0"u8, "always\0"u8);
+        _handle.SetOptionString("keep-open", "always");
 
         _handle.LoadFile(uri);
 
-        var unsubscribePause = sync.OnPause()
-            .Subscribe(_handle, static (_, mpv) => mpv.SetProperty("pause\0"u8, 1, "yes\0"u8));
-        var unsubscribePlay =
-            sync.OnPlay().Subscribe(_handle, static (_, mpv) => mpv.SetProperty("pause\0"u8, 1, "no\0"u8));
-        var unsubscribePan = sync.OnPan().Subscribe(_handle,
-            static (t, mpv) =>
-            {
-                mpv.Command("seek", t.TotalSeconds.ToString(CultureInfo.InvariantCulture), "absolute");
-            });
+        var unsubscribePause = sync.OnPause().Subscribe(_handle, static (_, mpv) => mpv.Pause());
+        var unsubscribePlay = sync.OnPlay().Subscribe(_handle, static (_, mpv) => mpv.Play());
+        var unsubscribePan = sync.OnPan().Subscribe(_handle, static (t, mpv) => mpv.Seek(t));
 
         _unsubscribeAll = Disposable.Combine(unsubscribePause, unsubscribePlay, unsubscribePan);
     }

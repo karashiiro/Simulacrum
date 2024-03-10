@@ -16,17 +16,17 @@ public static partial class MpvClient
     [LibraryImport("libmpv-2", EntryPoint = "mpv_command")]
     internal static partial int Command(nint client, ReadOnlySpan<nint> args);
 
-    [LibraryImport("libmpv-2", EntryPoint = "mpv_set_option")]
-    internal static partial int SetOption(nint client, ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data);
+    [LibraryImport("libmpv-2", EntryPoint = "mpv_set_option", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int SetOption(nint client, string name, int format, ReadOnlySpan<byte> data);
 
-    [LibraryImport("libmpv-2", EntryPoint = "mpv_set_option_string")]
-    internal static partial int SetOptionString(nint client, ReadOnlySpan<byte> name, ReadOnlySpan<byte> data);
+    [LibraryImport("libmpv-2", EntryPoint = "mpv_set_option_string", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int SetOptionString(nint client, string name, string data);
 
-    [LibraryImport("libmpv-2", EntryPoint = "mpv_get_property")]
-    internal static partial int GetProperty(nint client, ReadOnlySpan<byte> name, int format, ref nint data);
+    [LibraryImport("libmpv-2", EntryPoint = "mpv_get_property", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int GetProperty(nint client, string name, int format, ref nint data);
 
-    [LibraryImport("libmpv-2", EntryPoint = "mpv_set_property")]
-    internal static partial int SetProperty(nint client, ReadOnlySpan<byte> name, int format, ReadOnlySpan<byte> data);
+    [LibraryImport("libmpv-2", EntryPoint = "mpv_set_property_string", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int SetPropertyString(nint client, string name, string data);
 
     [LibraryImport("libmpv-2", EntryPoint = "mpv_free")]
     internal static partial void Free(nint data);
