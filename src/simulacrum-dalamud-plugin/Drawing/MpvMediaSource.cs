@@ -29,7 +29,8 @@ public class MpvMediaSource : IMediaSource, IDisposable
         _renderContext = new MpvRenderContext(_handle, width, height);
 
         // https://github.com/mpv-player/mpv-examples/blob/master/libmpv/csharp/Form1.cs
-        _handle.SetOptionString("keep-open", "always");
+        _handle.SetPropertyString("keep-open", "always");
+        _handle.SetPropertyString("video-sync", "audio");
 
         _handle.LoadFile(uri);
 

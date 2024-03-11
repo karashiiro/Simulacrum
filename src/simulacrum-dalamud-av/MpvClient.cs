@@ -28,6 +28,14 @@ public static partial class MpvClient
     [LibraryImport("libmpv-2", EntryPoint = "mpv_set_property_string", StringMarshalling = StringMarshalling.Utf8)]
     internal static partial int SetPropertyString(nint client, string name, string data);
 
+    [LibraryImport("libmpv-2", EntryPoint = "mpv_wait_event")]
+    internal static unsafe partial MpvEvent* WaitEvent(nint client, double timeoutSeconds);
+
+    [LibraryImport("libmpv-2", EntryPoint = "mpv_set_wakeup_callback")]
+    internal static partial void SetWakeupCallback(nint client, MpvWakeupCallback callback, nint ctx);
+
     [LibraryImport("libmpv-2", EntryPoint = "mpv_free")]
     internal static partial void Free(nint data);
+
+    public delegate void MpvWakeupCallback(nint ctx);
 }

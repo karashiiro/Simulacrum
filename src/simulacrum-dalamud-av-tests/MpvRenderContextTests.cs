@@ -34,12 +34,11 @@ public class MpvRenderContextTests
         await InitPlayback(handle);
 
         var buffer = new byte[Width * Height * 4];
-        var except = new byte[] { 0 };
-        Assert.Equal(-1, buffer.AsSpan().IndexOfAnyExcept(except));
+        Assert.Equal(0, buffer.Select(Convert.ToInt32).Sum());
 
         context.ReadVideoFrame(buffer);
 
-        Assert.NotEqual(-1, buffer.AsSpan().IndexOfAnyExcept(except));
+        Assert.NotEqual(0, buffer.Select(Convert.ToInt32).Sum());
     }
 
     private static async Task InitPlayback(MpvHandle handle)

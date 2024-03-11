@@ -63,10 +63,16 @@ public class MpvHandle : IDisposable
         MpvException.ThrowMpvError(MpvClient.Command(_handle, argPointers));
     }
 
-    public void SetOption(string name, nint data)
+    public void SetWakeupCallback(MpvClient.MpvWakeupCallback callback)
+    {
+        if (_handle == nint.Zero) return;
+        MpvClient.SetWakeupCallback(_handle, callback, nint.Zero);
+    }
+
+    public void SetOption(string name, long data)
     {
         Span<byte> rawData = stackalloc byte[sizeof(long)];
-        Unsafe.As<byte, long>(ref rawData[0]) = data.ToInt64();
+        Unsafe.As<byte, long>(ref rawData[0]) = data;
         SetOption(name, MpvFormat.Int64, rawData);
     }
 
