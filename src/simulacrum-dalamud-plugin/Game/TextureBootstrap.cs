@@ -37,6 +37,14 @@ public class TextureBootstrap : IDisposable
         _log = log;
     }
 
+    /// <summary>
+    /// Maps the texture for editing in the provided callback. Handles safely unmapping the
+    /// texture on completion.
+    /// </summary>
+    /// <param name="mutate">A callback in which the texture can be safely mutated.</param>
+    /// <exception cref="InvalidOperationException">
+    /// If the texture was not created with the default or dynamic usage flags.
+    /// </exception>
     public unsafe void Mutate(Action<MappedSubresource, Texture2DDesc> mutate)
     {
         var stopwatch = new Stopwatch();
@@ -56,9 +64,14 @@ public class TextureBootstrap : IDisposable
         var dxMappedSubresource = new MappedSubresource();
         SilkMarshal.ThrowHResult(dxContext->Map(dxResource, 0, Map.WriteDiscard, 0, ref dxMappedSubresource));
 
-        mutate(dxMappedSubresource, dxTextureDesc);
-
-        dxContext->Unmap(dxResource, 0);
+        try
+        {
+            mutate(dxMappedSubresource, dxTextureDesc);
+        }
+        finally
+        {
+            dxContext->Unmap(dxResource, 0);
+        }
 
         TextureMutateDuration?.Observe(stopwatch.Elapsed.TotalMilliseconds);
     }
