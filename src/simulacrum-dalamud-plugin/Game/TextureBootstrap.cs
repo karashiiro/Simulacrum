@@ -47,8 +47,7 @@ public class TextureBootstrap : IDisposable
     /// </exception>
     public unsafe void Mutate(Action<MappedSubresource, Texture2DDesc> mutate)
     {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
+        var stopwatch = Stopwatch.StartNew();
 
         var dxContext = (ID3D11DeviceContext*)Device.Instance()->D3D11DeviceContext;
         var dxTexture = (ID3D11Texture2D*)_apricotTexture->Texture->D3D11Texture2D;

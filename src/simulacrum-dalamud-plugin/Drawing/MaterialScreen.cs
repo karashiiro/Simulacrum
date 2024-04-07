@@ -33,8 +33,7 @@ public class MaterialScreen : IScreen, IDisposable
         _textureFactory = textureFactory;
         _ui = ui;
         _location = location;
-        _stopwatch = new Stopwatch();
-        _stopwatch.Start();
+        _stopwatch = Stopwatch.StartNew();
 
         // TODO: This works because it's called on IDXGISwapChain::Present, that should be hooked instead of rendering mid-imgui
         // TODO: Seriously do something other than this, it pauses playback when pressing Scroll Lock because that makes Dalamud stop calling this
