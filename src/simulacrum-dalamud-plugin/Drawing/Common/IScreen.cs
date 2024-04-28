@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using Simulacrum.Game;
+﻿using Simulacrum.Game;
 
 namespace Simulacrum.Drawing.Common;
 

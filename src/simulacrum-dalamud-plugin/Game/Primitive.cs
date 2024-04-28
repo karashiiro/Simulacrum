@@ -1,7 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Hooking;
-using Dalamud.Logging;
 using Dalamud.Plugin.Services;
 using static Simulacrum.Game.GameFunctions;
 

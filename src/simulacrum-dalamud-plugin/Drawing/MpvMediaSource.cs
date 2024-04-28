@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using R3;
 using Simulacrum.AV;
 using Simulacrum.Drawing.Common;
