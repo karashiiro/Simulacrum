@@ -41,6 +41,33 @@ public class MpvRenderContextTests
         Assert.NotEqual(0, buffer.Select(Convert.ToInt32).Sum());
     }
 
+    [Fact]
+    public async Task WinFormsTest()
+    {
+        using var handle = new MpvHandle();
+        using var context = new MpvRenderContext(handle, Width, Height);
+
+        using var form = new Form();
+
+        using var pictureBox = new PictureBox();
+        pictureBox.Size = new Size(514, 333);
+
+        form.Controls.Add(pictureBox);
+        form.Visible = true;
+        form.ClientSize = new Size(534, 411);
+        
+        using var ctx = new ApplicationContext(form);
+
+        // ReSharper disable once AccessToDisposedClosure
+        var thread = new Thread(() => Application.Run(ctx));
+        thread.Start();
+
+        handle.SetOption("wid", pictureBox.Handle.ToInt64());
+        await InitPlayback(handle);
+
+        ctx.ExitThread();
+    }
+
     private static async Task InitPlayback(MpvHandle handle)
     {
         // Disable audio, but leave video enabled
