@@ -40,5 +40,5 @@ jobs:
       - name: 'Using: actions/upload-artifact@v3'
         uses: actions/upload-artifact@v3
         with:
-          path: src/simulacrum-dalamud-plugin/bin/Release/net7.0-windows/Simulacrum/*
+          path: src/simulacrum-dalamud-plugin/bin/Release/net8.0-windows/Simulacrum/*
           if-no-files-found: error
