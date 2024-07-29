@@ -32,7 +32,7 @@
     "@typedorm/core": "^1.15.4",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "ws": "^8.17.1"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@aws-sdk/types": "^3.489.0",
