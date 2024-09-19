@@ -5,7 +5,6 @@ using System.Text.Json;
 using Dalamud.Game;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
-using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
@@ -33,7 +32,7 @@ public class Simulacrum : IDalamudPlugin
     private readonly ICommandManager _commandManager;
     private readonly IPluginLog _log;
     private readonly CustomizationWindow _customizationWindow;
-    private readonly DalamudPluginInterface _pluginInterface;
+    private readonly IDalamudPluginInterface _pluginInterface;
     private readonly MediaSourceManager _mediaSources;
     private readonly PlaybackTrackerManager _playbackTrackers;
     private readonly PluginConfiguration _config;
@@ -52,13 +51,13 @@ public class Simulacrum : IDalamudPlugin
     private DisposableBag _hostctlBag;
 
     public Simulacrum(
-        [RequiredVersion("1.0")] IClientState clientState,
-        [RequiredVersion("1.0")] ICommandManager commandManager,
-        [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
-        [RequiredVersion("1.0")] IFramework framework,
-        [RequiredVersion("1.0")] ISigScanner sigScanner,
-        [RequiredVersion("1.0")] IGameInteropProvider gameInteropProvider,
-        [RequiredVersion("1.0")] IPluginLog log)
+        IClientState clientState,
+        ICommandManager commandManager,
+        IDalamudPluginInterface pluginInterface,
+        IFramework framework,
+        ISigScanner sigScanner,
+        IGameInteropProvider gameInteropProvider,
+        IPluginLog log)
     {
         _log = log;
 

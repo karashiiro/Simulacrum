@@ -8,9 +8,9 @@ public class PluginConfiguration : IPluginConfiguration
 {
     public int Version { get; set; }
 
-    [JsonIgnore] private DalamudPluginInterface? _pluginInterface;
+    [JsonIgnore] private IDalamudPluginInterface? _pluginInterface;
 
-    public void Initialize(DalamudPluginInterface pluginInterface)
+    public void Initialize(IDalamudPluginInterface pluginInterface)
     {
         _pluginInterface = pluginInterface;
     }

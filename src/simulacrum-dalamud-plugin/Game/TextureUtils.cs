@@ -20,7 +20,6 @@ public static class TextureUtils
         var dxShader = new ShaderResourceViewDesc();
         dxShaderView->GetDesc(ref dxShader);
         log.Debug($"Texture ({(nint)texture:X}):\n" +
-                  $"  vtbl: {(nint)texture->vtbl:X}\n" +
                   $"  Width: {texture->Width}\n" +
                   $"  Height: {texture->Height}\n" +
                   $"  Depth: {texture->Depth}\n" +

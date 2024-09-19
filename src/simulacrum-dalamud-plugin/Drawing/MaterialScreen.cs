@@ -9,7 +9,7 @@ namespace Simulacrum.Drawing;
 public class MaterialScreen : IScreen, IDisposable
 {
     private readonly TextureFactory _textureFactory;
-    private readonly UiBuilder _ui;
+    private readonly IUiBuilder _ui;
     private readonly Location _location;
     private readonly Stopwatch _stopwatch;
     private readonly IPluginLog _log;
@@ -25,7 +25,7 @@ public class MaterialScreen : IScreen, IDisposable
 
     public GameTextureWrap? ImGuiTextureWrap => _texture != null ? new(_texture.TexturePointer) : null;
 
-    public MaterialScreen(TextureFactory textureFactory, UiBuilder ui, Location location, IPluginLog log)
+    public MaterialScreen(TextureFactory textureFactory, IUiBuilder ui, Location location, IPluginLog log)
     {
         _buffer = Array.Empty<byte>();
 
