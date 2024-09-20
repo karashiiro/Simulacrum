@@ -30,5 +30,5 @@ public class GameFunctions
     public delegate nint KernelDeviceCreateVertexDeclaration(nint thisPtr, nint unk1, uint unk2);
 
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    public delegate nint KernelEnd(nint thisPtr, nint unk1);
+    public delegate nint EnvironmentManagerUpdate(nint thisPtr, nint unk1);
 }

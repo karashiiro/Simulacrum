@@ -69,27 +69,27 @@ public class PrimitiveDebug : Primitive, IDisposable
             throw new InvalidOperationException("Buffer size mismatch.");
         }
 
-        elements[0] = new()
+        elements[0] = new InputElement
         {
             Slot = 0,
             Offset = 0x00,
-            Format = 0x23,
+            Format = 0x13,
             Semantic = 0x00,
         };
 
-        elements[1] = new()
+        elements[1] = new InputElement
         {
             Slot = 0,
             Offset = 0x0C,
-            Format = 0x44,
+            Format = 0x24,
             Semantic = 0x03,
         };
 
-        elements[2] = new()
+        elements[2] = new InputElement
         {
             Slot = 0,
             Offset = 0x10,
-            Format = 0x22,
+            Format = 0x12,
             Semantic = 0x08,
         };
     }

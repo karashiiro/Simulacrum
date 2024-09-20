@@ -64,7 +64,7 @@ public static class ModuleInitializer
         assemblyLoadContext.Unloading += _ => { nativeLibraries.ForEach(NativeLibrary.Free); };
     }
 
-    private static void LoadLibrary(ICollection<nint> handles, string assemblyName)
+    private static void LoadLibrary(List<nint> handles, string assemblyName)
     {
         var handle = NativeLibrary.Load(
             ResolvePath(assemblyName),
@@ -73,10 +73,11 @@ public static class ModuleInitializer
         handles.Add(handle);
     }
 
-    private static string ResolvePath(string assemblyPath)
+    private static string ResolvePath(string assemblyName)
     {
-        var location = Assembly.GetCallingAssembly().Location;
-        var targetLocation = Path.Join(location, "..", assemblyPath);
+        // TODO: This used to use Assembly.Location but that's no longer usable from plugins, we need some other solution here
+        var buildOutputDir = "";
+        var targetLocation = Path.Join(buildOutputDir, assemblyName);
         return targetLocation;
     }
 }

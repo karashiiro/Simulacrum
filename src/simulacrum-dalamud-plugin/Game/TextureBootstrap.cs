@@ -79,7 +79,7 @@ public class TextureBootstrap : IDisposable
     {
         // TODO: Clean up this signature
         var addr = _sigScanner.ScanText(
-            "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 40 48 8b f2 41 8b e8 45 33 c0 33 ff 44");
+            "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 40 48 8B FA 41 8B F0 45 33 C0 45 33 C9 44 88 44 24 ?? 33 D2 4C 89 44 24 ?? 48 8B CF C7 44 24 ?? ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 74 ?? 8D 46");
         var easyCreate = Marshal.GetDelegateForFunctionPointer<CreateApricotTextureFromTex>(addr);
         _log.Info($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr - _sigScanner.Module.BaseAddress:X}");
 
@@ -106,7 +106,10 @@ public class TextureBootstrap : IDisposable
             throw new InvalidOperationException("Failed to read stream data.");
         }
 
+        _log.Info($"Creating texture with file at {texPtr:X}");
         var apricotTexture = await CreateTexture(easyCreate, texPtr, tex.Length, cancellationToken);
+
+        _log.Info($"Successfully created texture {apricotTexture:X} with file at {texPtr:X}, overwriting parameters");
         unsafe
         {
             _apricotTexture = (ApricotTexture*)apricotTexture;
@@ -151,6 +154,8 @@ public class TextureBootstrap : IDisposable
             dxTexture->Release();
             dxShaderView->Release();
         }
+
+        _log.Info($"Successfully configured texture {apricotTexture:X}");
     }
 
     private async Task<nint> CreateTexture(

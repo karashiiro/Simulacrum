@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.WebSockets;
+using System.Text;
 using System.Text.Json;
 using R3;
 
@@ -91,12 +92,24 @@ public class HostctlClient : IDisposable
 
     private void ReceiveEvent(Span<byte> buf)
     {
-        var eventWrapper = JsonSerializer.Deserialize<HostctlEventWrapper>(buf);
-        if (eventWrapper is null)
+        try
         {
-            throw new InvalidOperationException("The event was null.");
-        }
+            var eventWrapper = JsonSerializer.Deserialize<HostctlEventWrapper>(buf);
+            if (eventWrapper is null)
+            {
+                throw new InvalidOperationException("The event was null.");
+            }
 
+            ReceiveEventCore(eventWrapper);
+        }
+        catch (JsonException e)
+        {
+            _logError(e, $"Failed to parse event. Raw content: \"{Encoding.UTF8.GetString(buf)}\"");
+        }
+    }
+
+    private void ReceiveEventCore(HostctlEventWrapper eventWrapper)
+    {
         var @event = HostctlEventWrapper.UnwrapResponse(eventWrapper);
         if (@event is null)
         {

@@ -6,11 +6,11 @@ using static Simulacrum.Game.GameFunctions;
 
 namespace Simulacrum.Game;
 
-public abstract class Primitive
+public abstract class Primitive(ISigScanner sigScanner, IGameInteropProvider gameInteropProvider, IPluginLog log)
 {
-    protected readonly ISigScanner Scanner;
-    protected readonly IGameInteropProvider GameInteropProvider;
-    protected readonly IPluginLog Log;
+    protected readonly ISigScanner Scanner = sigScanner;
+    protected readonly IGameInteropProvider GameInteropProvider = gameInteropProvider;
+    protected readonly IPluginLog Log = log;
 
     protected nint PrimitiveServer;
     protected nint PrimitiveContext;
@@ -23,49 +23,43 @@ public abstract class Primitive
     protected PrimitiveServerRender? CallPrimitiveServerRender;
     protected PrimitiveContextDrawCommand? CallPrimitiveContextDrawCommand;
     protected KernelDeviceCreateVertexDeclaration? CallKernelDeviceCreateVertexDeclaration;
-    protected KernelEnd? CallKernelEnd;
-    protected nint KernelEndFunc;
-
-    protected Primitive(ISigScanner sigScanner, IGameInteropProvider gameInteropProvider, IPluginLog log)
-    {
-        Scanner = sigScanner;
-        GameInteropProvider = gameInteropProvider;
-        Log = log;
-    }
+    protected EnvironmentManagerUpdate? CallEnvironmentManagerUpdate;
+    protected nint EnvironmentManagerUpdate;
 
     public virtual void Initialize()
     {
         CallPrimitiveServerCtor =
-            ScanFunc<PrimitiveServerCtor>("48 8d 05 ?? ?? ?? 01 48 c7 41 50 ff ff ff ff 48 89 01 33 c0 48 89 41 08");
+            ScanFunc<PrimitiveServerCtor>("E8 ?? ?? ?? ?? 48 89 47 ?? 48 85 C0 74 ?? 48 8D 4D");
         CallPrimitiveServerInitialize = ScanFunc<PrimitiveServerInitialize>(
-            "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 ec 40 48 8b bc 24 b0 00 00 00 44 8b ea");
+            "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 45 33 C0 33 D2 B9 C8 00 00 00");
         CallPrimitiveServerLoadResource =
-            ScanFunc<PrimitiveServerLoadResource>("E8 ?? ?? FF FF 84 C0 75 08 32 C0 48 83 C4 20 5B C3 48 8B 4B 10");
+            ScanFunc<PrimitiveServerLoadResource>("E8 ?? ?? ?? ?? 84 C0 74 ?? 48 8B 4B ?? 48 85 C9 74 ?? E8 ?? ?? ?? ?? 84 C0");
         CallPrimitiveServerBegin =
-            ScanFunc<PrimitiveServerBegin>("48 89 5c 24 08 57 48 83 ec 20 33 ff 48 8b d9 48 89 b9 90 00 00 00");
+            ScanFunc<PrimitiveServerBegin>("48 89 5C 24 ?? 57 48 83 EC 20 33 FF 48 8B D9 48 89 B9 ?? ?? ?? ?? 45 33 C0");
         CallPrimitiveServerSpursSortUnencumbered =
             ScanFunc<PrimitiveServerSpursSortUnencumbered>("40 53 48 83 ec 20 48 8b d9 48 8b 49 30 e8 ?? ?? ?? 00");
         CallPrimitiveServerRender =
             ScanFunc<PrimitiveServerRender>(
-                "48 89 5c 24 10 48 89 6c 24 18 48 89 74 24 20 57 48 81 ec a0 00 00 00 48 8b 05 ?? ?? ?? ?? 48 33 c4 48 89 84 24 90 00 00 00 65 48 8b 04 25 58 00 00 00");
+                "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 81 EC A0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 65 48 8B 04 25");
         CallPrimitiveContextDrawCommand =
             ScanFunc<PrimitiveContextDrawCommand>(
-                "48 89 5C 24 10 48 89 6C 24 18 48 89 7C 24 20 41 56 48 83 EC ?? 41 8B E8");
+                "E8 ?? ?? ?? ?? 4C 8B C0 48 85 C0 0F 84 ?? ?? ?? ?? F3 0F 10 4B");
         CallKernelDeviceCreateVertexDeclaration =
             ScanFunc<KernelDeviceCreateVertexDeclaration>(
                 "E8 ?? ?? ?? 00 49 8B 8D 80 01 00 00 48 89 04 0E 49 8B 85 80 01 00 00");
 
-        KernelEndFunc =
+        EnvironmentManagerUpdate =
             Scanner.ScanText(
                 "?? ?? ?? ?? ?? ?? ?? 57 41 54 41 57 48 8D AC ?? ?? ?? FF FF 48 81 EC ?? ?? 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 ?? ?? 00 00 F3 0F");
     }
 
     public IDisposable Subscribe(Action fn)
     {
-        Hook<KernelEnd>? hook = null;
+        Hook<EnvironmentManagerUpdate>? hook = null;
 
-        hook = GameInteropProvider.HookFromAddress<KernelEnd>(KernelEndFunc, (thisPtr, unk1) =>
+        hook = GameInteropProvider.HookFromAddress<EnvironmentManagerUpdate>(EnvironmentManagerUpdate, (thisPtr, unk1) =>
         {
+            Log.Info("Hit");
             // ReSharper disable once AccessToModifiedClosure
             var ret = hook!.Original(thisPtr, unk1);
 
@@ -88,7 +82,7 @@ public abstract class Primitive
 
         hook.Enable();
 
-        return new HookSubscription<KernelEnd>(hook);
+        return new HookSubscription<EnvironmentManagerUpdate>(hook);
     }
 
     public IPrimitiveContext GetContext()

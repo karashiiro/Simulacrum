@@ -19,7 +19,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="DalamudPackager" Version="2.1.12" />
+        <PackageReference Include="DalamudPackager" Version="2.1.13" />
         <PackageReference Include="NAudio" Version="2.2.1" />
         <PackageReference Condition="'$(Configuration)'=='Debug'" Include="prometheus-net" Version="8.0.1" />
         <PackageReference Include="R3" Version="1.0.1" />
