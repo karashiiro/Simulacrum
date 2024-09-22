@@ -293,7 +293,7 @@ public class Simulacrum : IDalamudPlugin
                 var vertexPtr = context.DrawCommand(0x21, 4, 5, screen.MaterialPointer);
                 if (vertexPtr == nint.Zero)
                 {
-                    _log.Debug("Received null vertex buffer from draw command");
+                    _log.Warning("Received null vertex buffer from draw command");
                     return;
                 }
 

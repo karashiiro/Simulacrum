@@ -86,8 +86,7 @@ public abstract class Primitive(ISigScanner sigScanner, IGameInteropProvider gam
     public IPrimitiveContext GetContext()
     {
         ArgumentNullException.ThrowIfNull(CallPrimitiveContextDrawCommand);
-        Log.Debug("Creating new UnmanagedPrimitiveContext");
-        return new UnmanagedPrimitiveContext(PrimitiveContext, CallPrimitiveContextDrawCommand, Log);
+        return new UnmanagedPrimitiveContext(PrimitiveContext, CallPrimitiveContextDrawCommand);
     }
 
     private void Begin()

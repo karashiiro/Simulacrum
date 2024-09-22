@@ -19,7 +19,7 @@ public static class TextureUtils
         dxTexture->GetType(ref dxResource);
         var dxShader = new ShaderResourceViewDesc();
         dxShaderView->GetDesc(ref dxShader);
-        log.Debug($"Texture ({(nint)texture:X}):\n" +
+        log.Info($"Texture ({(nint)texture:X}):\n" +
                   $"  Width: {texture->Width}\n" +
                   $"  Height: {texture->Height}\n" +
                   $"  Depth: {texture->Depth}\n" +
