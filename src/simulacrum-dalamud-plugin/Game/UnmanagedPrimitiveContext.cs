@@ -1,20 +1,13 @@
-﻿using static Simulacrum.Game.GameFunctions;
+﻿using Dalamud.Plugin.Services;
+using static Simulacrum.Game.GameFunctions;
 
 namespace Simulacrum.Game;
 
-public class UnmanagedPrimitiveContext : IPrimitiveContext
+public class UnmanagedPrimitiveContext(nint data, PrimitiveContextDrawCommand drawCommand, IPluginLog log) : IPrimitiveContext
 {
-    private readonly nint _data;
-    private readonly PrimitiveContextDrawCommand _drawCommand;
-
-    public UnmanagedPrimitiveContext(nint data, PrimitiveContextDrawCommand drawCommand)
+    public nint DrawCommand(ulong commandType, uint vertices, uint priority, nint material)
     {
-        _data = data;
-        _drawCommand = drawCommand;
-    }
-
-    public IntPtr DrawCommand(ulong commandType, uint vertices, uint priority, IntPtr material)
-    {
-        return _drawCommand(_data, commandType, vertices, priority, material);
+        log.Debug("Drawing primitive {primitiveType} with priority {priority}", commandType, priority);
+        return drawCommand(data, commandType, vertices, priority, material);
     }
 }

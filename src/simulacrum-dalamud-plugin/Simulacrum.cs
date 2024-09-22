@@ -282,8 +282,9 @@ public class Simulacrum : IDalamudPlugin
             _customizationWindow.WorldPosition = _clientState.LocalPlayer.Position;
 
             // TODO: Add safety checks
+            // TODO: Add housing area info to location checks
             foreach (var screen in _materialScreens.Screens
-                         .Where(s => s.MaterialPointer != nint.Zero)
+                         .Where(static s => s.MaterialPointer != nint.Zero)
                          .Where(s => s.GetLocation().World == _clientState.LocalPlayer.CurrentWorld.Id)
                          .Where(s => s.GetLocation().Territory == _clientState.TerritoryType))
             {
@@ -292,6 +293,7 @@ public class Simulacrum : IDalamudPlugin
                 var vertexPtr = context.DrawCommand(0x21, 4, 5, screen.MaterialPointer);
                 if (vertexPtr == nint.Zero)
                 {
+                    _log.Debug("Received null vertex buffer from draw command");
                     return;
                 }
 
@@ -307,25 +309,25 @@ public class Simulacrum : IDalamudPlugin
                 {
                     _ = new Span<Vertex>((void*)vertexPtr, 4)
                     {
-                        [0] = new()
+                        [0] = new Vertex
                         {
                             Position = position + translation + Vector3.UnitY * dimensions * scale,
                             Color = color,
                             UV = UV.FromUV(0, 0),
                         },
-                        [1] = new()
+                        [1] = new Vertex
                         {
                             Position = position + translation,
                             Color = color,
                             UV = UV.FromUV(0, 1),
                         },
-                        [2] = new()
+                        [2] = new Vertex
                         {
                             Position = position + translation + dimensions * scale,
                             Color = color,
                             UV = UV.FromUV(1, 0),
                         },
-                        [3] = new()
+                        [3] = new Vertex
                         {
                             Position = position + translation + Vector3.UnitX * dimensions * scale,
                             Color = color,
