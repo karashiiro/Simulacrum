@@ -49,8 +49,7 @@ public abstract class Primitive(ISigScanner sigScanner, IGameInteropProvider gam
                 "E8 ?? ?? ?? 00 49 8B 8D 80 01 00 00 48 89 04 0E 49 8B 85 80 01 00 00");
 
         EnvironmentManagerUpdate =
-            Scanner.ScanText(
-                "?? ?? ?? ?? ?? ?? ?? 57 41 54 41 57 48 8D AC ?? ?? ?? FF FF 48 81 EC ?? ?? 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 ?? ?? 00 00 F3 0F");
+            Scanner.ScanText("48 89 5C 24 ?? 55 56 57 41 55 41 56 48 8D AC 24 ?? ?? ?? ?? 48 81 EC C0 04 00 00");
     }
 
     public IDisposable Subscribe(Action fn)
@@ -59,7 +58,6 @@ public abstract class Primitive(ISigScanner sigScanner, IGameInteropProvider gam
 
         hook = GameInteropProvider.HookFromAddress<EnvironmentManagerUpdate>(EnvironmentManagerUpdate, (thisPtr, unk1) =>
         {
-            Log.Info("Hit");
             // ReSharper disable once AccessToModifiedClosure
             var ret = hook!.Original(thisPtr, unk1);
 
