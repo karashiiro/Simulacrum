@@ -11,14 +11,10 @@ using Simulacrum.Monitoring;
 
 namespace Simulacrum.Game;
 
-public class TextureBootstrap : IDisposable
+public class TextureBootstrap(ISigScanner sigScanner, IFramework framework, IPluginLog log) : IDisposable
 {
     private static readonly IHistogram? TextureMutateDuration =
         DebugMetrics.CreateHistogram("simulacrum_texture_mutate_duration", "The DX11 texture mutation duration (ms).");
-
-    private readonly ISigScanner _sigScanner;
-    private readonly IFramework _framework;
-    private readonly IPluginLog _log;
 
     private unsafe ApricotTexture* _apricotTexture;
 
@@ -29,13 +25,6 @@ public class TextureBootstrap : IDisposable
     public unsafe nint TexturePointer => _apricotTexture != null
         ? (nint)_apricotTexture->Texture
         : nint.Zero;
-
-    public TextureBootstrap(ISigScanner sigScanner, IFramework framework, IPluginLog log)
-    {
-        _sigScanner = sigScanner;
-        _framework = framework;
-        _log = log;
-    }
 
     /// <summary>
     /// Maps the texture for editing in the provided callback. Handles safely unmapping the
@@ -78,10 +67,10 @@ public class TextureBootstrap : IDisposable
     public async Task Initialize(int width, int height, CancellationToken cancellationToken)
     {
         // TODO: Clean up this signature
-        var addr = _sigScanner.ScanText(
+        var addr = sigScanner.ScanText(
             "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 40 48 8B FA 41 8B F0 45 33 C0 45 33 C9 44 88 44 24 ?? 33 D2 4C 89 44 24 ?? 48 8B CF C7 44 24 ?? ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 74 ?? 8D 46");
         var easyCreate = Marshal.GetDelegateForFunctionPointer<CreateApricotTextureFromTex>(addr);
-        _log.Info($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr - _sigScanner.Module.BaseAddress:X}");
+        log.Info($"CreateApricotTextureFromTex: ffxiv_dx11.exe+{addr - sigScanner.Module.BaseAddress:X}");
 
         await using var texFile =
             Assembly.GetExecutingAssembly().GetManifestResourceStream("Simulacrum.bootstrap_rgba.tex") ??
@@ -106,15 +95,15 @@ public class TextureBootstrap : IDisposable
             throw new InvalidOperationException("Failed to read stream data.");
         }
 
-        _log.Info($"Creating texture with file at {texPtr:X}");
+        log.Info($"Creating texture with file at {texPtr:X}");
         var apricotTexture = await CreateTexture(easyCreate, texPtr, tex.Length, cancellationToken);
 
-        _log.Info($"Successfully created texture {apricotTexture:X} with file at {texPtr:X}, overwriting parameters");
+        log.Info($"Successfully created texture {apricotTexture:X} with file at {texPtr:X}, overwriting parameters");
         unsafe
         {
             _apricotTexture = (ApricotTexture*)apricotTexture;
 
-            TextureUtils.DescribeTexture(_log, _apricotTexture->Texture);
+            TextureUtils.DescribeTexture(log, _apricotTexture->Texture);
 
             // Swap the texture for a mutable one
             var dxDevice = (ID3D11Device*)Device.Instance()->D3D11Forwarder;
@@ -148,14 +137,14 @@ public class TextureBootstrap : IDisposable
             _apricotTexture->Texture->MipLevel = Convert.ToByte(dxTextureDesc.MipLevels);
             _apricotTexture->Texture->D3D11Texture2D = dxNewTexture;
             _apricotTexture->Texture->D3D11ShaderResourceView = dxNewShaderView;
-            TextureUtils.DescribeTexture(_log, _apricotTexture->Texture);
+            TextureUtils.DescribeTexture(log, _apricotTexture->Texture);
 
             // Release the original resources
             dxTexture->Release();
             dxShaderView->Release();
         }
 
-        _log.Info($"Successfully configured texture {apricotTexture:X}");
+        log.Info($"Successfully configured texture {apricotTexture:X}");
     }
 
     private async Task<nint> CreateTexture(
@@ -164,13 +153,13 @@ public class TextureBootstrap : IDisposable
         int texLength,
         CancellationToken cancellationToken)
     {
-        var apricotTexture = await _framework.RunOnFrameworkThread(() => easyCreate(nint.Zero, texPtr, texLength));
+        var apricotTexture = await framework.RunOnFrameworkThread(() => easyCreate(nint.Zero, texPtr, texLength));
 
         // If the graphics subsystem hasn't been initialized yet, easyCreate will return a null pointer.
         while (apricotTexture == nint.Zero)
         {
             await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
-            apricotTexture = await _framework.RunOnFrameworkThread(() => easyCreate(nint.Zero, texPtr, texLength));
+            apricotTexture = await framework.RunOnFrameworkThread(() => easyCreate(nint.Zero, texPtr, texLength));
         }
 
         return apricotTexture;
